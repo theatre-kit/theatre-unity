@@ -27,9 +27,11 @@ namespace Theatre.Transport
         public JsonRpcError Error { get; set; }
 
         /// <summary>True if this message has an id (request or response).</summary>
+        [JsonIgnore]
         public bool IsRequest => Id != null && Method != null;
 
         /// <summary>True if this is a notification (method but no id).</summary>
+        [JsonIgnore]
         public bool IsNotification => Id == null && Method != null;
     }
 
