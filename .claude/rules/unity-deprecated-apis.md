@@ -22,6 +22,7 @@ Never use the APIs in the left column. Always use the replacement in the right c
 | `Object.FindObjectOfType<T>()` | `Object.FindFirstObjectByType<T>()` or `Object.FindAnyObjectByType<T>()` |
 | `Object.FindObjectsOfType(Type)` | `Object.FindObjectsByType(Type, FindObjectsSortMode.None)` |
 | `Object.FindObjectOfType(Type)` | `Object.FindAnyObjectByType(Type)` |
+| `Object.GetInstanceID()` | `Object.GetEntityId()` (Unity 6.4+) |
 
 ## Newtonsoft Serialization Gotchas
 

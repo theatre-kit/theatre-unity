@@ -270,7 +270,7 @@ namespace Theatre.Tests.Editor
         public void Resolve_ByInstanceId_FindsObject()
         {
             var result = ObjectResolver.Resolve(
-                instanceId: _testObject.GetInstanceID());
+                instanceId: _testObject.GetEntityId());
             Assert.IsTrue(result.Success);
             Assert.AreEqual(_testObject, result.GameObject);
         }

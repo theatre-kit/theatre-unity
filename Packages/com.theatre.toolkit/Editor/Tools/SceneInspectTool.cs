@@ -132,7 +132,7 @@ namespace Theatre.Editor
 
             // Object identity
             response["path"] = ResponseHelpers.GetHierarchyPath(transform);
-            response["instance_id"] = go.GetInstanceID();
+            response["instance_id"] = go.GetEntityId();
 
             // GameObject metadata
             response["tag"] = go.tag;
@@ -157,7 +157,7 @@ namespace Theatre.Editor
                 var child = transform.GetChild(i);
                 var childObj = new JObject();
                 childObj["path"] = ResponseHelpers.GetHierarchyPath(child);
-                childObj["instance_id"] = child.gameObject.GetInstanceID();
+                childObj["instance_id"] = child.gameObject.GetEntityId();
                 childObj["children_count"] = child.childCount;
                 childrenArray.Add(childObj);
             }

@@ -304,7 +304,7 @@ namespace Theatre.Editor
 
             var result = new JObject();
             result["path"] = ResponseHelpers.GetHierarchyPath(t);
-            result["instance_id"] = go.GetInstanceID();
+            result["instance_id"] = go.GetEntityId();
             result["name"] = go.name;
             result["scene"] = go.scene.name;
             result["position"] = ResponseHelpers.ToJArray(t.position);
@@ -316,7 +316,7 @@ namespace Theatre.Editor
             {
                 var parent = new JObject();
                 parent["path"] = ResponseHelpers.GetHierarchyPath(t.parent);
-                parent["instance_id"] = t.parent.gameObject.GetInstanceID();
+                parent["instance_id"] = t.parent.gameObject.GetEntityId();
                 result["parent"] = parent;
             }
 

@@ -227,7 +227,7 @@ namespace Theatre.Stage
             return new HierarchyEntry
             {
                 Path = ResponseHelpers.GetHierarchyPath(t),
-                InstanceId = t.gameObject.GetInstanceID(),
+                InstanceId = t.gameObject.GetEntityId(),
                 Name = t.name,
                 ChildrenCount = t.childCount,
                 Active = t.gameObject.activeInHierarchy,
