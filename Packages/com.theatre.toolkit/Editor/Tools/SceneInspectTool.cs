@@ -5,7 +5,6 @@ using Newtonsoft.Json.Linq;
 using Theatre.Stage;
 using Theatre.Transport;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace Theatre.Editor
 {
