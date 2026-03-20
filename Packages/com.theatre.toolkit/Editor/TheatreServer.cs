@@ -147,6 +147,9 @@ namespace Theatre.Editor
         private static void RegisterBuiltInTools(ToolRegistry registry)
         {
             TheatreStatusTool.Register(registry);
+            SceneSnapshotTool.Register(registry);
+            SceneHierarchyTool.Register(registry);
+            SceneInspectTool.Register(registry);
         }
 
         // --- Route Handlers ---
