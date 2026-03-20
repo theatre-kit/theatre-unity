@@ -3,6 +3,8 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.TestTools;
 using Theatre.Transport;
 
 namespace Theatre.Tests.Editor
@@ -70,6 +72,9 @@ namespace Theatre.Tests.Editor
             {
                 throw new InvalidOperationException("test error");
             });
+
+            LogAssert.Expect(LogType.Exception,
+                "InvalidOperationException: test error");
 
             using var client = new HttpClient();
             var response = await client.GetAsync($"http://localhost:{TestPort}/");

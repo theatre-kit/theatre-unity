@@ -179,8 +179,9 @@ namespace Theatre.Tests.Editor
             };
 
             var response = await PostMcp(initRequest);
-            return response.Headers.GetValues("Mcp-Session-Id")
-                .GetEnumerator().Current?.ToString();
+            var enumerator = response.Headers.GetValues("Mcp-Session-Id").GetEnumerator();
+            enumerator.MoveNext();
+            return enumerator.Current;
         }
 
         private async Task<HttpResponseMessage> PostMcp(
