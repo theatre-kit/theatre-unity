@@ -1,0 +1,14 @@
+{
+  "name": "com.theatre.toolkit",
+  "version": "0.0.1",
+  "displayName": "Theatre",
+  "description": "AI agent toolkit for Unity — spatial awareness and programmatic control via MCP.",
+  "unity": "6000.0",
+  "author": {
+    "name": "Theatre",
+    "url": "https://github.com/theatre-kit/theatre-unity"
+  },
+  "license": "MIT",
+  "keywords": ["ai", "mcp", "agent", "spatial", "debug"],
+  "dependencies": {}
+}

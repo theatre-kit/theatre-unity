@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "com.theatre.toolkit": "file:../../Packages/com.theatre.toolkit"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "com.theatre.toolkit.editor",
+  "rootNamespace": "Theatre.Editor",
+  "references": ["com.theatre.toolkit.runtime"],
+  "includePlatforms": ["Editor"],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
