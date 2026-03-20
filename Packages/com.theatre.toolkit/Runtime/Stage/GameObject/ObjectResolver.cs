@@ -79,16 +79,13 @@ namespace Theatre.Stage
         /// </summary>
         private static ResolveResult ResolveByInstanceId(int instanceId)
         {
-            var obj = UnityEngine.Object.FindObjectFromInstanceID(instanceId)
-                as GameObject;
-            if (obj == null)
-            {
-                // Could be a component instance id — try to find it
-                var component = UnityEngine.Object.FindObjectFromInstanceID(instanceId)
-                    as Component;
-                if (component != null)
-                    obj = component.gameObject;
-            }
+            GameObject obj = null;
+#if UNITY_EDITOR
+            var found = UnityEditor.EditorUtility.InstanceIDToObject(instanceId);
+            obj = found as GameObject;
+            if (obj == null && found is Component comp)
+                obj = comp.gameObject;
+#endif
 
             if (obj == null)
             {
