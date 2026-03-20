@@ -41,6 +41,14 @@ Never use the APIs in the left column. Always use the replacement in the right c
 | `PrefabStageUtility.GetCurrentPrefabStage()` | Editor-only — must be behind `#if UNITY_EDITOR` if called from Runtime |
 | `SerializedObject` / `SerializedProperty` | Editor-only — can only be used in Editor assembly files |
 
+## Test Assembly Rules
+
+| Rule | Detail |
+|---|---|
+| `testables` in project manifest | Required for local (`file:`) packages: `"testables": ["com.theatre.toolkit"]` |
+| `overrideReferences: true` | Test asmdefs only see DLLs listed in `precompiledReferences` — transitive deps don't come through |
+| `precompiledReferences` must include | `"nunit.framework.dll"` AND `"Newtonsoft.Json.dll"` (if tests use Newtonsoft) |
+
 ## Main-Thread-Only APIs (throw UnityException from background threads)
 
 These APIs are valid but MUST only be called from the main thread.
