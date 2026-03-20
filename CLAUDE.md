@@ -42,10 +42,17 @@ docs/                         — Foundation design docs
 TestProject/                  — Unity 6 test harness project
 ```
 
+## Unity Installation
+
+Unity 6 is installed via Unity Hub:
+- **Editor**: `~/Unity/Hub/Editor/6000.4.0f1/Editor/Unity`
+- **Version**: 6000.4.0f1 (Unity 6.4 LTS)
+- **Hub manages** the installation, license, and project association
+
 ## Build & Test
 
 ```bash
-# Open TestProject/ in Unity 6 via Unity Hub (6000.0+)
+# Open TestProject/ in Unity 6 via Unity Hub
 # Package compiles automatically when Unity loads the project
 
 # Run tests: Window > General > Test Runner > EditMode > Run All
