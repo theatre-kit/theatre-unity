@@ -89,6 +89,11 @@ namespace Theatre.Transport
                 {
                     break;
                 }
+                catch (System.Threading.ThreadAbortException)
+                {
+                    // Unity aborts background threads on domain reload — exit cleanly
+                    break;
+                }
                 catch (Exception ex)
                 {
                     UnityEngine.Debug.LogException(ex);
