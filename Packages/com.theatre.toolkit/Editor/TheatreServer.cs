@@ -24,6 +24,7 @@ namespace Theatre.Editor
         // Cached on main thread at startup for background thread access
         private static int s_cachedPort;
         private static string s_cachedEnabledGroups;
+        private static ToolGroup s_cachedEnabledGroupsEnum;
 
         /// <summary>Whether the server is currently running.</summary>
         public static bool IsRunning => s_transport?.IsListening ?? false;
@@ -56,7 +57,8 @@ namespace Theatre.Editor
 
             // Cache config values on main thread for background thread access
             s_cachedPort = TheatreConfig.Port;
-            s_cachedEnabledGroups = TheatreConfig.EnabledGroups.ToString();
+            s_cachedEnabledGroupsEnum = TheatreConfig.EnabledGroups;
+            s_cachedEnabledGroups = s_cachedEnabledGroupsEnum.ToString();
 
             // Create components
             s_toolRegistry = new ToolRegistry();
@@ -66,9 +68,12 @@ namespace Theatre.Editor
             RegisterBuiltInTools(s_toolRegistry);
 
             // Create MCP router with main thread dispatch
+            // Note: getEnabledGroups is called from background threads.
+            // EnabledGroups uses SessionState (main-thread-only), so return
+            // the cached value instead. DisabledTools is in-memory, thread-safe.
             s_mcpRouter = new McpRouter(
                 s_toolRegistry,
-                () => TheatreConfig.EnabledGroups,
+                () => s_cachedEnabledGroupsEnum,
                 () => TheatreConfig.DisabledTools,
                 ExecuteToolOnMainThread
             );
@@ -112,6 +117,7 @@ namespace Theatre.Editor
         public static void SetEnabledGroups(ToolGroup groups)
         {
             TheatreConfig.EnabledGroups = groups;
+            s_cachedEnabledGroupsEnum = groups;
             s_cachedEnabledGroups = groups.ToString();
             s_sseManager?.NotifyToolsChanged();
         }
