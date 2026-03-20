@@ -96,7 +96,22 @@ CI automation requires Unity Pro or GameCI Docker images.
   HTTP) is implemented directly. The official C# MCP SDK requires ASP.NET
   Core which is incompatible with Unity.
 
-## Threading Rules (MANDATORY — load unity-threading skill)
+## Unity API Rules (MANDATORY)
+
+**Before writing ANY C# code in this project, load BOTH of these skills:**
+- **`unity-api-pitfalls`** — API availability, assembly boundaries, deprecated methods, serialization gotchas
+- **`unity-threading`** — threading rules, main-thread-only APIs, caching and dispatch patterns
+
+**These are not optional.** Every Unity 6 bug we've hit came from violating
+rules in these skills. Common traps:
+- `System.Text.Json` does not exist in Unity — use Newtonsoft
+- `Object.FindObjectFromInstanceID` is internal — use `EditorUtility.InstanceIDToObject`
+- `Object.FindObjectsOfType<T>()` is deprecated — use `FindObjectsByType<T>(FindObjectsSortMode)`
+- `SessionState.*` is main-thread-only — cache values for background threads
+- Runtime assemblies cannot reference `UnityEditor.*` — use `#if UNITY_EDITOR`
+- Newtonsoft serializes ALL public properties — use `[JsonIgnore]` on computed ones
+
+## Threading Rules (load unity-threading skill)
 
 **Load the `unity-threading` skill before writing any route handler, background
 task, or any code that runs outside the main thread.** This is not optional.
