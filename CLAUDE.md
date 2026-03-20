@@ -96,63 +96,25 @@ CI automation requires Unity Pro or GameCI Docker images.
   HTTP) is implemented directly. The official C# MCP SDK requires ASP.NET
   Core which is incompatible with Unity.
 
-## Unity API Rules (MANDATORY)
+## Unity API Rules (MANDATORY — load unity-api-pitfalls skill)
 
-**Before writing ANY C# code in this project, load BOTH of these skills:**
-- **`unity-api-pitfalls`** — API availability, assembly boundaries, deprecated methods, serialization gotchas
-- **`unity-threading`** — threading rules, main-thread-only APIs, caching and dispatch patterns
+**Before writing ANY C# code in this project, load the `unity-api-pitfalls`
+skill.** This is not optional. Every Unity 6 bug we've hit came from
+violating rules in this skill.
 
-**These are not optional.** Every Unity 6 bug we've hit came from violating
-rules in these skills. Common traps:
-- `System.Text.Json` does not exist in Unity — use Newtonsoft
+The skill covers threading, API availability, assembly boundaries,
+serialization, and deprecated APIs — all in one place. Key traps:
+
+- `System.Text.Json` does not exist — use Newtonsoft
 - `Object.FindObjectFromInstanceID` is internal — use `EditorUtility.InstanceIDToObject`
 - `Object.FindObjectsOfType<T>()` is deprecated — use `FindObjectsByType<T>(FindObjectsSortMode)`
-- `SessionState.*` is main-thread-only — cache values for background threads
+- ALL Unity APIs are main-thread-only — route handlers run on background threads
+- `SessionState.*` / `TheatreConfig.Port` / `.EnabledGroups` — cache at startup
 - Runtime assemblies cannot reference `UnityEditor.*` — use `#if UNITY_EDITOR`
 - Newtonsoft serializes ALL public properties — use `[JsonIgnore]` on computed ones
+- `ThreadAbortException` on domain reload — catch and exit cleanly
 
-## Threading Rules (load unity-threading skill)
-
-**Load the `unity-threading` skill before writing any route handler, background
-task, or any code that runs outside the main thread.** This is not optional.
-
-The bug history: `TheatreConfig.Port` was called from `HandleHealth` (a route
-handler, therefore a thread-pool thread). `Port` calls `SessionState.GetInt`,
-which throws `UnityException: GetInt can only be called from the main thread`.
-
-### Hard rules — no exceptions
-
-1. **Every `HttpListener` route handler body runs on a thread pool thread.**
-   Treat every method registered with `s_router.Map(...)` as background-thread code.
-
-2. **FORBIDDEN in route handlers** — these all throw `UnityException`:
-   - `SessionState.*` (any method)
-   - `TheatreConfig.Port`, `TheatreConfig.EnabledGroups`, `TheatreConfig.HttpPrefix`
-   - `EditorApplication.isPlaying`, `EditorApplication.isPaused`, any `EditorApplication` property
-   - `SceneManager.*` (any method or property)
-   - `Debug.Log`, `Debug.LogWarning`, `Debug.LogError`, `Debug.LogException`
-   - `AssetDatabase.*`, `Undo.*`, `PrefabUtility.*`, `EditorPrefs.*`
-   - Any `UnityEngine.Object` property or method (GameObject, Transform, Component, etc.)
-   - `Time.frameCount`, `Time.time`, `Application.isPlaying`
-
-3. **Two safe patterns for route handlers:**
-   - **Cache**: Read Unity APIs once on the main thread at `StartServer()`, store in plain
-     `static` fields (`s_cachedPort`, `s_cachedEnabledGroupsEnum`), read those fields in handlers.
-   - **Dispatch**: Wrap Unity API access in `MainThreadDispatcher.Invoke(() => { ... })`.
-
-4. **Tool handler `Execute()` methods are safe** — they are already dispatched to the main
-   thread via `ExecuteToolOnMainThread` in `TheatreServer`. Unity APIs are allowed there.
-
-5. **When adding new route handlers**: before committing, search the handler body for every
-   `UnityEngine.*` and `UnityEditor.*` call. Each one must be either (a) eliminated in favor
-   of a cached field, or (b) wrapped in `MainThreadDispatcher.Invoke`.
-
-6. **Domain reload**: `[InitializeOnLoad]` static constructors re-run on every domain reload.
-   Use `EditorApplication.delayCall += StartServer` (not direct construction) to restart
-   the server. `SessionState` survives reload; all managed state (threads, `HttpListener`,
-   static fields) is destroyed and recreated.
-
-See `/home/nathan/dev/theatre-unity/docs/unity-threading-idioms.md` for the full reference.
+See `docs/unity-threading-idioms.md` for the extended reference with code examples.
 
 ## Code Style
 
