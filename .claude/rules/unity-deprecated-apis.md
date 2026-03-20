@@ -29,6 +29,8 @@ Never use the APIs in the left column. Always use the replacement in the right c
 |---|---|
 | Public computed properties leak into JSON | Add `[JsonIgnore]` to non-data properties (e.g., `bool IsRequest => ...`) |
 | Default values serialized unnecessarily | `[JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]` |
+| `jtoken.Value<T>()` fails without key arg | Use `jtoken.ToObject<T>()` or cast `(int)jtoken` instead |
+| `overrideReferences` hides transitive DLLs | Test asmdefs must list `"Newtonsoft.Json.dll"` in `precompiledReferences` |
 | Field names not snake_case | `[JsonProperty("snake_case_name")]` on every serialized property |
 
 ## Assembly Boundary Rules
