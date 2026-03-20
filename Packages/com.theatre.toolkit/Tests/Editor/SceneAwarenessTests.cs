@@ -1,3 +1,4 @@
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Theatre.Stage;
 using Theatre.Editor;
@@ -15,9 +16,9 @@ namespace Theatre.Tests.Editor
             var arr = ResponseHelpers.ToJArray(new Vector3(1.234f, 5.678f, 9.012f));
             Assert.AreEqual(3, arr.Count);
             // 2 decimal places
-            Assert.AreEqual(1.23, arr[0].Value<double>(), 0.001);
-            Assert.AreEqual(5.68, arr[1].Value<double>(), 0.001);
-            Assert.AreEqual(9.01, arr[2].Value<double>(), 0.001);
+            Assert.AreEqual(1.23, arr[0].ToObject<double>(), 0.001);
+            Assert.AreEqual(5.68, arr[1].ToObject<double>(), 0.001);
+            Assert.AreEqual(9.01, arr[2].ToObject<double>(), 0.001);
         }
 
         [Test]
@@ -108,11 +109,11 @@ namespace Theatre.Tests.Editor
                 reason: "budget",
                 suggestion: "narrow scope");
 
-            Assert.AreEqual(500, obj["requested"].Value<int>());
-            Assert.AreEqual(50, obj["used"].Value<int>()); // 200/4
-            Assert.IsTrue(obj["truncated"].Value<bool>());
-            Assert.AreEqual("budget", obj["truncation_reason"].Value<string>());
-            Assert.AreEqual("narrow scope", obj["suggestion"].Value<string>());
+            Assert.AreEqual(500, obj["requested"].ToObject<int>());
+            Assert.AreEqual(50, obj["used"].ToObject<int>()); // 200/4
+            Assert.IsTrue(obj["truncated"].ToObject<bool>());
+            Assert.AreEqual("budget", obj["truncation_reason"].ToObject<string>());
+            Assert.AreEqual("narrow scope", obj["suggestion"].ToObject<string>());
         }
 
         [Test]
@@ -121,7 +122,7 @@ namespace Theatre.Tests.Editor
             var budget = new TokenBudget(500);
             var obj = budget.ToBudgetJObject(truncated: false);
 
-            Assert.IsFalse(obj["truncated"].Value<bool>());
+            Assert.IsFalse(obj["truncated"].ToObject<bool>());
             Assert.IsNull(obj["truncation_reason"]);
             Assert.IsNull(obj["suggestion"]);
         }
@@ -172,10 +173,10 @@ namespace Theatre.Tests.Editor
         {
             var obj = PaginationCursor.BuildPaginationJObject(
                 "abc123", hasMore: true, returned: 50, total: 200);
-            Assert.AreEqual("abc123", obj["cursor"].Value<string>());
-            Assert.IsTrue(obj["has_more"].Value<bool>());
-            Assert.AreEqual(50, obj["returned"].Value<int>());
-            Assert.AreEqual(200, obj["total"].Value<int>());
+            Assert.AreEqual("abc123", obj["cursor"].ToObject<string>());
+            Assert.IsTrue(obj["has_more"].ToObject<bool>());
+            Assert.AreEqual(50, obj["returned"].ToObject<int>());
+            Assert.AreEqual(200, obj["total"].ToObject<int>());
         }
 
         [Test]
@@ -184,7 +185,7 @@ namespace Theatre.Tests.Editor
             var obj = PaginationCursor.BuildPaginationJObject(
                 null, hasMore: false, returned: 10);
             Assert.IsNull(obj["cursor"]);
-            Assert.AreEqual(10, obj["returned"].Value<int>());
+            Assert.AreEqual(10, obj["returned"].ToObject<int>());
         }
     }
 
