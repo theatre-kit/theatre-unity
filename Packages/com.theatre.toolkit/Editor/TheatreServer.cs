@@ -21,6 +21,10 @@ namespace Theatre.Editor
         private static ToolRegistry s_toolRegistry;
         private static SseStreamManager s_sseManager;
 
+        // Cached on main thread at startup for background thread access
+        private static int s_cachedPort;
+        private static string s_cachedEnabledGroups;
+
         /// <summary>Whether the server is currently running.</summary>
         public static bool IsRunning => s_transport?.IsListening ?? false;
 
@@ -49,6 +53,10 @@ namespace Theatre.Editor
         public static void StartServer()
         {
             StopServer();
+
+            // Cache config values on main thread for background thread access
+            s_cachedPort = TheatreConfig.Port;
+            s_cachedEnabledGroups = TheatreConfig.EnabledGroups.ToString();
 
             // Create components
             s_toolRegistry = new ToolRegistry();
@@ -104,6 +112,7 @@ namespace Theatre.Editor
         public static void SetEnabledGroups(ToolGroup groups)
         {
             TheatreConfig.EnabledGroups = groups;
+            s_cachedEnabledGroups = groups.ToString();
             s_sseManager?.NotifyToolsChanged();
         }
 
@@ -138,11 +147,11 @@ namespace Theatre.Editor
 
         private static void HandleHealth(HttpListenerContext context)
         {
-            // Health can run on background thread — no Unity APIs needed
+            // Runs on background thread — use cached values, not SessionState
             var json = $"{{\"status\":\"ok\",\"version\":\"{TheatreConfig.ServerVersion}\""
-                + $",\"port\":{TheatreConfig.Port}"
+                + $",\"port\":{s_cachedPort}"
                 + $",\"client_connected\":{(IsClientConnected ? "true" : "false")}"
-                + $",\"enabled_groups\":\"{TheatreConfig.EnabledGroups}\""
+                + $",\"enabled_groups\":\"{s_cachedEnabledGroups}\""
                 + $",\"sse_connections\":{s_sseManager?.ConnectionCount ?? 0}"
                 + "}";
 
