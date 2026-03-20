@@ -96,6 +96,49 @@ CI automation requires Unity Pro or GameCI Docker images.
   HTTP) is implemented directly. The official C# MCP SDK requires ASP.NET
   Core which is incompatible with Unity.
 
+## Threading Rules (MANDATORY — load unity-threading skill)
+
+**Load the `unity-threading` skill before writing any route handler, background
+task, or any code that runs outside the main thread.** This is not optional.
+
+The bug history: `TheatreConfig.Port` was called from `HandleHealth` (a route
+handler, therefore a thread-pool thread). `Port` calls `SessionState.GetInt`,
+which throws `UnityException: GetInt can only be called from the main thread`.
+
+### Hard rules — no exceptions
+
+1. **Every `HttpListener` route handler body runs on a thread pool thread.**
+   Treat every method registered with `s_router.Map(...)` as background-thread code.
+
+2. **FORBIDDEN in route handlers** — these all throw `UnityException`:
+   - `SessionState.*` (any method)
+   - `TheatreConfig.Port`, `TheatreConfig.EnabledGroups`, `TheatreConfig.HttpPrefix`
+   - `EditorApplication.isPlaying`, `EditorApplication.isPaused`, any `EditorApplication` property
+   - `SceneManager.*` (any method or property)
+   - `Debug.Log`, `Debug.LogWarning`, `Debug.LogError`, `Debug.LogException`
+   - `AssetDatabase.*`, `Undo.*`, `PrefabUtility.*`, `EditorPrefs.*`
+   - Any `UnityEngine.Object` property or method (GameObject, Transform, Component, etc.)
+   - `Time.frameCount`, `Time.time`, `Application.isPlaying`
+
+3. **Two safe patterns for route handlers:**
+   - **Cache**: Read Unity APIs once on the main thread at `StartServer()`, store in plain
+     `static` fields (`s_cachedPort`, `s_cachedEnabledGroupsEnum`), read those fields in handlers.
+   - **Dispatch**: Wrap Unity API access in `MainThreadDispatcher.Invoke(() => { ... })`.
+
+4. **Tool handler `Execute()` methods are safe** — they are already dispatched to the main
+   thread via `ExecuteToolOnMainThread` in `TheatreServer`. Unity APIs are allowed there.
+
+5. **When adding new route handlers**: before committing, search the handler body for every
+   `UnityEngine.*` and `UnityEditor.*` call. Each one must be either (a) eliminated in favor
+   of a cached field, or (b) wrapped in `MainThreadDispatcher.Invoke`.
+
+6. **Domain reload**: `[InitializeOnLoad]` static constructors re-run on every domain reload.
+   Use `EditorApplication.delayCall += StartServer` (not direct construction) to restart
+   the server. `SessionState` survives reload; all managed state (threads, `HttpListener`,
+   static fields) is destroyed and recreated.
+
+See `/home/nathan/dev/theatre-unity/docs/unity-threading-idioms.md` for the full reference.
+
 ## Code Style
 
 - Namespace: `Theatre` (runtime), `Theatre.Editor` (editor),
