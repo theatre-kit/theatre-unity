@@ -928,10 +928,22 @@ deterministic spatial query results:
 - `TestScene_Hierarchy.unity`: Deep hierarchy for traversal tests
 - `TestScene_Prefabs.unity`: Prefab instances with overrides
 
+### Running Tests
+
+All tests run from the Unity Editor GUI:
+**Window > General > Test Runner > EditMode > Run All**
+
 ### CI
 
-Tests run via Unity's batch mode:
+Unity 6 requires a **Pro license** for batch mode (`-batchmode`). The
+`com.unity.editor.headless` entitlement is not included in Personal.
 
+**With Unity Pro:**
 ```bash
-unity -batchmode -projectPath . -runTests -testResults results.xml -quit
+xvfb-run unity -batchmode -projectPath . -runTests -testResults results.xml -quit
 ```
+
+**Without Pro:** CI requires GameCI Docker images or similar workarounds.
+See [GameCI docs](https://game.ci/docs/) for containerized Unity builds.
+
+For local development, use the Editor GUI test runner.

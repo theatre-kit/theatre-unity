@@ -45,16 +45,33 @@ TestProject/                  — Unity 6 test harness project
 ## Build & Test
 
 ```bash
-# Open in Unity 6 (6000.0+)
-# Package compiles automatically when Unity opens TestProject/
+# Open TestProject/ in Unity 6 via Unity Hub (6000.0+)
+# Package compiles automatically when Unity loads the project
 
-# Run tests via Unity batch mode
-unity -batchmode -projectPath TestProject -runTests \
-  -testResults results.xml -quit
+# Run tests: Window > General > Test Runner > EditMode > Run All
 
 # Quick health check (server starts on editor load)
 curl http://localhost:9078/health
+
+# MCP handshake test
+curl -s -X POST http://localhost:9078/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"curl","version":"1.0"}}}'
 ```
+
+### Unity License Note
+
+Unity 6 requires a **Pro license** for batch mode / CLI usage
+(`-batchmode`, `-nographics`). The `com.unity.editor.headless`
+entitlement is not included in Unity Personal. This means:
+
+- **No CLI test runner** — run tests from the Unity Editor GUI instead
+- **No headless CI** without Pro or a Build Server license
+- **Project creation** must be done via Unity Hub, not `unity -createProject`
+
+All development and testing is done through the Unity Editor GUI.
+CI automation requires Unity Pro or GameCI Docker images.
 
 ## Key Constraints
 
