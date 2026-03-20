@@ -1,4 +1,4 @@
-using System.Text.Json;
+using Newtonsoft.Json.Linq;
 using Theatre.Transport;
 
 namespace Theatre.Editor
@@ -9,15 +9,15 @@ namespace Theatre.Editor
     /// </summary>
     public static class TheatreStatusTool
     {
-        private static readonly JsonElement s_inputSchema;
+        private static readonly JToken s_inputSchema;
 
         static TheatreStatusTool()
         {
-            s_inputSchema = JsonDocument.Parse(@"{
+            s_inputSchema = JToken.Parse(@"{
                 ""type"": ""object"",
                 ""properties"": {},
                 ""required"": []
-            }").RootElement.Clone();
+            }");
         }
 
         /// <summary>Register this tool with the given registry.</summary>
@@ -37,7 +37,7 @@ namespace Theatre.Editor
             ));
         }
 
-        private static string Execute(JsonElement? arguments)
+        private static string Execute(JToken arguments)
         {
             // This runs on the main thread — safe to access Unity APIs
             var playMode = UnityEditor.EditorApplication.isPlaying;

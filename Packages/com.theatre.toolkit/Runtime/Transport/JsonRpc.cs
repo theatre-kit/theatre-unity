@@ -1,5 +1,4 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace Theatre.Transport
 {
@@ -9,34 +8,29 @@ namespace Theatre.Transport
     /// </summary>
     public sealed class JsonRpcMessage
     {
-        [JsonPropertyName("jsonrpc")]
+        [JsonProperty("jsonrpc")]
         public string JsonRpc { get; set; } = "2.0";
 
-        [JsonPropertyName("id")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public JsonElement? Id { get; set; }
+        [JsonProperty("id", NullValueHandling = NullValueHandling.Ignore)]
+        public Newtonsoft.Json.Linq.JToken Id { get; set; }
 
-        [JsonPropertyName("method")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonProperty("method", NullValueHandling = NullValueHandling.Ignore)]
         public string Method { get; set; }
 
-        [JsonPropertyName("params")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public JsonElement? Params { get; set; }
+        [JsonProperty("params", NullValueHandling = NullValueHandling.Ignore)]
+        public Newtonsoft.Json.Linq.JToken Params { get; set; }
 
-        [JsonPropertyName("result")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public JsonElement? Result { get; set; }
+        [JsonProperty("result", NullValueHandling = NullValueHandling.Ignore)]
+        public Newtonsoft.Json.Linq.JToken Result { get; set; }
 
-        [JsonPropertyName("error")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonProperty("error", NullValueHandling = NullValueHandling.Ignore)]
         public JsonRpcError Error { get; set; }
 
         /// <summary>True if this message has an id (request or response).</summary>
-        public bool IsRequest => Id.HasValue && Method != null;
+        public bool IsRequest => Id != null && Method != null;
 
         /// <summary>True if this is a notification (method but no id).</summary>
-        public bool IsNotification => !Id.HasValue && Method != null;
+        public bool IsNotification => Id == null && Method != null;
     }
 
     /// <summary>
@@ -44,15 +38,14 @@ namespace Theatre.Transport
     /// </summary>
     public sealed class JsonRpcError
     {
-        [JsonPropertyName("code")]
+        [JsonProperty("code")]
         public int Code { get; set; }
 
-        [JsonPropertyName("message")]
+        [JsonProperty("message")]
         public string Message { get; set; }
 
-        [JsonPropertyName("data")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public JsonElement? Data { get; set; }
+        [JsonProperty("data", NullValueHandling = NullValueHandling.Ignore)]
+        public Newtonsoft.Json.Linq.JToken Data { get; set; }
     }
 
     /// <summary>
@@ -61,7 +54,8 @@ namespace Theatre.Transport
     public static class JsonRpcResponse
     {
         /// <summary>Create a success response with a pre-serialized result.</summary>
-        public static JsonRpcMessage Success(JsonElement? id, JsonElement result)
+        public static JsonRpcMessage Success(
+            Newtonsoft.Json.Linq.JToken id, Newtonsoft.Json.Linq.JToken result)
         {
             return new JsonRpcMessage
             {
@@ -72,7 +66,8 @@ namespace Theatre.Transport
 
         /// <summary>Create an error response.</summary>
         public static JsonRpcMessage ErrorResponse(
-            JsonElement? id, int code, string message, JsonElement? data = null)
+            Newtonsoft.Json.Linq.JToken id, int code, string message,
+            Newtonsoft.Json.Linq.JToken data = null)
         {
             return new JsonRpcMessage
             {
@@ -87,7 +82,8 @@ namespace Theatre.Transport
         }
 
         /// <summary>Create a notification (no id).</summary>
-        public static JsonRpcMessage Notification(string method, JsonElement? @params = null)
+        public static JsonRpcMessage Notification(
+            string method, Newtonsoft.Json.Linq.JToken @params = null)
         {
             return new JsonRpcMessage
             {

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Theatre.Transport
 {
@@ -11,13 +11,13 @@ namespace Theatre.Transport
     /// </summary>
     public sealed class McpInitializeParams
     {
-        [JsonPropertyName("protocolVersion")]
+        [JsonProperty("protocolVersion")]
         public string ProtocolVersion { get; set; }
 
-        [JsonPropertyName("capabilities")]
-        public JsonElement? Capabilities { get; set; }
+        [JsonProperty("capabilities", NullValueHandling = NullValueHandling.Ignore)]
+        public JToken Capabilities { get; set; }
 
-        [JsonPropertyName("clientInfo")]
+        [JsonProperty("clientInfo")]
         public McpImplementationInfo ClientInfo { get; set; }
     }
 
@@ -26,17 +26,16 @@ namespace Theatre.Transport
     /// </summary>
     public sealed class McpInitializeResult
     {
-        [JsonPropertyName("protocolVersion")]
+        [JsonProperty("protocolVersion")]
         public string ProtocolVersion { get; set; }
 
-        [JsonPropertyName("capabilities")]
+        [JsonProperty("capabilities")]
         public McpServerCapabilities Capabilities { get; set; }
 
-        [JsonPropertyName("serverInfo")]
+        [JsonProperty("serverInfo")]
         public McpImplementationInfo ServerInfo { get; set; }
 
-        [JsonPropertyName("instructions")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonProperty("instructions", NullValueHandling = NullValueHandling.Ignore)]
         public string Instructions { get; set; }
     }
 
@@ -45,10 +44,10 @@ namespace Theatre.Transport
     /// </summary>
     public sealed class McpImplementationInfo
     {
-        [JsonPropertyName("name")]
+        [JsonProperty("name")]
         public string Name { get; set; }
 
-        [JsonPropertyName("version")]
+        [JsonProperty("version")]
         public string Version { get; set; }
     }
 
@@ -57,12 +56,10 @@ namespace Theatre.Transport
     /// </summary>
     public sealed class McpServerCapabilities
     {
-        [JsonPropertyName("tools")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonProperty("tools", NullValueHandling = NullValueHandling.Ignore)]
         public McpToolCapability Tools { get; set; }
 
-        [JsonPropertyName("logging")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonProperty("logging", NullValueHandling = NullValueHandling.Ignore)]
         public object Logging { get; set; }
     }
 
@@ -71,7 +68,7 @@ namespace Theatre.Transport
     /// </summary>
     public sealed class McpToolCapability
     {
-        [JsonPropertyName("listChanged")]
+        [JsonProperty("listChanged")]
         public bool ListChanged { get; set; }
     }
 
@@ -82,18 +79,16 @@ namespace Theatre.Transport
     /// </summary>
     public sealed class McpToolDefinition
     {
-        [JsonPropertyName("name")]
+        [JsonProperty("name")]
         public string Name { get; set; }
 
-        [JsonPropertyName("description")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonProperty("description", NullValueHandling = NullValueHandling.Ignore)]
         public string Description { get; set; }
 
-        [JsonPropertyName("inputSchema")]
-        public JsonElement InputSchema { get; set; }
+        [JsonProperty("inputSchema")]
+        public JToken InputSchema { get; set; }
 
-        [JsonPropertyName("annotations")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonProperty("annotations", NullValueHandling = NullValueHandling.Ignore)]
         public McpToolAnnotations Annotations { get; set; }
     }
 
@@ -102,12 +97,10 @@ namespace Theatre.Transport
     /// </summary>
     public sealed class McpToolAnnotations
     {
-        [JsonPropertyName("title")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonProperty("title", NullValueHandling = NullValueHandling.Ignore)]
         public string Title { get; set; }
 
-        [JsonPropertyName("readOnlyHint")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonProperty("readOnlyHint", NullValueHandling = NullValueHandling.Ignore)]
         public bool? ReadOnlyHint { get; set; }
     }
 
@@ -116,7 +109,7 @@ namespace Theatre.Transport
     /// </summary>
     public sealed class McpToolsListResult
     {
-        [JsonPropertyName("tools")]
+        [JsonProperty("tools")]
         public List<McpToolDefinition> Tools { get; set; } = new();
     }
 
@@ -125,12 +118,11 @@ namespace Theatre.Transport
     /// </summary>
     public sealed class McpToolCallParams
     {
-        [JsonPropertyName("name")]
+        [JsonProperty("name")]
         public string Name { get; set; }
 
-        [JsonPropertyName("arguments")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public JsonElement? Arguments { get; set; }
+        [JsonProperty("arguments", NullValueHandling = NullValueHandling.Ignore)]
+        public JToken Arguments { get; set; }
     }
 
     /// <summary>
@@ -138,11 +130,10 @@ namespace Theatre.Transport
     /// </summary>
     public sealed class McpToolCallResult
     {
-        [JsonPropertyName("content")]
+        [JsonProperty("content")]
         public List<McpContentItem> Content { get; set; } = new();
 
-        [JsonPropertyName("isError")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        [JsonProperty("isError", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public bool IsError { get; set; }
     }
 
@@ -151,11 +142,10 @@ namespace Theatre.Transport
     /// </summary>
     public sealed class McpContentItem
     {
-        [JsonPropertyName("type")]
+        [JsonProperty("type")]
         public string Type { get; set; } = "text";
 
-        [JsonPropertyName("text")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonProperty("text", NullValueHandling = NullValueHandling.Ignore)]
         public string Text { get; set; }
     }
 }

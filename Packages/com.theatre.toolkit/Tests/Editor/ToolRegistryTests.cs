@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Text.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Theatre.Transport;
 
@@ -9,14 +9,14 @@ namespace Theatre.Tests.Editor
     public class ToolRegistryTests
     {
         private ToolRegistry _registry;
-        private JsonElement _emptySchema;
+        private JToken _emptySchema;
 
         [SetUp]
         public void SetUp()
         {
             _registry = new ToolRegistry();
-            _emptySchema = JsonDocument.Parse(
-                @"{""type"":""object"",""properties"":{}}").RootElement;
+            _emptySchema = JToken.Parse(
+                @"{""type"":""object"",""properties"":{}}");
         }
 
         [Test]

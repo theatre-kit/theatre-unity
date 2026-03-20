@@ -101,7 +101,7 @@ CI automation requires Unity Pro or GameCI Docker images.
 - Namespace: `Theatre` (runtime), `Theatre.Editor` (editor),
   `Theatre.Tests.Editor` (tests)
 - Unity 6 / .NET Standard 2.1
-- `System.Text.Json` for JSON serialization (no Newtonsoft)
+- `Newtonsoft.Json` for JSON serialization (via com.unity.nuget.newtonsoft-json)
 - `Debug.Log`/`Debug.LogWarning`/`Debug.LogError` with `[Theatre]` prefix
   for all console output
 - No `#pragma warning disable` without justification

@@ -1,7 +1,7 @@
 using System;
 using System.Net;
 using System.Text;
-using System.Text.Json;
+using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 using Theatre.Transport;
@@ -110,7 +110,7 @@ namespace Theatre.Editor
         // --- Tool Execution ---
 
         private static string ExecuteToolOnMainThread(
-            string toolName, JsonElement? arguments)
+            string toolName, JToken arguments)
         {
             return MainThreadDispatcher.Invoke(() =>
             {

@@ -1,7 +1,7 @@
 using System.Net.Http;
 using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using NUnit.Framework;
 using Theatre.Editor;
 
@@ -186,7 +186,7 @@ namespace Theatre.Tests.Editor
         private async Task<HttpResponseMessage> PostMcp(
             object body, string sessionId = null)
         {
-            var json = JsonSerializer.Serialize(body);
+            var json = JsonConvert.SerializeObject(body);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             var request = new HttpRequestMessage(

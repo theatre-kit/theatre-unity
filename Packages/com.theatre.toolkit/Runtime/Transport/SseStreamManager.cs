@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
-using System.Text.Json;
 using System.Threading;
+using Newtonsoft.Json;
 
 namespace Theatre.Transport
 {
@@ -64,7 +64,7 @@ namespace Theatre.Transport
         /// </summary>
         public void PushNotification(JsonRpcMessage notification)
         {
-            var json = JsonSerializer.Serialize(notification);
+            var json = JsonConvert.SerializeObject(notification);
             var sseData = $"event: message\ndata: {json}\n\n";
             var bytes = Encoding.UTF8.GetBytes(sseData);
 

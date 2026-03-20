@@ -1,4 +1,5 @@
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Theatre.Transport;
 
@@ -24,7 +25,7 @@ namespace Theatre.Tests.Editor
                 }
             };
 
-            var json = JsonSerializer.Serialize(result);
+            var json = JsonConvert.SerializeObject(result);
             Assert.That(json, Does.Contain("\"protocolVersion\":\"2025-03-26\""));
             Assert.That(json, Does.Contain("\"listChanged\":true"));
             Assert.That(json, Does.Contain("\"name\":\"theatre\""));
@@ -33,10 +34,10 @@ namespace Theatre.Tests.Editor
         [Test]
         public void ToolDefinitionIncludesInputSchema()
         {
-            var schema = JsonDocument.Parse(@"{
+            var schema = JToken.Parse(@"{
                 ""type"": ""object"",
                 ""properties"": { ""x"": { ""type"": ""number"" } }
-            }").RootElement;
+            }");
 
             var tool = new McpToolDefinition
             {
@@ -45,7 +46,7 @@ namespace Theatre.Tests.Editor
                 InputSchema = schema
             };
 
-            var json = JsonSerializer.Serialize(tool);
+            var json = JsonConvert.SerializeObject(tool);
             Assert.That(json, Does.Contain("\"name\":\"test_tool\""));
             Assert.That(json, Does.Contain("\"inputSchema\""));
             Assert.That(json, Does.Contain("\"type\":\"object\""));
@@ -62,7 +63,7 @@ namespace Theatre.Tests.Editor
                 }
             };
 
-            var json = JsonSerializer.Serialize(result);
+            var json = JsonConvert.SerializeObject(result);
             Assert.That(json, Does.Contain("\"type\":\"text\""));
             Assert.That(json, Does.Contain("\"text\":\"hello\""));
             // isError should be omitted when false (default)
@@ -81,7 +82,7 @@ namespace Theatre.Tests.Editor
                 IsError = true
             };
 
-            var json = JsonSerializer.Serialize(result);
+            var json = JsonConvert.SerializeObject(result);
             Assert.That(json, Does.Contain("\"isError\":true"));
         }
     }

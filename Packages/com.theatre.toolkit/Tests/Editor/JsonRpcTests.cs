@@ -1,4 +1,5 @@
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Theatre.Transport;
 
@@ -11,7 +12,7 @@ namespace Theatre.Tests.Editor
         public void RequestHasIdAndMethod()
         {
             var json = @"{""jsonrpc"":""2.0"",""id"":1,""method"":""test""}";
-            var msg = JsonSerializer.Deserialize<JsonRpcMessage>(json);
+            var msg = JsonConvert.DeserializeObject<JsonRpcMessage>(json);
 
             Assert.IsTrue(msg.IsRequest);
             Assert.IsFalse(msg.IsNotification);
@@ -22,7 +23,7 @@ namespace Theatre.Tests.Editor
         public void NotificationHasMethodNoId()
         {
             var json = @"{""jsonrpc"":""2.0"",""method"":""notifications/initialized""}";
-            var msg = JsonSerializer.Deserialize<JsonRpcMessage>(json);
+            var msg = JsonConvert.DeserializeObject<JsonRpcMessage>(json);
 
             Assert.IsTrue(msg.IsNotification);
             Assert.IsFalse(msg.IsRequest);
@@ -31,10 +32,10 @@ namespace Theatre.Tests.Editor
         [Test]
         public void SuccessResponseSerializesCorrectly()
         {
-            var id = JsonDocument.Parse("1").RootElement;
-            var result = JsonDocument.Parse(@"{""ok"":true}").RootElement;
+            var id = JToken.Parse("1");
+            var result = JToken.Parse(@"{""ok"":true}");
             var response = JsonRpcResponse.Success(id, result);
-            var json = JsonSerializer.Serialize(response);
+            var json = JsonConvert.SerializeObject(response);
 
             Assert.That(json, Does.Contain("\"jsonrpc\":\"2.0\""));
             Assert.That(json, Does.Contain("\"id\":1"));
@@ -45,10 +46,10 @@ namespace Theatre.Tests.Editor
         [Test]
         public void ErrorResponseSerializesCorrectly()
         {
-            var id = JsonDocument.Parse("1").RootElement;
+            var id = JToken.Parse("1");
             var response = JsonRpcResponse.ErrorResponse(
                 id, JsonRpcResponse.MethodNotFound, "Not found");
-            var json = JsonSerializer.Serialize(response);
+            var json = JsonConvert.SerializeObject(response);
 
             Assert.That(json, Does.Contain("\"code\":-32601"));
             Assert.That(json, Does.Contain("\"message\":\"Not found\""));
@@ -59,7 +60,7 @@ namespace Theatre.Tests.Editor
         public void NotificationSerializesWithoutId()
         {
             var notification = JsonRpcResponse.Notification("test/event");
-            var json = JsonSerializer.Serialize(notification);
+            var json = JsonConvert.SerializeObject(notification);
 
             Assert.That(json, Does.Contain("\"method\":\"test/event\""));
             Assert.That(json, Does.Not.Contain("\"id\""));

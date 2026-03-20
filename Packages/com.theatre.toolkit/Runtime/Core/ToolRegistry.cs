@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Text.Json;
+using Newtonsoft.Json.Linq;
 using Theatre.Transport;
 
 namespace Theatre
@@ -17,7 +17,7 @@ namespace Theatre
         public string Description { get; }
 
         /// <summary>JSON Schema for the tool's input parameters.</summary>
-        public JsonElement InputSchema { get; }
+        public JToken InputSchema { get; }
 
         /// <summary>Which group this tool belongs to.</summary>
         public ToolGroup Group { get; }
@@ -26,7 +26,7 @@ namespace Theatre
         /// Handler function. Receives parsed arguments, returns JSON string result.
         /// Called on the main thread.
         /// </summary>
-        public Func<JsonElement?, string> Handler { get; }
+        public Func<JToken, string> Handler { get; }
 
         /// <summary>Optional annotations (readOnlyHint, title).</summary>
         public McpToolAnnotations Annotations { get; }
@@ -37,9 +37,9 @@ namespace Theatre
         public ToolRegistration(
             string name,
             string description,
-            JsonElement inputSchema,
+            JToken inputSchema,
             ToolGroup group,
-            Func<JsonElement?, string> handler,
+            Func<JToken, string> handler,
             McpToolAnnotations annotations = null)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));

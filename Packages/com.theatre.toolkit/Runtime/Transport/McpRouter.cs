@@ -2,7 +2,8 @@ using System;
 using System.IO;
 using System.Net;
 using System.Text;
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Theatre;
 
 namespace Theatre.Transport
@@ -16,7 +17,7 @@ namespace Theatre.Transport
         private readonly ToolRegistry _registry;
         private readonly Func<ToolGroup> _getEnabledGroups;
         private readonly Func<System.Collections.Generic.HashSet<string>> _getDisabledTools;
-        private readonly Func<string, JsonElement?, string> _executeToolOnMainThread;
+        private readonly Func<string, JToken, string> _executeToolOnMainThread;
 
         private string _sessionId;
         private bool _initialized;
@@ -42,7 +43,7 @@ namespace Theatre.Transport
             ToolRegistry registry,
             Func<ToolGroup> getEnabledGroups,
             Func<System.Collections.Generic.HashSet<string>> getDisabledTools,
-            Func<string, JsonElement?, string> executeToolOnMainThread)
+            Func<string, JToken, string> executeToolOnMainThread)
         {
             _registry = registry;
             _getEnabledGroups = getEnabledGroups;
@@ -70,7 +71,7 @@ namespace Theatre.Transport
             JsonRpcMessage message;
             try
             {
-                message = JsonSerializer.Deserialize<JsonRpcMessage>(body);
+                message = JsonConvert.DeserializeObject<JsonRpcMessage>(body);
             }
             catch (JsonException ex)
             {
@@ -159,7 +160,7 @@ namespace Theatre.Transport
 
                 case "ping":
                     SendJsonResponse(context, JsonRpcResponse.Success(
-                        message.Id, JsonDocument.Parse("{}").RootElement));
+                        message.Id, JToken.Parse("{}")));
                     break;
 
                 default:
@@ -174,12 +175,12 @@ namespace Theatre.Transport
             HttpListenerContext context, JsonRpcMessage message)
         {
             // Parse client info
-            if (message.Params.HasValue)
+            if (message.Params != null)
             {
                 try
                 {
-                    var initParams = JsonSerializer.Deserialize<McpInitializeParams>(
-                        message.Params.Value.GetRawText());
+                    var initParams = JsonConvert.DeserializeObject<McpInitializeParams>(
+                        message.Params.ToString(Newtonsoft.Json.Formatting.None));
                     _clientInfo = initParams?.ClientInfo;
                 }
                 catch { /* best effort */ }
@@ -205,7 +206,7 @@ namespace Theatre.Transport
                     + "subsystems. Use tools/list to see available tools."
             };
 
-            var resultJson = JsonSerializer.SerializeToElement(result);
+            var resultJson = JToken.FromObject(result);
             var response = JsonRpcResponse.Success(message.Id, resultJson);
 
             context.Response.Headers.Set("Mcp-Session-Id", _sessionId);
@@ -224,7 +225,7 @@ namespace Theatre.Transport
                 _getEnabledGroups(), _getDisabledTools());
 
             var listResult = new McpToolsListResult { Tools = tools };
-            var resultJson = JsonSerializer.SerializeToElement(listResult);
+            var resultJson = JToken.FromObject(listResult);
 
             SendJsonResponse(context, JsonRpcResponse.Success(
                 message.Id, resultJson));
@@ -236,8 +237,8 @@ namespace Theatre.Transport
             McpToolCallParams callParams;
             try
             {
-                callParams = JsonSerializer.Deserialize<McpToolCallParams>(
-                    message.Params.Value.GetRawText());
+                callParams = JsonConvert.DeserializeObject<McpToolCallParams>(
+                    message.Params.ToString(Newtonsoft.Json.Formatting.None));
             }
             catch (Exception ex)
             {
@@ -285,7 +286,7 @@ namespace Theatre.Transport
                     IsError = false
                 };
 
-                var resultElement = JsonSerializer.SerializeToElement(callResult);
+                var resultElement = JToken.FromObject(callResult);
                 SendJsonResponse(context, JsonRpcResponse.Success(
                     message.Id, resultElement));
             }
@@ -304,7 +305,7 @@ namespace Theatre.Transport
                     IsError = true
                 };
 
-                var resultElement = JsonSerializer.SerializeToElement(errorResult);
+                var resultElement = JToken.FromObject(errorResult);
                 SendJsonResponse(context, JsonRpcResponse.Success(
                     message.Id, resultElement));
             }
@@ -313,7 +314,7 @@ namespace Theatre.Transport
         private static void SendJsonResponse(
             HttpListenerContext context, JsonRpcMessage response)
         {
-            var json = JsonSerializer.Serialize(response);
+            var json = JsonConvert.SerializeObject(response);
             var bytes = Encoding.UTF8.GetBytes(json);
 
             context.Response.StatusCode = 200;
