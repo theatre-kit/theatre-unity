@@ -2,8 +2,20 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!78 &1
 TagManager:
-  serializedVersion: 2
-  tags: []
+  serializedVersion: 3
+  tags:
+  - TheatreTestTag_3286fdd6
+  - TheatreTestTag_1fc35048
+  - TheatreTestTag_f1b5dbd2
+  - TheatreTestTag_620c6f03
+  - TheatreTestTag_ef7957b2
+  - TheatreTestTag_c52918d7
+  - TheatreTestTag_ca2ccb67
+  - TheatreTestTag_cb791837
+  - TheatreTestTag_3c87f62f
+  - TheatreTestTag_bf9d6eab
+  - TheatreTestTag_c6109cf4
+  - TheatreTestTag_aa6b4cce
   layers:
   - Default
   - TransparentFX
@@ -41,3 +53,6 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  m_RenderingLayers:
+  - Default
+  m_MigratedRenderPipelines: []

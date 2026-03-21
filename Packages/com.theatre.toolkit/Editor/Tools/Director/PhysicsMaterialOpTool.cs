@@ -6,12 +6,13 @@ using Theatre.Stage;
 using Theatre.Transport;
 using UnityEngine;
 using UnityEditor;
+using Physics2D = UnityEngine.Physics2D;
 
 namespace Theatre.Editor.Tools.Director
 {
     /// <summary>
     /// MCP tool: physics_material_op
-    /// Compound tool for creating and modifying PhysicsMaterial (3D) and
+    /// Compound tool for creating and modifying PhysicMaterial (3D) and
     /// PhysicsMaterial2D (2D) assets in the Unity Editor.
     /// Operations: create, set_properties.
     /// </summary>
@@ -36,7 +37,7 @@ namespace Theatre.Editor.Tools.Director
                     ""physics"": {
                         ""type"": ""string"",
                         ""enum"": [""3d"", ""2d""],
-                        ""description"": ""Physics mode: '3d' (PhysicsMaterial) or '2d' (PhysicsMaterial2D). Default: '3d'.""
+                        ""description"": ""Physics mode: '3d' (PhysicMaterial) or '2d' (PhysicsMaterial2D). Default: '3d'.""
                     },
                     ""friction"": {
                         ""type"": ""number"",
@@ -74,7 +75,7 @@ namespace Theatre.Editor.Tools.Director
         {
             registry.Register(new ToolRegistration(
                 name: "physics_material_op",
-                description: "Create and modify PhysicsMaterial (3D) and PhysicsMaterial2D (2D) assets. "
+                description: "Create and modify PhysicMaterial (3D) and PhysicsMaterial2D (2D) assets. "
                     + "Operations: create, set_properties. "
                     + "All mutations are undoable.",
                 inputSchema: s_inputSchema,
@@ -94,7 +95,7 @@ namespace Theatre.Editor.Tools.Director
                 return ResponseHelpers.ErrorResponse(
                     "invalid_parameter",
                     "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"create\", \"asset_path\": \"Assets/Mats/Bouncy.physicsMaterial\"}");
+                    "Provide {\"operation\": \"create\", \"asset_path\": \"Assets/Mats/Bouncy.physicMaterial\"}");
             }
 
             var args = (JObject)arguments;
@@ -204,7 +205,7 @@ namespace Theatre.Editor.Tools.Director
             var pathError = DirectorHelpers.ValidateAssetPath(assetPath);
             if (pathError != null) return pathError;
 
-            // Try to load as UnityEngine.Object then check type
+            // Try to load as 3D first, then 2D
             var asset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetPath);
             if (asset == null)
                 return ResponseHelpers.ErrorResponse(
@@ -265,7 +266,7 @@ namespace Theatre.Editor.Tools.Director
             {
                 return ResponseHelpers.ErrorResponse(
                     "asset_type_mismatch",
-                    $"Asset at '{assetPath}' is not a PhysicsMaterial or PhysicsMaterial2D",
+                    $"Asset at '{assetPath}' is not a PhysicMaterial or PhysicsMaterial2D",
                     "Use the correct asset path for a physics material");
             }
         }
