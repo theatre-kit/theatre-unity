@@ -13,6 +13,7 @@ using Theatre.Editor.Tools.Spatial;
 using Theatre.Editor.Tools.Watch;
 using Theatre.Editor.Tools.Recording;
 using Theatre.Editor.Tools.Director;
+using Theatre.Editor.UI;
 #if THEATRE_HAS_ENTITIES
 using Theatre.Editor.Tools.ECS;
 #endif
@@ -31,6 +32,10 @@ namespace Theatre.Editor
         private static McpRouter s_mcpRouter;
         private static ToolRegistry s_toolRegistry;
         private static SseStreamManager s_sseManager;
+        private static ActivityLog s_activityLog = new();
+
+        /// <summary>The activity log for this session.</summary>
+        public static ActivityLog ActivityLog => s_activityLog;
 
         // Cached on main thread at startup for background thread access
         private static int s_cachedPort;
@@ -70,6 +75,10 @@ namespace Theatre.Editor
             s_cachedPort = TheatreConfig.Port;
             s_cachedEnabledGroupsEnum = TheatreConfig.EnabledGroups;
             s_cachedEnabledGroups = s_cachedEnabledGroupsEnum.ToString();
+
+            // Restore activity log
+            s_activityLog = new ActivityLog();
+            s_activityLog.Restore();
 
             // Create components
             s_toolRegistry = new ToolRegistry();
@@ -168,7 +177,9 @@ namespace Theatre.Editor
                         $"Tool '{toolName}' not found or not enabled",
                         "Check theatre_status for available tools");
 
-                return tool.Handler(arguments);
+                var result = tool.Handler(arguments);
+                s_activityLog.Record(toolName, arguments, result);
+                return result;
             });
         }
 
