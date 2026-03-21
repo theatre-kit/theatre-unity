@@ -4,7 +4,9 @@ using System.Text;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using Theatre.Transport;
+using Theatre.Stage;
 
 namespace Theatre.Editor
 {
@@ -85,6 +87,21 @@ namespace Theatre.Editor
             s_router.Map("GET", "/mcp", s_sseManager.HandleSseConnect);
             s_router.Map("DELETE", "/mcp", HandleSessionDelete);
 
+            // Wire up scene change hooks to invalidate spatial caches
+            SceneManager.activeSceneChanged += (oldScene, newScene) =>
+            {
+                SpatialQueryTool.InvalidateIndex();
+                PhysicsMode.Invalidate();
+            };
+            SceneManager.sceneLoaded += (scene, mode) =>
+            {
+                SpatialQueryTool.InvalidateIndex();
+            };
+            SceneManager.sceneUnloaded += (scene) =>
+            {
+                SpatialQueryTool.InvalidateIndex();
+            };
+
             // Start HTTP server
             s_transport = new HttpTransport();
             try
@@ -152,6 +169,7 @@ namespace Theatre.Editor
             SceneInspectTool.Register(registry);
             UnityConsoleTool.Register(registry);
             UnityTestsTool.Register(registry);
+            SpatialQueryTool.Register(registry);  // Phase 3
         }
 
         // --- Route Handlers ---
