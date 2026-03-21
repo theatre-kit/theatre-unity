@@ -207,6 +207,7 @@ namespace Theatre.Editor
             RecordingTool.Register(registry);     // Phase 5
             SceneOpTool.Register(registry);       // Phase 6
             PrefabOpTool.Register(registry);      // Phase 6
+            BatchTool.Register(registry);         // Phase 6b
         }
 
         // --- Route Handlers ---

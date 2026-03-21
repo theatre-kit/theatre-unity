@@ -385,6 +385,79 @@ namespace Theatre.Tests.Editor
     }
 
     [TestFixture]
+    public class BatchToolTests
+    {
+        [Test]
+        public void Batch_MultipleOps_ExecutesAll()
+        {
+            // Create 2 GameObjects via batch
+            var ops = new JArray {
+                new JObject { ["tool"] = "scene_op", ["params"] = new JObject
+                    { ["operation"] = "create_gameobject", ["name"] = "BatchObj1" } },
+                new JObject { ["tool"] = "scene_op", ["params"] = new JObject
+                    { ["operation"] = "create_gameobject", ["name"] = "BatchObj2" } }
+            };
+            var result = BatchTool.Execute(new JObject { ["operations"] = ops });
+            Assert.That(result, Does.Contain("\"result\":\"ok\""));
+            Assert.That(result, Does.Contain("\"operation_count\":2"));
+            // Verify objects exist
+            Assert.IsNotNull(GameObject.Find("BatchObj1"));
+            Assert.IsNotNull(GameObject.Find("BatchObj2"));
+            // Cleanup
+            var go1 = GameObject.Find("BatchObj1");
+            var go2 = GameObject.Find("BatchObj2");
+            if (go1) Object.DestroyImmediate(go1);
+            if (go2) Object.DestroyImmediate(go2);
+        }
+
+        [Test]
+        public void Batch_FailedOp_RollsBackPreceding()
+        {
+            var ops = new JArray {
+                new JObject { ["tool"] = "scene_op", ["params"] = new JObject
+                    { ["operation"] = "create_gameobject", ["name"] = "RollbackTest_Batch" } },
+                new JObject { ["tool"] = "scene_op", ["params"] = new JObject
+                    { ["operation"] = "delete_gameobject", ["path"] = "/NonExistent_BatchRollback" } }
+            };
+            var result = BatchTool.Execute(new JObject { ["operations"] = ops });
+            Assert.That(result, Does.Contain("\"result\":\"error\""));
+            Assert.That(result, Does.Contain("\"failed_index\":1"));
+            // First op should have been rolled back
+            Assert.IsNull(GameObject.Find("RollbackTest_Batch"));
+        }
+
+        [Test]
+        public void Batch_DryRun_DoesNotMutate()
+        {
+            var ops = new JArray {
+                new JObject { ["tool"] = "scene_op", ["params"] = new JObject
+                    { ["operation"] = "create_gameobject", ["name"] = "DryRunBatchGhost" } }
+            };
+            var result = BatchTool.Execute(new JObject { ["operations"] = ops, ["dry_run"] = true });
+            Assert.That(result, Does.Contain("\"dry_run\":true"));
+            Assert.IsNull(GameObject.Find("DryRunBatchGhost"));
+        }
+
+        [Test]
+        public void Batch_EmptyOps_ReturnsError()
+        {
+            var result = BatchTool.Execute(new JObject { ["operations"] = new JArray() });
+            Assert.That(result, Does.Contain("error"));
+        }
+
+        [Test]
+        public void Batch_InvalidToolName_ReturnsErrorAtIndex()
+        {
+            var ops = new JArray {
+                new JObject { ["tool"] = "nonexistent_tool_xyz",
+                    ["params"] = new JObject { ["foo"] = "bar" } }
+            };
+            var result = BatchTool.Execute(new JObject { ["operations"] = ops });
+            Assert.That(result, Does.Contain("\"failed_index\":0"));
+        }
+    }
+
+    [TestFixture]
     public class PrefabOpTests
     {
         [Test]
