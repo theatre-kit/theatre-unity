@@ -82,7 +82,8 @@ namespace Theatre.Stage
                 CaptureComponents(go, trackComponents, props);
 
                 // Compare against previous snapshot
-                previousSnapshot?.TryGetValue(instanceId, out var prevFrame);
+                ObjectFrame prevFrame = null;
+                previousSnapshot?.TryGetValue(instanceId, out prevFrame);
 
                 var changedProps = new Dictionary<string, JToken>();
                 foreach (var kvp in props)

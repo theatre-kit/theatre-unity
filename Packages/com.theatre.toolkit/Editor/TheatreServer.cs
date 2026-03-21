@@ -12,6 +12,7 @@ using Theatre.Editor.Tools.Scene;
 using Theatre.Editor.Tools.Spatial;
 using Theatre.Editor.Tools.Watch;
 using Theatre.Editor.Tools.Recording;
+using Theatre.Editor.Tools.Director;
 
 namespace Theatre.Editor
 {
@@ -204,6 +205,8 @@ namespace Theatre.Editor
             ActionTool.Register(registry);        // Phase 4
             SceneDeltaTool.Register(registry);    // Phase 4
             RecordingTool.Register(registry);     // Phase 5
+            SceneOpTool.Register(registry);       // Phase 6
+            PrefabOpTool.Register(registry);      // Phase 6
         }
 
         // --- Route Handlers ---
