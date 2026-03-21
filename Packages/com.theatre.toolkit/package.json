@@ -1,6 +1,6 @@
 {
   "name": "com.theatre.toolkit",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "displayName": "Theatre",
   "description": "AI agent toolkit for Unity — spatial awareness and programmatic control via MCP.",
   "unity": "6000.0",
@@ -12,5 +12,12 @@
   "keywords": ["ai", "mcp", "agent", "spatial", "debug"],
   "dependencies": {
     "com.unity.nuget.newtonsoft-json": "3.2.1"
-  }
+  },
+  "samples": [
+    {
+      "displayName": "Basic Setup",
+      "description": "Minimal scene with GameObjects for testing Theatre tools.",
+      "path": "Samples~/BasicSetup"
+    }
+  ]
 }

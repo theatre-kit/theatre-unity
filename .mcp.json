@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "theatre": {
-      "type": "http",
+      "type": "streamable-http",
       "url": "http://localhost:9078/mcp"
     }
   }
