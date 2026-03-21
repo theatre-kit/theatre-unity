@@ -187,26 +187,20 @@ namespace Theatre.Editor.Tools.Director
         internal static string Bake(JObject args)
         {
             // Unity requires the scene to be saved before NavMesh baking.
-            // SaveScene with no path on an untitled scene opens a dialog —
-            // only auto-save if the scene already has a file path.
+            // If the scene has no path (never saved), return an error —
+            // the agent should save it first via scene_op:create_scene.
             var activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
-            if (activeScene.isDirty)
+            if (string.IsNullOrEmpty(activeScene.path))
             {
-                if (!string.IsNullOrEmpty(activeScene.path))
-                {
-                    UnityEditor.SceneManagement.EditorSceneManager.SaveScene(activeScene);
-                }
-                else
-                {
-                    // Scene has never been saved — save to a default path
-                    // to avoid the dialog popup blocking the MCP thread
-                    var defaultPath = "Assets/" + activeScene.name + ".unity";
-                    if (string.IsNullOrEmpty(activeScene.name))
-                        defaultPath = "Assets/UntitledScene.unity";
-                    UnityEditor.SceneManagement.EditorSceneManager.SaveScene(
-                        activeScene, defaultPath);
-                }
+                return ResponseHelpers.ErrorResponse(
+                    "scene_not_saved",
+                    "The active scene has not been saved to disk. NavMesh baking requires a saved scene.",
+                    "Use scene_op with operation 'create_scene' to save the scene first, then call navmesh_op:bake");
             }
+
+            // Auto-save if dirty (silently, since it already has a path)
+            if (activeScene.isDirty)
+                UnityEditor.SceneManagement.EditorSceneManager.SaveScene(activeScene);
 
             UnityEditor.AI.NavMeshBuilder.BuildNavMesh();
 
