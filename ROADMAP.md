@@ -226,12 +226,17 @@ textures and trees, bake a NavMesh, and create ProBuilder geometry.
 
 Agent can configure project settings and input.
 
+### Phase 10a — Input & Project Settings
+
 - [ ] `input_action_op` — create asset, add maps, actions, bindings,
   composites, control schemes (requires com.unity.inputsystem)
 - [ ] `lighting_op` — ambient, fog, skybox, light probes, reflection
   probes, bake
 - [ ] `quality_op` — set level, shadows, rendering settings
 - [ ] `project_settings_op` — physics, time, player, tags and layers
+
+### Phase 10b — Build Profiles
+
 - [ ] `build_profile_op` — create, set scenes, platform, scripting backend
 
 **Exit criteria**: Agent can set up WASD+mouse input, configure lighting
