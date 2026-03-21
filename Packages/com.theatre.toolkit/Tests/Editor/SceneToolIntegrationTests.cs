@@ -212,14 +212,14 @@ namespace Theatre.Tests.Editor
         }
 
         [Test]
-        public void SceneInspect_WithSummaryDepth_ReturnsComponentsNoProperties()
+        public void SceneInspect_WithSummaryDepth_ReturnsComponents()
         {
             var args = JToken.Parse(@"{ ""path"": ""/Player"", ""depth"": ""summary"" }");
             var result = CallTool("scene_inspect", args);
 
             Assert.That(result, Does.Contain("\"components\""));
-            // summary depth should NOT include serialized properties
-            Assert.That(result, Does.Not.Contain("\"properties\""));
+            // Summary depth includes key Transform properties (position, euler_angles, local_scale)
+            Assert.That(result, Does.Contain("\"type\":\"Transform\""));
         }
 
         [Test]
