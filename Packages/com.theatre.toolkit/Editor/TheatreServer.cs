@@ -205,6 +205,8 @@ namespace Theatre.Editor
 #if THEATRE_HAS_TIMELINE
             TimelineOpTool.Register(registry);              // Phase 8b
 #endif
+            TilemapOpTool.Register(registry);               // Phase 9a
+            NavMeshOpTool.Register(registry);               // Phase 9a
         }
 
         // --- Route Handlers ---
