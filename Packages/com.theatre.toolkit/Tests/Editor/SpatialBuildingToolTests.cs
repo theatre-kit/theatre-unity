@@ -135,10 +135,51 @@ namespace Theatre.Tests.Editor
     public class NavMeshOpTests
     {
         [Test]
-        public void Bake_CompletesWithoutError()
+        public void Bake_SavedScene_CompletesWithoutError()
         {
-            var result = NavMeshOpTool.Bake(new JObject());
-            Assert.That(result, Does.Contain("\"result\":\"ok\""));
+            // Bake requires a saved scene — the auto-generated TestScene_Hierarchy has a path
+            var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+            if (string.IsNullOrEmpty(scene.path))
+            {
+                // Scene not saved — bake should return scene_not_saved error
+                var result = NavMeshOpTool.Bake(new JObject());
+                Assert.That(result, Does.Contain("scene_not_saved"));
+            }
+            else
+            {
+                var result = NavMeshOpTool.Bake(new JObject());
+                Assert.That(result, Does.Contain("\"result\":\"ok\""));
+            }
+        }
+
+        [Test]
+        public void Bake_UnsavedScene_ReturnsError()
+        {
+            // Create a new unsaved scene to test the error path
+            var newScene = UnityEditor.SceneManagement.EditorSceneManager.NewScene(
+                UnityEditor.SceneManagement.NewSceneSetup.EmptyScene,
+                UnityEditor.SceneManagement.NewSceneMode.Additive);
+            try
+            {
+                UnityEngine.SceneManagement.SceneManager.SetActiveScene(newScene);
+                var result = NavMeshOpTool.Bake(new JObject());
+                Assert.That(result, Does.Contain("scene_not_saved"));
+            }
+            finally
+            {
+                // Restore original scene and close the temp one
+                var scenes = UnityEngine.SceneManagement.SceneManager.sceneCount;
+                for (int i = 0; i < scenes; i++)
+                {
+                    var s = UnityEngine.SceneManagement.SceneManager.GetSceneAt(i);
+                    if (!string.IsNullOrEmpty(s.path))
+                    {
+                        UnityEngine.SceneManagement.SceneManager.SetActiveScene(s);
+                        break;
+                    }
+                }
+                UnityEditor.SceneManagement.EditorSceneManager.CloseScene(newScene, true);
+            }
         }
 
         [Test]
