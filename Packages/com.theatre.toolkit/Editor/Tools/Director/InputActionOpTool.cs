@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Theatre.Stage;
 using Theatre.Transport;
 using UnityEngine;
 using UnityEditor;
