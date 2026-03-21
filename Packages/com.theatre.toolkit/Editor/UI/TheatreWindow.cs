@@ -127,25 +127,26 @@ namespace Theatre.Editor.UI
             var groups = TheatreConfig.EnabledGroups;
 
             // Stage group row
-            var stageRow = new VisualElement { style = { flexDirection = FlexDirection.Row, flexWrap = Wrap.Wrap } };
+            container.Add(new Label("Stage:") { style = { fontSize = 10, color = new StyleColor(new Color(0.5f, 0.8f, 1f)) } });
+            var stageRow = new VisualElement { style = { flexDirection = FlexDirection.Row, flexWrap = Wrap.NoWrap } };
             stageRow.Add(MakeGroupToggle("GameObject",  ToolGroup.StageGameObject, ref groups));
             stageRow.Add(MakeGroupToggle("Queries",     ToolGroup.StageQuery,      ref groups));
             stageRow.Add(MakeGroupToggle("Watches",     ToolGroup.StageWatch,      ref groups));
             stageRow.Add(MakeGroupToggle("Actions",     ToolGroup.StageAction,     ref groups));
             stageRow.Add(MakeGroupToggle("Recording",   ToolGroup.StageRecording,  ref groups));
-            container.Add(new Label("Stage:") { style = { fontSize = 10, color = new StyleColor(new Color(0.5f, 0.8f, 1f)) } });
             container.Add(stageRow);
 
             // ECS row
-            var ecsRow = new VisualElement { style = { flexDirection = FlexDirection.Row, flexWrap = Wrap.Wrap } };
+            container.Add(new Label("ECS:") { style = { fontSize = 10, color = new StyleColor(new Color(0.5f, 0.8f, 1f)) } });
+            var ecsRow = new VisualElement { style = { flexDirection = FlexDirection.Row, flexWrap = Wrap.NoWrap } };
             ecsRow.Add(MakeGroupToggle("ECS World",   ToolGroup.ECSWorld,  ref groups));
             ecsRow.Add(MakeGroupToggle("ECS Entity",  ToolGroup.ECSEntity, ref groups));
             ecsRow.Add(MakeGroupToggle("ECS Query",   ToolGroup.ECSQuery,  ref groups));
             ecsRow.Add(MakeGroupToggle("ECS Action",  ToolGroup.ECSAction, ref groups));
-            container.Add(new Label("ECS:") { style = { fontSize = 10, color = new StyleColor(new Color(0.5f, 0.8f, 1f)) } });
             container.Add(ecsRow);
 
             // Director row
+            container.Add(new Label("Director:") { style = { fontSize = 10, color = new StyleColor(new Color(0.5f, 1f, 0.6f)) } });
             var dirRow = new VisualElement { style = { flexDirection = FlexDirection.Row, flexWrap = Wrap.Wrap } };
             dirRow.Add(MakeGroupToggle("Scene",    ToolGroup.DirectorScene,   ref groups));
             dirRow.Add(MakeGroupToggle("Prefabs",  ToolGroup.DirectorPrefab,  ref groups));
@@ -154,7 +155,6 @@ namespace Theatre.Editor.UI
             dirRow.Add(MakeGroupToggle("Spatial",  ToolGroup.DirectorSpatial, ref groups));
             dirRow.Add(MakeGroupToggle("Input",    ToolGroup.DirectorInput,   ref groups));
             dirRow.Add(MakeGroupToggle("Config",   ToolGroup.DirectorConfig,  ref groups));
-            container.Add(new Label("Director:") { style = { fontSize = 10, color = new StyleColor(new Color(0.5f, 1f, 0.6f)) } });
             container.Add(dirRow);
 
             // Presets dropdown
@@ -176,14 +176,56 @@ namespace Theatre.Editor.UI
             });
             container.Add(dropdown);
 
+            // Per-tool disable foldout
+            container.Add(BuildPerToolOverrides());
+
             return container;
+        }
+
+        private static VisualElement BuildPerToolOverrides()
+        {
+            var foldout = new Foldout { text = "Individual Tool Overrides", value = false };
+            foldout.style.marginTop = 5;
+
+            var registry = TheatreServer.ToolRegistry;
+            if (registry != null)
+            {
+                // Pass Everything + null disabledTools to get ALL registered tools
+                var allTools = registry.ListTools(ToolGroup.Everything, null);
+                var disabled = TheatreConfig.DisabledTools;
+
+                foreach (var tool in allTools)
+                {
+                    var toolToggle = new Toggle(tool.Name);
+                    toolToggle.value = !disabled.Contains(tool.Name);
+                    toolToggle.style.marginLeft = 10;
+                    toolToggle.style.flexShrink = 0;
+                    var toolName = tool.Name; // capture for closure
+                    toolToggle.RegisterValueChangedCallback(evt =>
+                    {
+                        if (evt.newValue)
+                            TheatreConfig.DisabledTools.Remove(toolName);
+                        else
+                            TheatreConfig.DisabledTools.Add(toolName);
+                        TheatreServer.SseManager?.NotifyToolsChanged();
+                    });
+                    foldout.Add(toolToggle);
+                }
+            }
+            else
+            {
+                foldout.Add(new Label("Server not running.") { style = { fontSize = 10, color = new StyleColor(new Color(0.6f, 0.6f, 0.6f)), marginLeft = 10 } });
+            }
+
+            return foldout;
         }
 
         private static Toggle MakeGroupToggle(string label, ToolGroup flag, ref ToolGroup current)
         {
             var toggle = new Toggle(label);
             toggle.value = (current & flag) != 0;
-            toggle.style.minWidth = 90;
+            toggle.style.width = 90;
+            toggle.style.flexShrink = 0;
             // Capture flag in local for closure
             var capturedFlag = flag;
             toggle.RegisterValueChangedCallback(evt =>
