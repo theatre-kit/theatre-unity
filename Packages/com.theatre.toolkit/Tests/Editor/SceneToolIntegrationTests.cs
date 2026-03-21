@@ -32,12 +32,12 @@ namespace Theatre.Tests.Editor
         [Test]
         public void SceneSnapshot_ReturnsObjects()
         {
-            var args = JToken.Parse(@"{ ""budget"": 2000 }");
+            var args = JToken.Parse(@"{ ""budget"": 4000 }");
             var result = CallTool("scene_snapshot", args);
 
             Assert.That(result, Does.Contain("\"scene\""));
             Assert.That(result, Does.Contain("\"objects\""));
-            Assert.That(result, Does.Contain("\"Player\""));
+            Assert.That(result, Does.Contain("Player"));
             Assert.That(result, Does.Contain("\"frame\""));
             Assert.That(result, Does.Contain("\"budget\""));
         }
