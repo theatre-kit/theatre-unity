@@ -186,7 +186,14 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Bake the NavMesh for the current scene.</summary>
         internal static string Bake(JObject args)
         {
-            NavMeshBuilder.BuildNavMesh();
+            // Unity requires the scene to be saved before NavMesh baking
+            var activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+            if (activeScene.isDirty)
+            {
+                UnityEditor.SceneManagement.EditorSceneManager.SaveScene(activeScene);
+            }
+
+            UnityEditor.AI.NavMeshBuilder.BuildNavMesh();
 
             var response = new JObject();
             response["result"] = "ok";
@@ -223,7 +230,7 @@ namespace Theatre.Editor.Tools.Director
             try
             {
                 // Access NavMesh settings via SerializedObject
-                var settingsObject = NavMeshBuilder.navMeshSettingsObject;
+                var settingsObject = UnityEditor.AI.NavMeshBuilder.navMeshSettingsObject;
                 if (settingsObject == null)
                     return ResponseHelpers.ErrorResponse(
                         "api_unavailable",
@@ -422,7 +429,7 @@ namespace Theatre.Editor.Tools.Director
 
             try
             {
-                var settingsObject = NavMeshBuilder.navMeshSettingsObject;
+                var settingsObject = UnityEditor.AI.NavMeshBuilder.navMeshSettingsObject;
                 if (settingsObject == null)
                     return ResponseHelpers.ErrorResponse(
                         "api_unavailable",
