@@ -217,6 +217,7 @@ namespace Theatre.Editor
             LightingOpTool.Register(registry);              // Phase 10a
             QualityOpTool.Register(registry);               // Phase 10a
             ProjectSettingsOpTool.Register(registry);       // Phase 10a
+            BuildProfileOpTool.Register(registry);          // Phase 10b
         }
 
         // --- Route Handlers ---
