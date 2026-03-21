@@ -7,6 +7,11 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using Theatre.Transport;
 using Theatre.Stage;
+using Theatre.Editor.Tools.Actions;
+using Theatre.Editor.Tools.Scene;
+using Theatre.Editor.Tools.Spatial;
+using Theatre.Editor.Tools.Watch;
+using Theatre.Editor.Tools.Recording;
 
 namespace Theatre.Editor
 {
@@ -27,6 +32,8 @@ namespace Theatre.Editor
         private static int s_cachedPort;
         private static string s_cachedEnabledGroups;
         private static ToolGroup s_cachedEnabledGroupsEnum;
+
+        private const string SessionIdKey = "Theatre.McpSessionId";
 
         /// <summary>Whether the server is currently running.</summary>
         public static bool IsRunning => s_transport?.IsListening ?? false;
@@ -80,6 +87,25 @@ namespace Theatre.Editor
                 ExecuteToolOnMainThread
             );
 
+            // Restore MCP session from before domain reload so existing
+            // clients don't need to re-initialize after recompile.
+            var previousSessionId = SessionState.GetString(SessionIdKey, null);
+            if (!string.IsNullOrEmpty(previousSessionId))
+            {
+                s_mcpRouter.RestoreSession(previousSessionId);
+                Debug.Log("[Theatre] MCP session restored from previous domain reload");
+            }
+
+            // Persist new session IDs when clients (re-)initialize.
+            // Called from background thread — dispatch to main thread.
+            s_mcpRouter.SessionChanged += sessionId =>
+            {
+                MainThreadDispatcher.Invoke(() =>
+                {
+                    SessionState.SetString(SessionIdKey, sessionId);
+                });
+            };
+
             // Set up HTTP routes
             s_router = new RequestRouter();
             s_router.Map("GET", "/health", HandleHealth);
@@ -119,7 +145,8 @@ namespace Theatre.Editor
         /// <summary>Stop the HTTP server.</summary>
         public static void StopServer()
         {
-            WatchTool.Shutdown();  // Phase 4: unhook update callback
+            WatchTool.Shutdown();      // Phase 4: unhook update callback
+            RecordingTool.Shutdown();  // Phase 5: stop recording, close db
             s_sseManager?.Dispose();
             s_transport?.Stop();
             s_transport = null;
@@ -176,6 +203,7 @@ namespace Theatre.Editor
             WatchTool.Register(registry);         // Phase 4
             ActionTool.Register(registry);        // Phase 4
             SceneDeltaTool.Register(registry);    // Phase 4
+            RecordingTool.Register(registry);     // Phase 5
         }
 
         // --- Route Handlers ---

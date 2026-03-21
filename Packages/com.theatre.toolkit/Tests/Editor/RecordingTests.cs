@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Theatre.Stage;
+using UnityEditor;
 using UnityEngine;
 
 namespace Theatre.Tests.Editor
@@ -534,6 +535,178 @@ namespace Theatre.Tests.Editor
             var pos = frame.Properties["position"] as JArray;
             Assert.IsNotNull(pos);
             Assert.AreEqual(10f, pos[0].Value<float>(), 0.01f);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // RecordingPersistenceTests
+    // -----------------------------------------------------------------------
+
+    [TestFixture]
+    public class RecordingPersistenceTests
+    {
+        [SetUp]
+        public void SetUp()
+        {
+            SessionState.EraseString("Theatre_ActiveRecording");
+            SessionState.EraseString("Theatre_RecordingClips");
+            SessionState.EraseInt("Theatre_RecordingCounter");
+        }
+
+        [Test]
+        public void SaveRestore_ActiveRecording_RoundTrips()
+        {
+            var state = new RecordingState
+            {
+                ClipId = "rec_001",
+                Label = "Test",
+                DbPath = "/tmp/test.sqlite3",
+                CaptureRate = 30,
+                TrackPaths = new[] { "/Player" },
+                TrackComponents = new[] { "Transform" },
+                StartFrame = 100,
+                StartTime = 2.5f,
+                FrameCounter = 50,
+                TickCounter = 500,
+            };
+
+            RecordingPersistence.SaveActive(state);
+            var restored = RecordingPersistence.RestoreActive();
+
+            Assert.IsNotNull(restored);
+            Assert.AreEqual(state.ClipId, restored.ClipId);
+            Assert.AreEqual(state.Label, restored.Label);
+            Assert.AreEqual(state.DbPath, restored.DbPath);
+            Assert.AreEqual(state.CaptureRate, restored.CaptureRate);
+            Assert.AreEqual(state.StartFrame, restored.StartFrame);
+            Assert.AreEqual(state.StartTime, restored.StartTime, 0.001f);
+            Assert.AreEqual(state.FrameCounter, restored.FrameCounter);
+        }
+
+        [Test]
+        public void ClearActive_MakesRestoreNull()
+        {
+            var state = new RecordingState { ClipId = "rec_002", DbPath = "/tmp/test2.sqlite3" };
+            RecordingPersistence.SaveActive(state);
+            RecordingPersistence.ClearActive();
+
+            var restored = RecordingPersistence.RestoreActive();
+            Assert.IsNull(restored);
+        }
+
+        [Test]
+        public void SaveRestore_ClipIndex_RoundTrips()
+        {
+            var clips = new List<ClipMetadata>
+            {
+                new ClipMetadata
+                {
+                    ClipId = "rec_001",
+                    Label = "Clip 1",
+                    Scene = "TestScene",
+                    StartFrame = 0,
+                    EndFrame = 100,
+                    FrameCount = 100,
+                    CaptureRate = 60,
+                    FilePath = "/tmp/rec_001.sqlite3",
+                    CreatedAt = "2026-01-01T00:00:00Z",
+                },
+                new ClipMetadata
+                {
+                    ClipId = "rec_002",
+                    Label = "Clip 2",
+                    Scene = "TestScene",
+                    StartFrame = 200,
+                    EndFrame = 400,
+                    FrameCount = 200,
+                    CaptureRate = 30,
+                    FilePath = "/tmp/rec_002.sqlite3",
+                    CreatedAt = "2026-01-02T00:00:00Z",
+                },
+            };
+
+            RecordingPersistence.SaveClipIndex(clips);
+            var restored = RecordingPersistence.RestoreClipIndex();
+
+            Assert.IsNotNull(restored);
+            Assert.AreEqual(2, restored.Count);
+            Assert.AreEqual("rec_001", restored[0].ClipId);
+            Assert.AreEqual("Clip 1", restored[0].Label);
+            Assert.AreEqual("rec_002", restored[1].ClipId);
+        }
+
+        [Test]
+        public void SaveRestore_Counter_RoundTrips()
+        {
+            RecordingPersistence.SaveCounter(42);
+            int restored = RecordingPersistence.RestoreCounter();
+            Assert.AreEqual(42, restored);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // RecordingEngineTests
+    // -----------------------------------------------------------------------
+
+    [TestFixture]
+    public class RecordingEngineTests
+    {
+        [SetUp]
+        public void SetUp()
+        {
+            SessionState.EraseString("Theatre_ActiveRecording");
+            SessionState.EraseString("Theatre_RecordingClips");
+            SessionState.EraseInt("Theatre_RecordingCounter");
+        }
+
+        [Test]
+        public void Start_WhileRecording_ReturnsNull()
+        {
+            // Create a temp db path that won't actually be created during this test
+            // We need to call Start in a way that doesn't require play mode since
+            // we're in edit mode. The engine.Start() itself doesn't check play mode
+            // (that's the tool's job), but it does create files.
+            var engine = new RecordingEngine();
+            engine.Initialize(null);
+
+            // First start should succeed
+            var meta1 = engine.Start("first");
+            Assert.IsNotNull(meta1, "First start should return metadata");
+
+            // Second start while first is active should return null
+            var meta2 = engine.Start("second");
+            Assert.IsNull(meta2, "Second start while recording should return null");
+
+            // Clean up
+            engine.Stop();
+            engine.Shutdown();
+
+            // Clean up the sqlite file
+            if (meta1 != null && !string.IsNullOrEmpty(meta1.FilePath) &&
+                System.IO.File.Exists(meta1.FilePath))
+            {
+                System.IO.File.Delete(meta1.FilePath);
+            }
+        }
+
+        [Test]
+        public void Stop_WhileNotRecording_ReturnsNull()
+        {
+            var engine = new RecordingEngine();
+            engine.Initialize(null);
+
+            var result = engine.Stop();
+            Assert.IsNull(result, "Stop when not recording should return null");
+        }
+
+        [Test]
+        public void InsertMarker_WhileNotRecording_ReturnsNull()
+        {
+            var engine = new RecordingEngine();
+            engine.Initialize(null);
+
+            var marker = engine.InsertMarker("test_marker");
+            Assert.IsNull(marker, "InsertMarker when not recording should return null");
         }
     }
 }
