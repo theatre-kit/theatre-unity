@@ -58,10 +58,26 @@ user to check Unity.**
 ### Development loop (MANDATORY after writing C# code)
 
 1. `unity_console` `{"operation": "refresh"}` — trigger recompile
-2. `unity_console` `{"filter": "error"}` — check for compile errors
-3. If clean: `unity_tests` `{"operation": "run"}` — run tests
-4. `unity_tests` `{"operation": "results"}` — see failures (failures_only is default)
-5. Fix any failures and repeat from step 1
+2. Wait ~3 seconds for domain reload (server restarts, session invalidates)
+3. `unity_console` `{"filter": "error"}` — check for compile errors
+4. If clean: `unity_tests` `{"operation": "run"}` — run tests
+5. Wait ~10 seconds for tests to complete
+6. `unity_tests` `{"operation": "results"}` — see failures (failures_only is default)
+7. Fix any failures and repeat from step 1
+
+### Session gotchas
+
+- **Domain reload kills MCP sessions.** After `refresh` or `unity_tests run`,
+  the server restarts and your session ID is invalidated. You must
+  re-initialize (`method: "initialize"`) to get a new session.
+- **Test runs can trigger domain reload.** If tests modify scripts or
+  assets, Unity recompiles. Poll `results` after re-initializing.
+- **Test scene auto-generates.** `TestSceneCreator.cs` has an
+  `[InitializeOnLoadMethod]` that creates `TestScene_Hierarchy.unity`
+  if it doesn't exist. This fires on every domain reload.
+- **Newtonsoft, not System.Text.Json.** All JSON code uses
+  `Newtonsoft.Json` (`JObject`, `JArray`, `JsonConvert`). System.Text.Json
+  does not exist in Unity 6. See `.claude/rules/unity-deprecated-apis.md`.
 
 ### Available MCP tools
 
@@ -176,3 +192,13 @@ implementing.
 
 - Commit messages: short imperative subject line (72 chars max)
 - Do NOT add Co-Authored-By or AI attribution to commits
+
+## Agent Tracker
+- Project ID: de744a41-ab2c-46aa-8d6d-a3fa89482c2e
+- Project Name: theatre-unity
+- Tracker URL: http://localhost:57328/mcp
+
+When you complete a meaningful unit of work, post an update using the
+`post_update` MCP tool with the project ID above. Use status "in-progress"
+for normal progress, "blocked" if you hit an obstacle, or "error" for
+failures. Include relevant tags for categorization.

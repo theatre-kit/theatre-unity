@@ -5,109 +5,94 @@ increment. Phases are sequential — later phases depend on earlier ones.
 
 ---
 
-## Phase 0 — Scaffold
+## Phase 0 — Scaffold ✓
 
 Set up the project skeleton. No functionality, just structure.
 
-- [ ] Create Unity 6 project as test harness
-- [ ] Create UPM package skeleton (`com.theatre.toolkit`)
-  - `package.json` targeting `"unity": "6000.0"`
-  - Runtime and Editor assembly definitions
-  - Folder structure per ARCHITECTURE.md
-- [ ] Add `TheatreServer.cs` stub with `[InitializeOnLoad]`
-- [ ] Add `HttpListener` lifecycle — bind, listen, shutdown
-- [ ] Verify server starts on editor load and restarts on domain reload
-- [ ] Add `/health` endpoint returning `{ "status": "ok" }`
-- [ ] CI: GitHub Actions workflow — build Unity project in batch mode
-
-**Exit criteria**: `curl http://localhost:9078/health` returns a response
-from inside the Unity Editor.
+- [x] Create Unity 6 project as test harness
+- [x] Create UPM package skeleton (`com.theatre.toolkit`)
+- [x] Add `TheatreServer.cs` stub with `[InitializeOnLoad]`
+- [x] Add `HttpListener` lifecycle — bind, listen, shutdown
+- [x] Verify server starts on editor load and restarts on domain reload
+- [x] Add `/health` endpoint returning `{ "status": "ok" }`
+- [ ] CI: GitHub Actions workflow (blocked — requires Unity Pro for batch mode)
 
 ---
 
-## Phase 1 — MCP Core
+## Phase 1 — MCP Core ✓
 
-Implement the MCP protocol layer. No tools yet — just the infrastructure
-to register and call them.
+Implement the MCP protocol layer.
 
-- [ ] JSON-RPC 2.0 types (`JsonRpcRequest`, `JsonRpcResponse`, `JsonRpcError`)
-- [ ] MCP handshake (`initialize` / `initialized`)
-- [ ] `tools/list` — returns registered tools with JSON Schema parameters
-- [ ] `tools/call` — dispatches to handler by name, returns result
-- [ ] Tool registry with group-based filtering (`ToolGroup` flags enum)
-- [ ] `notifications/tools/list_changed` when groups toggle
-- [ ] EditorCoroutine dispatch — HTTP thread → main thread → response
-- [ ] `TheatreConfig` — port, enabled groups, per-tool overrides
-- [ ] SSE endpoint (GET `/mcp`) for server-initiated notifications
-- [ ] Add one dummy tool (`theatre_status`) to validate the full round-trip
-- [ ] MCP integration test: HttpClient → JSON-RPC request → valid response
-
-**Exit criteria**: An MCP client (Claude Code, etc.) can connect via
-Streamable HTTP, see `theatre_status` in the tool list, and call it.
+- [x] JSON-RPC 2.0 types (`JsonRpcMessage`, `JsonRpcError`, `JsonRpcResponse`)
+- [x] MCP handshake (`initialize` / `initialized`)
+- [x] `tools/list` — returns registered tools with JSON Schema parameters
+- [x] `tools/call` — dispatches to handler by name, returns result
+- [x] Tool registry with group-based filtering (`ToolGroup` flags enum)
+- [x] `notifications/tools/list_changed` when groups toggle
+- [x] `MainThreadDispatcher` — ConcurrentQueue + EditorApplication.update
+- [x] `TheatreConfig` — port, enabled groups, per-tool overrides
+- [x] SSE endpoint (GET `/mcp`) for server-initiated notifications
+- [x] `theatre_status` dummy tool validates full round-trip
+- [x] MCP integration tests (HttpClient → JSON-RPC → valid response)
 
 ---
 
-## Phase 2 — Stage: Scene Awareness
+## Phase 2 — Stage: Scene Awareness ✓
 
 First real tools. Agent can see the scene.
 
-- [ ] `scene_snapshot` — budgeted overview of GameObjects with positions
-- [ ] `scene_hierarchy` — list, find, search operations
-- [ ] `scene_inspect` — deep single-object inspection via SerializedProperty
-- [ ] Object addressing: hierarchy path + instance_id on all responses
-- [ ] Multi-scene support (`SceneName:/Path` addressing)
-- [ ] Prefab mode detection and scoping
-- [ ] Token budgeting engine (estimate, truncate, paginate)
-- [ ] Pagination with cursors
-- [ ] Play mode vs edit mode reporting
-- [ ] Clustering for snapshot summaries
-- [ ] Test scenes with known layouts for deterministic assertions
-
-**Exit criteria**: Agent can snapshot a scene, navigate the hierarchy,
-and inspect any GameObject's full component state.
+- [x] `scene_snapshot` — budgeted overview of GameObjects with positions
+- [x] `scene_hierarchy` — list, find, search operations
+- [x] `scene_inspect` — deep single-object inspection via SerializedProperty
+- [x] Object addressing: hierarchy path + instance_id on all responses
+- [x] Multi-scene support (`SceneName:/Path` addressing)
+- [x] Prefab mode detection and scoping
+- [x] Token budgeting engine (estimate, truncate, paginate)
+- [x] Pagination with cursors
+- [x] Play mode vs edit mode reporting
+- [x] Clustering for snapshot summaries
+- [x] Test scene with known layout (auto-generated via TestSceneCreator)
 
 ---
 
-## Phase 3 — Stage: Spatial Queries
+## Phase 3 — Stage: Spatial Queries ✓
 
 Agent can ask spatial questions.
 
-- [ ] `spatial_query:nearest` — N closest objects to a point
-- [ ] `spatial_query:radius` — all objects within radius
-- [ ] `spatial_query:overlap` — physics overlap (sphere, box, capsule)
-- [ ] `spatial_query:raycast` — single and multi-hit
-- [ ] `spatial_query:linecast` — line-of-sight check
-- [ ] `spatial_query:path_distance` — NavMesh path distance
-- [ ] `spatial_query:bounds` — world-space bounding box
-- [ ] 2D/3D physics toggle (project default + per-query `physics` param)
-- [ ] Spatial index (R-tree for 3D, grid hash for 2D)
-- [ ] `requires_play_mode` error for physics queries in edit mode
-
-**Exit criteria**: Agent can ask "what's near the player?", "can this
-enemy see that door?", "what's the NavMesh distance?" and get answers.
+- [x] `spatial_query:nearest` — N closest objects to a point
+- [x] `spatial_query:radius` — all objects within radius
+- [x] `spatial_query:overlap` — physics overlap (sphere, box, capsule)
+- [x] `spatial_query:raycast` — single and multi-hit
+- [x] `spatial_query:linecast` — line-of-sight check
+- [x] `spatial_query:path_distance` — NavMesh path distance
+- [x] `spatial_query:bounds` — world-space bounding box
+- [x] 2D/3D physics toggle (auto-detect + per-query `physics` param)
+- [x] Spatial index (flat-list brute force, adequate for typical scenes)
+- [x] `requires_play_mode` error for physics queries in edit mode
 
 ---
 
-## Phase 4 — Stage: Watches & Actions
+## Phase 4 — Stage: Watches & Actions ✓
 
 Agent can subscribe to changes and manipulate game state.
 
-- [ ] `watch:create` — subscribe with conditions (threshold, proximity,
+- [x] `watch:create` — subscribe with conditions (threshold, proximity,
   region, property_changed, destroyed, spawned)
-- [ ] `watch:remove`, `watch:list`, `watch:check`
-- [ ] Watch trigger notifications via SSE
-- [ ] Watch throttling (`throttle_ms`)
-- [ ] Watch persistence across domain reloads (SessionState)
-- [ ] `action:teleport` — move GameObject to position
-- [ ] `action:set_property` — set component property via SerializedProperty
-- [ ] `action:set_active` — enable/disable GameObject
-- [ ] `action:set_timescale` — change Time.timeScale
-- [ ] `action:pause` / `action:step` / `action:unpause`
-- [ ] `action:invoke_method` — call public methods (simple signatures)
-- [ ] `scene_delta` — what changed since last query / specific frame
+- [x] `watch:remove`, `watch:list`, `watch:check`
+- [x] Watch trigger notifications via SSE
+- [x] Watch throttling (`throttle_ms`)
+- [x] Watch persistence across domain reloads (SessionState)
+- [x] `action:teleport` — move GameObject to position
+- [x] `action:set_property` — set component property via SerializedProperty
+- [x] `action:set_active` — enable/disable GameObject
+- [x] `action:set_timescale` — change Time.timeScale
+- [x] `action:pause` / `action:step` / `action:unpause`
+- [x] `action:invoke_method` — call public methods (simple signatures)
+- [x] `scene_delta` — what changed since last query / specific frame
 
-**Exit criteria**: Agent can watch for "enemy HP below 25", get notified
-when it happens, teleport the player, pause the game, and step frames.
+Also implemented (not in original roadmap):
+- [x] `unity_console` — read Console log with grep, dedup, rollup, refresh
+- [x] `unity_tests` — run EditMode/PlayMode tests and get results via MCP
 
 ---
 
