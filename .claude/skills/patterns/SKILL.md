@@ -18,5 +18,8 @@ Structural patterns for the Theatre Unity MCP server. Each file contains a named
 - [compound-tool-dispatch.md](compound-tool-dispatch.md) — Switch on `"operation"` → sub-handler classes for multi-operation tools
 - [response-building.md](response-building.md) — ResponseHelpers usage for frame context, identity, vectors, errors
 - [budget-and-truncate.md](budget-and-truncate.md) — TokenBudget loop with WouldExceed/Add/ToBudgetJObject for variable-size responses
+- [action-sub-handler.md](action-sub-handler.md) — Action sub-op structure: RequirePlayMode → ResolveFromArgs → Undo → mutate → AddIdentity + AddFrameContext
+- [spatial-index-sub-handler.md](spatial-index-sub-handler.md) — Spatial query pipeline: ParseVector3 → SpatialEntryFilter → GetIndex().Query → SpatialResultBuilder → budget
+- [physics-mode-dispatch.md](physics-mode-dispatch.md) — PhysicsMode.GetEffective() → Execute2D/Execute3D branches for physics-based queries
 - [main-thread-dispatch.md](main-thread-dispatch.md) — MainThreadDispatcher.Invoke for marshaling HTTP thread → Unity main thread
 - [domain-reload-survival.md](domain-reload-survival.md) — [InitializeOnLoad] + SessionState persistence for surviving Unity recompiles
