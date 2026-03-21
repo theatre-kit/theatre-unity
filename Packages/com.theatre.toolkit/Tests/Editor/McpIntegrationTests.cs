@@ -101,7 +101,8 @@ namespace Theatre.Tests.Editor
 
             Assert.AreEqual(200, (int)response.StatusCode);
             Assert.That(json, Does.Contain("\"content\""));
-            Assert.That(json, Does.Contain("\"status\":\"ok\""));
+            // Tool result is JSON-escaped inside the text field
+            Assert.That(json, Does.Contain("\\\"status\\\":\\\"ok\\\""));
         }
 
         [Test]
