@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -276,14 +277,10 @@ namespace Theatre.Stage
         /// <param name="componentName">Component type name to search for.</param>
         public static Component FindComponent(GameObject go, string componentName)
         {
-            foreach (var comp in go.GetComponents<Component>())
-            {
-                if (comp == null) continue;
-                if (string.Equals(comp.GetType().Name, componentName,
-                    StringComparison.OrdinalIgnoreCase))
-                    return comp;
-            }
-            return null;
+            return go.GetComponents<Component>()
+                .FirstOrDefault(comp => comp != null &&
+                    string.Equals(comp.GetType().Name, componentName,
+                        StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>

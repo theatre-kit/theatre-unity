@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 namespace Theatre.Stage
 {
@@ -32,31 +33,18 @@ namespace Theatre.Stage
             {
                 if (excludeTags != null)
                 {
-                    foreach (var tag in excludeTags)
-                    {
-                        if (string.Equals(entry.Tag, tag,
-                            StringComparison.OrdinalIgnoreCase))
-                            return false;
-                    }
+                    if (excludeTags.Any(tag => string.Equals(entry.Tag, tag,
+                        StringComparison.OrdinalIgnoreCase)))
+                        return false;
                 }
                 if (includeComponents != null)
                 {
                     foreach (var required in includeComponents)
                     {
-                        bool found = false;
-                        if (entry.Components != null)
-                        {
-                            foreach (var comp in entry.Components)
-                            {
-                                if (string.Equals(comp, required,
-                                    StringComparison.OrdinalIgnoreCase))
-                                {
-                                    found = true;
-                                    break;
-                                }
-                            }
-                        }
-                        if (!found) return false;
+                        if (entry.Components == null ||
+                            !entry.Components.Any(comp => string.Equals(comp, required,
+                                StringComparison.OrdinalIgnoreCase)))
+                            return false;
                     }
                 }
                 return true;

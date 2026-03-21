@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
@@ -163,11 +164,11 @@ namespace Theatre.Editor
                 }
 
                 // Sort by count descending, take topN
-                var sorted = new List<(string message, int count, LogType type)>();
-                foreach (var kv in messageCounts)
-                    sorted.Add((kv.Key, kv.Value.count, kv.Value.type));
-                sorted.Sort((a, b) => b.count.CompareTo(a.count));
-                if (sorted.Count > topN) sorted.RemoveRange(topN, sorted.Count - topN);
+                var sorted = messageCounts
+                    .Select(kv => (message: kv.Key, count: kv.Value.count, type: kv.Value.type))
+                    .OrderByDescending(x => x.count)
+                    .Take(topN)
+                    .ToList();
 
                 return (logs, warnings, errors, exceptions, sorted);
             }

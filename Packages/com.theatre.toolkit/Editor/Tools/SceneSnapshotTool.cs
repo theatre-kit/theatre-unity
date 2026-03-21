@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Theatre.Stage;
@@ -254,28 +255,12 @@ namespace Theatre.Editor
             List<HierarchyEntry> entries,
             string[] requiredComponents)
         {
-            var filtered = new List<HierarchyEntry>();
-            foreach (var entry in entries)
-            {
-                if (entry.Components == null) continue;
-                bool hasAll = true;
-                foreach (var required in requiredComponents)
-                {
-                    bool found = false;
-                    foreach (var comp in entry.Components)
-                    {
-                        if (string.Equals(comp, required,
-                            StringComparison.OrdinalIgnoreCase))
-                        {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) { hasAll = false; break; }
-                }
-                if (hasAll) filtered.Add(entry);
-            }
-            return filtered;
+            return entries.Where(entry =>
+                entry.Components != null &&
+                requiredComponents.All(required =>
+                    entry.Components.Any(comp =>
+                        string.Equals(comp, required, StringComparison.OrdinalIgnoreCase))))
+                .ToList();
         }
     }
 }

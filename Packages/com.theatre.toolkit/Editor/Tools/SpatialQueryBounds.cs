@@ -41,33 +41,7 @@ namespace Theatre.Editor
             // Gather collider bounds
             if (source == "collider" || source == "combined")
             {
-                var colliders3D = go.GetComponentsInChildren<Collider>();
-                var colliders2D = go.GetComponentsInChildren<Collider2D>();
-
-                Bounds? cBounds = null;
-                foreach (var col in colliders3D)
-                {
-                    if (cBounds == null)
-                        cBounds = col.bounds;
-                    else
-                    {
-                        var b = cBounds.Value;
-                        b.Encapsulate(col.bounds);
-                        cBounds = b;
-                    }
-                }
-                foreach (var col in colliders2D)
-                {
-                    if (cBounds == null)
-                        cBounds = col.bounds;
-                    else
-                    {
-                        var b = cBounds.Value;
-                        b.Encapsulate(col.bounds);
-                        cBounds = b;
-                    }
-                }
-                colliderBounds = cBounds;
+                colliderBounds = GetColliderBounds(go);
             }
 
             // Compute final bounds
@@ -127,6 +101,34 @@ namespace Theatre.Editor
 
             response["result"] = result;
             return response.ToString(Formatting.None);
+        }
+
+        private static Bounds? GetColliderBounds(GameObject go)
+        {
+            Bounds? bounds = null;
+            foreach (var col in go.GetComponentsInChildren<Collider>())
+            {
+                if (bounds == null)
+                    bounds = col.bounds;
+                else
+                {
+                    var b = bounds.Value;
+                    b.Encapsulate(col.bounds);
+                    bounds = b;
+                }
+            }
+            foreach (var col in go.GetComponentsInChildren<Collider2D>())
+            {
+                if (bounds == null)
+                    bounds = col.bounds;
+                else
+                {
+                    var b = bounds.Value;
+                    b.Encapsulate(col.bounds);
+                    bounds = b;
+                }
+            }
+            return bounds;
         }
     }
 }

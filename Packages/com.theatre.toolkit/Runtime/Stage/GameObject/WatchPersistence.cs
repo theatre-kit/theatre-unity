@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 using UnityEngine;
 #if UNITY_EDITOR
@@ -20,9 +21,7 @@ namespace Theatre.Stage
         public static void Save(List<WatchState> watches, int nextId)
         {
 #if UNITY_EDITOR
-            var defs = new List<WatchDefinition>();
-            foreach (var ws in watches)
-                defs.Add(ws.Definition);
+            var defs = watches.Select(ws => ws.Definition).ToList();
 
             var json = JsonConvert.SerializeObject(defs);
             SessionState.SetString(SessionKey, json);
@@ -49,16 +48,12 @@ namespace Theatre.Stage
                     var defs = JsonConvert.DeserializeObject<List<WatchDefinition>>(json);
                     if (defs != null)
                     {
-                        foreach (var def in defs)
+                        watches.AddRange(defs.Select(def => new WatchState
                         {
-                            var state = new WatchState
-                            {
-                                Definition = def,
-                                LastTriggeredAt = 0,
-                                TriggerCount = 0
-                            };
-                            watches.Add(state);
-                        }
+                            Definition = def,
+                            LastTriggeredAt = 0,
+                            TriggerCount = 0
+                        }));
 
                         Debug.Log($"[Theatre] Restored {watches.Count} watches after domain reload");
                     }

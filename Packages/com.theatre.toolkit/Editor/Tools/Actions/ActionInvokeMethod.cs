@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reflection;
 using Newtonsoft.Json.Linq;
 using Theatre.Stage;
@@ -66,27 +67,10 @@ namespace Theatre.Editor
             MethodInfo targetMethod = null;
             int argCount = methodArgs?.Count ?? 0;
 
-            foreach (var method in methods)
-            {
-                if (method.Name != methodName) continue;
-                var parameters = method.GetParameters();
-                if (parameters.Length != argCount) continue;
-
-                bool allAllowed = true;
-                foreach (var p in parameters)
-                {
-                    if (!IsAllowedType(p.ParameterType))
-                    {
-                        allAllowed = false;
-                        break;
-                    }
-                }
-                if (allAllowed)
-                {
-                    targetMethod = method;
-                    break;
-                }
-            }
+            targetMethod = methods.FirstOrDefault(method =>
+                method.Name == methodName &&
+                method.GetParameters().Length == argCount &&
+                method.GetParameters().All(p => IsAllowedType(p.ParameterType)));
 
             if (targetMethod == null)
                 return ResponseHelpers.ErrorResponse(

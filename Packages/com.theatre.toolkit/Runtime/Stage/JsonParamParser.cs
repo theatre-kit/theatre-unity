@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
@@ -54,10 +55,8 @@ namespace Theatre.Stage
             var token = args[field];
             if (token == null || token.Type != JTokenType.Array)
                 return null;
-            var list = new List<string>();
-            foreach (var item in (JArray)token)
-                list.Add(item.Value<string>());
-            return list.Count > 0 ? list.ToArray() : null;
+            var arr = ((JArray)token).Select(item => item.Value<string>()).ToArray();
+            return arr.Length > 0 ? arr : null;
         }
     }
 }

@@ -153,8 +153,10 @@ namespace Theatre.Editor
                     TheatreConfig.DisabledTools);
 
                 if (tool == null)
-                    throw new InvalidOperationException(
-                        $"Tool '{toolName}' not found or not enabled");
+                    return ResponseHelpers.ErrorResponse(
+                        "tool_not_found",
+                        $"Tool '{toolName}' not found or not enabled",
+                        "Check theatre_status for available tools");
 
                 return tool.Handler(arguments);
             });

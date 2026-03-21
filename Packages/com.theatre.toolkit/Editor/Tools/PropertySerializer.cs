@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -56,20 +57,10 @@ namespace Theatre.Editor
                 var typeName = component.GetType().Name;
 
                 // Apply component filter
-                if (componentFilter != null)
-                {
-                    bool match = false;
-                    foreach (var filter in componentFilter)
-                    {
-                        if (string.Equals(filter, typeName,
-                            StringComparison.OrdinalIgnoreCase))
-                        {
-                            match = true;
-                            break;
-                        }
-                    }
-                    if (!match) continue;
-                }
+                if (componentFilter != null &&
+                    !componentFilter.Any(f => string.Equals(f, typeName,
+                        StringComparison.OrdinalIgnoreCase)))
+                    continue;
 
                 // Budget check — estimate before serializing
                 if (budget != null && budget.IsExhausted)
