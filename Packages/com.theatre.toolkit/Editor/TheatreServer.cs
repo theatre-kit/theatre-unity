@@ -179,6 +179,7 @@ namespace Theatre.Editor
 
                 var result = tool.Handler(arguments);
                 s_activityLog.Record(toolName, arguments, result);
+                GizmoExtractor.TryExtract(toolName, arguments, result);
                 return result;
             });
         }
