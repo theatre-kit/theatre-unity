@@ -179,10 +179,15 @@ create a ScriptableObject weapon data asset, and create physics materials.
 
 Agent can create animation assets and state machines.
 
+### Phase 8a — Clips & Controllers
+
 - [ ] `animation_clip_op` — create clips, add/remove curves, set keyframes,
   animation events, loop settings
 - [ ] `animator_controller_op` — create controllers, add parameters, states,
   transitions with conditions, layers, default state
+
+### Phase 8b — Blend Trees & Timeline
+
 - [ ] `blend_tree_op` — create blend trees, add motions, set blend type
   and parameters
 - [ ] `timeline_op` — create Timeline assets, add tracks (animation,
