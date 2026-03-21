@@ -51,21 +51,37 @@ Unity 6 is installed via Unity Hub:
 
 ## Build & Test
 
-```bash
-# Open TestProject/ in Unity 6 via Unity Hub
-# Package compiles automatically when Unity loads the project
+Theatre runs as an MCP server inside Unity. You have direct access to
+these tools — **use them after every code change instead of asking the
+user to check Unity.**
 
-# Run tests: Window > General > Test Runner > EditMode > Run All
+### Development loop (MANDATORY after writing C# code)
 
-# Quick health check (server starts on editor load)
-curl http://localhost:9078/health
+1. `unity_console` `{"operation": "refresh"}` — trigger recompile
+2. `unity_console` `{"filter": "error"}` — check for compile errors
+3. If clean: `unity_tests` `{"operation": "run"}` — run tests
+4. `unity_tests` `{"operation": "results"}` — see failures (failures_only is default)
+5. Fix any failures and repeat from step 1
 
-# MCP handshake test
-curl -s -X POST http://localhost:9078/mcp \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"curl","version":"1.0"}}}'
-```
+### Available MCP tools
+
+| Tool | Use for |
+|---|---|
+| `unity_console` `{"operation": "summary"}` | Quick overview: error/warning/log counts |
+| `unity_console` `{"filter": "error"}` | See compile errors and runtime exceptions |
+| `unity_console` `{"grep": "CS0246"}` | Search for specific error codes or patterns |
+| `unity_console` `{"grep": "regex:error.*line \\d+"}` | Regex search (prefix with `regex:`) |
+| `unity_console` `{"operation": "refresh"}` | Force `AssetDatabase.Refresh()` — triggers recompile |
+| `unity_console` `{"operation": "clear"}` | Clear the log buffer |
+| `unity_tests` `{"operation": "run"}` | Run all EditMode tests |
+| `unity_tests` `{"operation": "run", "mode": "playmode"}` | Run PlayMode tests |
+| `unity_tests` `{"operation": "run", "filter": "McpIntegration"}` | Run specific tests by name |
+| `unity_tests` `{"operation": "results"}` | Get last run results (failures only by default) |
+| `unity_tests` `{"operation": "results", "failures_only": false}` | See all results including passes |
+| `theatre_status` | Server status, play mode, active scene |
+| `scene_snapshot` | Budgeted overview of scene GameObjects |
+| `scene_hierarchy` `{"operation": "list"}` | Navigate scene hierarchy |
+| `scene_inspect` `{"path": "/Player"}` | Deep inspect a specific GameObject |
 
 ### Unity License Note
 
