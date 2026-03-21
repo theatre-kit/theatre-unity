@@ -203,12 +203,17 @@ and create a Timeline cutscene with animation and audio tracks.
 
 Agent can build worlds — tilemaps, terrain, navigation.
 
+### Phase 9a — Tilemap & Navigation
+
 - [ ] `tilemap_op` — set_tile, set_tiles, box_fill, flood_fill, clear,
-  get_tile, get_used_tiles, create_rule_tile
-- [ ] `terrain_op` — create, set_heightmap, smooth, paint_texture,
-  add_terrain_layer, place_trees, place_details
+  get_tile, get_used_tiles, create_rule_tile, set_tilemap_layer
 - [ ] `navmesh_op` — bake, set_area, add_modifier, add_link,
   set_agent_type, add_surface
+
+### Phase 9b — Terrain & ProBuilder
+
+- [ ] `terrain_op` — create, set_heightmap, smooth, paint_texture,
+  add_terrain_layer, place_trees, place_details, set_size, get_height
 - [ ] `probuilder_op` — create_shape, extrude_faces, set_material,
   merge, boolean_op, export_mesh (requires com.unity.probuilder)
 
