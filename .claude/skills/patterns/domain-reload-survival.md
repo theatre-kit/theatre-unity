@@ -68,7 +68,7 @@ public static void Save(List<WatchState> watches, int nextId)
 ```
 
 ### Example 4: WatchTool — lazy engine init with EditorApplication.update registration
-**File**: `Editor/Tools/WatchTool.cs:98-112`
+**File**: `Editor/Tools/Watch/WatchTool.cs:98-112`
 ```csharp
 internal static WatchEngine GetEngine()
 {

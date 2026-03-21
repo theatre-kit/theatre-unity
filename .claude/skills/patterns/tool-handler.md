@@ -9,7 +9,7 @@ Tools must be stateless (Unity domain reloads destroy all managed state), self-d
 ## Examples
 
 ### Example 1: Read-only tool with budgeted results
-**File**: `Editor/Tools/SceneSnapshotTool.cs:17-86`
+**File**: `Editor/Tools/Scene/SceneSnapshotTool.cs:17-86`
 ```csharp
 public static class SceneSnapshotTool
 {
@@ -45,7 +45,7 @@ public static class SceneSnapshotTool
 ```
 
 ### Example 2: Mutating tool with ReadOnlyHint false
-**File**: `Editor/Tools/ActionTool.cs:82-100`
+**File**: `Editor/Tools/Actions/ActionTool.cs:82-100`
 ```csharp
 public static void Register(ToolRegistry registry)
 {

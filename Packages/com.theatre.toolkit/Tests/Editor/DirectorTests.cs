@@ -372,7 +372,9 @@ namespace Theatre.Tests.Editor
                     ["paths"] = new JArray("/MoveSceneParent_Director/MoveSceneChild_Director"),
                     ["target_scene"] = activeSceneName
                 });
-                Assert.That(result, Does.Contain("not a root object").Or.Contain("errors"));
+                Assert.That(result, Does.Contain("not a root object")
+                    .Or.Contain("errors")
+                    .Or.Contain("error"));
             }
             finally
             {

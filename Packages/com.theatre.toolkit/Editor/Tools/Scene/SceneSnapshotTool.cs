@@ -8,7 +8,7 @@ using Theatre.Transport;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace Theatre.Editor
+namespace Theatre.Editor.Tools.Scene
 {
     /// <summary>
     /// MCP tool: scene_snapshot

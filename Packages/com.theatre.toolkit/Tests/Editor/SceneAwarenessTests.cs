@@ -2,6 +2,7 @@ using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Theatre.Stage;
 using Theatre.Editor;
+using Theatre.Editor.Tools.Scene;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 

@@ -5,7 +5,7 @@ using Theatre.Stage;
 using Theatre.Transport;
 using UnityEngine;
 
-namespace Theatre.Editor
+namespace Theatre.Editor.Tools.Actions
 {
     /// <summary>
     /// MCP tool: action

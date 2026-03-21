@@ -4,7 +4,7 @@ using Newtonsoft.Json.Linq;
 using Theatre.Stage;
 using UnityEngine;
 
-namespace Theatre.Editor
+namespace Theatre.Editor.Tools.Spatial
 {
     /// <summary>
     /// spatial_query:linecast — test line-of-sight between two points.

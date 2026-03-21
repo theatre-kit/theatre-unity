@@ -10,7 +10,7 @@ using UnityEngine.SceneManagement;
 using UnityEditor;
 #endif
 
-namespace Theatre.Editor
+namespace Theatre.Editor.Tools.Scene
 {
     /// <summary>
     /// MCP tool: scene_delta

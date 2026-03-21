@@ -5,7 +5,7 @@ using Theatre.Stage;
 using UnityEngine;
 using UnityEngine.AI;
 
-namespace Theatre.Editor
+namespace Theatre.Editor.Tools.Spatial
 {
     /// <summary>
     /// spatial_query:path_distance — calculate NavMesh path distance.

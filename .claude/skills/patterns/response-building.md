@@ -32,7 +32,7 @@ if (string.IsNullOrEmpty(componentName))
 Error shape: `{ "error": { "code": "...", "message": "...", "suggestion": "..." } }`
 
 ### Example 3: Query response with editing context
-**File**: `Editor/Tools/SceneSnapshotTool.cs:186-195`
+**File**: `Editor/Tools/Scene/SceneSnapshotTool.cs:186-195`
 ```csharp
 var response = new JObject();
 response["scene"] = sceneName ?? SceneManager.GetActiveScene().name;

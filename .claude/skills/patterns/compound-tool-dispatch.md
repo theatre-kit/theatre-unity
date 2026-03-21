@@ -9,7 +9,7 @@ Grouping related operations into one MCP tool reduces tool-list noise and keeps 
 ## Examples
 
 ### Example 1: ActionTool — 8 operations dispatched to separate classes
-**File**: `Editor/Tools/ActionTool.cs:102-151`
+**File**: `Editor/Tools/Actions/ActionTool.cs:102-151`
 ```csharp
 private static string Execute(JToken arguments)
 {
@@ -44,7 +44,7 @@ private static string Execute(JToken arguments)
 ```
 
 ### Example 2: SpatialQueryTool — 7 spatial operations dispatched to dedicated classes
-**File**: `Editor/Tools/SpatialQueryTool.cs:180-234`
+**File**: `Editor/Tools/Spatial/SpatialQueryTool.cs:180-234`
 ```csharp
 return operation switch
 {
@@ -60,7 +60,7 @@ return operation switch
 ```
 
 ### Example 3: WatchTool — 4 operations dispatched to private methods
-**File**: `Editor/Tools/WatchTool.cs:156-166`
+**File**: `Editor/Tools/Watch/WatchTool.cs:156-166`
 ```csharp
 return operation switch
 {
@@ -73,7 +73,7 @@ return operation switch
 ```
 
 ### Example 4: SceneHierarchyTool — 4 hierarchy operations
-**File**: `Editor/Tools/SceneHierarchyTool.cs:109-119`
+**File**: `Editor/Tools/Scene/SceneHierarchyTool.cs:109-119`
 ```csharp
 return operation switch
 {

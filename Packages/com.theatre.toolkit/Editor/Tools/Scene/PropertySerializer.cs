@@ -7,7 +7,7 @@ using Theatre.Stage;
 using UnityEditor;
 using UnityEngine;
 
-namespace Theatre.Editor
+namespace Theatre.Editor.Tools.Scene
 {
     /// <summary>
     /// Serializes Unity SerializedProperty trees to JSON.

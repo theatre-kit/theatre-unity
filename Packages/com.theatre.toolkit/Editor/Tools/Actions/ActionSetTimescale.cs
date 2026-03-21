@@ -3,7 +3,7 @@ using Newtonsoft.Json.Linq;
 using Theatre.Stage;
 using UnityEngine;
 
-namespace Theatre.Editor
+namespace Theatre.Editor.Tools.Actions
 {
     /// <summary>
     /// action:set_timescale — change Time.timeScale.

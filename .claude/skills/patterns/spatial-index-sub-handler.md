@@ -91,7 +91,7 @@ internal static string Execute(JObject args)
 ```
 
 ### Example 3: SpatialEntryFilter + SpatialResultBuilder API
-**Files**: `Runtime/Stage/Spatial/SpatialEntryFilter.cs`, `Editor/Tools/SpatialResultBuilder.cs`
+**Files**: `Runtime/Stage/Spatial/SpatialEntryFilter.cs`, `Editor/Tools/Spatial/SpatialResultBuilder.cs`
 ```csharp
 // SpatialEntryFilter.Build returns null when no filtering required
 Func<SpatialEntry, bool> filter = SpatialEntryFilter.Build(includeComponents, excludeTags);

@@ -5,7 +5,7 @@ using Newtonsoft.Json.Linq;
 using Theatre.Stage;
 using UnityEngine;
 
-namespace Theatre.Editor
+namespace Theatre.Editor.Tools.Spatial
 {
     /// <summary>
     /// spatial_query:overlap — physics overlap query.

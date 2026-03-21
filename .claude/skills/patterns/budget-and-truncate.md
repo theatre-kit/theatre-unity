@@ -9,7 +9,7 @@ MCP responses have no hard size limit, but very large responses hurt agent conte
 ## Examples
 
 ### Example 1: SpatialResultBuilder — canonical budgeted loop
-**File**: `Editor/Tools/SpatialResultBuilder.cs:25-67`
+**File**: `Editor/Tools/Spatial/SpatialResultBuilder.cs:25-67`
 ```csharp
 public static (JArray results, int returned, bool truncated) BuildResultsArray(
     IReadOnlyList<SpatialResult> results, TokenBudget budget)
@@ -37,7 +37,7 @@ public static (JArray results, int returned, bool truncated) BuildResultsArray(
 ```
 
 ### Example 2: Tool handler — query budget parameters and assemble budget envelope
-**File**: `Editor/Tools/SpatialQueryNearest.cs:28-63`
+**File**: `Editor/Tools/Spatial/SpatialQueryNearest.cs:28-63`
 ```csharp
 int budgetTokens = args["budget"]?.Value<int>() ?? TokenBudget.DefaultBudget;
 // ...
@@ -54,7 +54,7 @@ response["budget"] = budget.ToBudgetJObject(
 ```
 
 ### Example 3: SceneSnapshotTool — per-entry estimation for hierarchy entries
-**File**: `Editor/Tools/SceneSnapshotTool.cs:222-253`
+**File**: `Editor/Tools/Scene/SceneSnapshotTool.cs:222-253`
 ```csharp
 var budget = new TokenBudget(budgetTokens);
 foreach (var entry in entries)

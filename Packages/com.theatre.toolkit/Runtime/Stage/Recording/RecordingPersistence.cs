@@ -11,7 +11,7 @@ namespace Theatre.Stage
     /// <summary>
     /// Persists recording state to SessionState for domain reload survival.
     /// </summary>
-    internal static class RecordingPersistence
+    public static class RecordingPersistence
     {
         private const string ActiveKey = "Theatre_ActiveRecording";
         private const string ClipIndexKey = "Theatre_RecordingClips";

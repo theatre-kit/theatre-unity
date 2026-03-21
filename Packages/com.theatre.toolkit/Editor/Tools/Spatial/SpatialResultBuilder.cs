@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Theatre.Stage;
 
-namespace Theatre.Editor
+namespace Theatre.Editor.Tools.Spatial
 {
     /// <summary>
     /// Shared builder for spatial query result arrays with token budgeting.

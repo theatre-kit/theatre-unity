@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace Theatre.Editor
+namespace Theatre.Editor.Tools.Actions
 {
     /// <summary>
     /// action:pause, action:step, action:unpause — play mode controls.

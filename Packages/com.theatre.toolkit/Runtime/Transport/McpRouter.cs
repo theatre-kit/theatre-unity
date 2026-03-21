@@ -32,6 +32,12 @@ namespace Theatre.Transport
         /// <summary>Connected client info, or null.</summary>
         public McpImplementationInfo ClientInfo => _clientInfo;
 
+        /// <summary>
+        /// Raised when a new session ID is created (from initialize).
+        /// Called from a background thread — listeners must handle threading.
+        /// </summary>
+        public event Action<string> SessionChanged;
+
         /// <param name="registry">Tool registry to query.</param>
         /// <param name="getEnabledGroups">Returns current enabled groups.</param>
         /// <param name="getDisabledTools">Returns current disabled tools set.</param>
@@ -49,6 +55,20 @@ namespace Theatre.Transport
             _getEnabledGroups = getEnabledGroups;
             _getDisabledTools = getDisabledTools;
             _executeToolOnMainThread = executeToolOnMainThread;
+        }
+
+        /// <summary>
+        /// Restore a session from a previous domain reload.
+        /// Accepts the old session ID so existing clients don't need to
+        /// re-initialize after Unity recompiles.
+        /// </summary>
+        public void RestoreSession(string sessionId)
+        {
+            if (string.IsNullOrEmpty(sessionId))
+                return;
+
+            _sessionId = sessionId;
+            _initialized = true;
         }
 
         /// <summary>
@@ -186,7 +206,16 @@ namespace Theatre.Transport
                 catch { /* best effort */ }
             }
 
-            _sessionId = Guid.NewGuid().ToString();
+            // Reuse existing session ID if restored from domain reload.
+            // This keeps the session stable so clients that haven't
+            // re-initialized yet can still use the previous session ID.
+            if (_sessionId == null)
+            {
+                _sessionId = Guid.NewGuid().ToString();
+
+                var handler = SessionChanged;
+                handler?.Invoke(_sessionId);
+            }
             _initialized = true;
 
             var result = new McpInitializeResult

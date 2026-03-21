@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace Theatre.Editor
+namespace Theatre.Editor.Tools.Actions
 {
     /// <summary>
     /// action:set_active — enable/disable a GameObject.

@@ -14,14 +14,14 @@ dependencies beyond Unity 6.
 Packages/
   com.theatre.toolkit/        — UPM package (the product)
     Runtime/                  — Core server, transport, Stage logic
-      Core/                   — TheatreServer, TheatreConfig, ToolRegistry
-      Transport/              — HttpTransport, RequestRouter, MCP types
-      Stage/                  — Spatial awareness tools
-        GameObject/           — GameObject-based scene queries
-        ECS/                  — DOTS/Entities queries
-        Recording/            — Dashcam / SQLite frame capture
-        Spatial/              — Spatial index, clustering, budgeting
-      Director/               — Scene/asset mutation tools
+      Core/                   — TheatreConfig, ToolRegistry, ToolGroup
+      Transport/              — HttpTransport, McpRouter, RequestRouter, MCP types
+      Stage/                  — Spatial awareness helpers
+        GameObject/           — HierarchyWalker, ObjectResolver, Watch*
+        ECS/                  — DOTS/Entities queries (placeholder)
+        Recording/            — Dashcam / SQLite frame capture (placeholder)
+        Spatial/              — SpatialIndex, Clustering, TokenBudget
+      Director/               — Scene/asset mutation tools (placeholder)
         Scenes/               — Scene and hierarchy operations
         Prefabs/              — Prefab lifecycle
         Assets/               — Materials, SOs, textures, etc.
@@ -29,9 +29,15 @@ Packages/
         Spatial/              — Tilemap, terrain, navmesh, ProBuilder
         Input/                — Input System action maps
         Config/               — Project/quality/lighting settings
-    Editor/                   — EditorWindow, gizmos, settings
+    Editor/                   — TheatreServer, MainThreadDispatcher
+      Tools/                  — MCP tool implementations
+        Actions/              — ActionTool dispatcher + 6 action handlers
+        Scene/                — SceneHierarchy/Snapshot/Inspect/Delta, PropertySerializer
+        Spatial/              — SpatialQueryTool dispatcher + 7 query handlers, ResultBuilder
+        Watch/                — WatchTool
+        (root)                — TheatreStatusTool, UnityConsole/Tests, ConsoleLogBuffer
     Tests/
-      Editor/                 — EditMode tests
+      Editor/                 — EditMode tests (feature-grouped)
 docs/                         — Foundation design docs
   ARCHITECTURE.md             — System architecture
   STAGE-SURFACE.md            — Stage tool definitions
@@ -58,20 +64,18 @@ user to check Unity.**
 ### Development loop (MANDATORY after writing C# code)
 
 1. `unity_console` `{"operation": "refresh"}` — trigger recompile
-2. Wait ~3 seconds for domain reload (server restarts, session invalidates)
+2. Wait ~5 seconds for domain reload
 3. `unity_console` `{"filter": "error"}` — check for compile errors
 4. If clean: `unity_tests` `{"operation": "run"}` — run tests
-5. Wait ~10 seconds for tests to complete
+5. Wait ~12 seconds for tests to complete
 6. `unity_tests` `{"operation": "results"}` — see failures (failures_only is default)
 7. Fix any failures and repeat from step 1
 
 ### Session gotchas
 
-- **Domain reload kills MCP sessions.** After `refresh` or `unity_tests run`,
-  the server restarts and your session ID is invalidated. You must
-  re-initialize (`method: "initialize"`) to get a new session.
-- **Test runs can trigger domain reload.** If tests modify scripts or
-  assets, Unity recompiles. Poll `results` after re-initializing.
+- **MCP sessions survive domain reload.** The session ID is persisted
+  to `SessionState` and restored when the server restarts after recompile.
+  You should NOT need to re-initialize between refresh/test cycles.
 - **Test scene auto-generates.** `TestSceneCreator.cs` has an
   `[InitializeOnLoadMethod]` that creates `TestScene_Hierarchy.unity`
   if it doesn't exist. This fires on every domain reload.
@@ -121,8 +125,8 @@ CI automation requires Unity Pro or GameCI Docker images.
   threads. All Unity API calls must be marshaled to the main thread via
   EditorCoroutine dispatch.
 - **Domain reload survival**: Server restarts via [InitializeOnLoad] on
-  every domain reload. Stateful data (watches, recordings) persists via
-  SessionState and SQLite.
+  every domain reload. Stateful data (watches, recordings, MCP session ID)
+  persists via SessionState and SQLite.
 - **Editor only**: Theatre runs in the Unity Editor, not in player builds.
 - **No external MCP SDK**: MCP protocol (JSON-RPC 2.0 over Streamable
   HTTP) is implemented directly. The official C# MCP SDK requires ASP.NET
@@ -150,7 +154,9 @@ See `docs/unity-threading-idioms.md` for the extended reference with code exampl
 
 ## Code Style
 
-- Namespace: `Theatre` (runtime), `Theatre.Editor` (editor),
+- Namespace mirrors folder path: `Theatre` (core), `Theatre.Transport`,
+  `Theatre.Stage` (runtime), `Theatre.Editor` (editor root),
+  `Theatre.Editor.Tools.Scene`, `.Spatial`, `.Actions`, `.Watch` (tools),
   `Theatre.Tests.Editor` (tests)
 - Unity 6 / .NET Standard 2.1
 - `Newtonsoft.Json` for JSON serialization (via com.unity.nuget.newtonsoft-json)

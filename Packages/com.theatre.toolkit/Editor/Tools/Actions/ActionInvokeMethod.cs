@@ -5,7 +5,7 @@ using Newtonsoft.Json.Linq;
 using Theatre.Stage;
 using UnityEngine;
 
-namespace Theatre.Editor
+namespace Theatre.Editor.Tools.Actions
 {
     /// <summary>
     /// action:invoke_method — call a public method on a component via reflection.

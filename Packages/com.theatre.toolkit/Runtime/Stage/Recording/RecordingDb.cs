@@ -590,7 +590,20 @@ CREATE TABLE IF NOT EXISTS markers (
                 MergeIntoSnapshot(snapshot, objects);
                 if (frame >= fromFrame)
                 {
-                    result.Add((frame, time, new Dictionary<int, ObjectFrame>(snapshot)));
+                    // Deep-copy: ObjectFrame is a reference type, so a shallow
+                    // Dictionary copy shares the same instances. We need each
+                    // frame to have independent property snapshots.
+                    var copy = new Dictionary<int, ObjectFrame>();
+                    foreach (var kvp in snapshot)
+                    {
+                        copy[kvp.Key] = new ObjectFrame
+                        {
+                            Path = kvp.Value.Path,
+                            InstanceId = kvp.Value.InstanceId,
+                            Properties = new Dictionary<string, JToken>(kvp.Value.Properties)
+                        };
+                    }
+                    result.Add((frame, time, copy));
                 }
             }
             return result;
