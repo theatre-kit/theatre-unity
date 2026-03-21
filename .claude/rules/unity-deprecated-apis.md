@@ -22,7 +22,7 @@ Never use the APIs in the left column. Always use the replacement in the right c
 | `Object.FindObjectOfType<T>()` | `Object.FindFirstObjectByType<T>()` or `Object.FindAnyObjectByType<T>()` |
 | `Object.FindObjectsOfType(Type)` | `Object.FindObjectsByType(Type, FindObjectsSortMode.None)` |
 | `Object.FindObjectOfType(Type)` | `Object.FindAnyObjectByType(Type)` |
-| `Object.GetInstanceID()` | `Object.GetEntityId()` (Unity 6.4+) |
+| `Object.GetInstanceID()` | **KEEP USING** — deprecated in 6.4 but `GetEntityId()` returns `EntityId` struct (not int), breaking wire format. Suppress warning with `#pragma warning disable CS0618`. Revisit when `EntityId` stabilizes. |
 
 ## Newtonsoft Serialization Gotchas
 

@@ -290,7 +290,7 @@ namespace Theatre.Editor
                 return JValue.CreateNull();
 
             var refObj = new JObject();
-            refObj["instance_id"] = obj.GetEntityId();
+            refObj["instance_id"] = obj.GetInstanceID();
 
             var assetPath = AssetDatabase.GetAssetPath(obj);
             if (!string.IsNullOrEmpty(assetPath))
