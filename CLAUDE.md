@@ -82,6 +82,17 @@ user to check Unity.**
 - **Newtonsoft, not System.Text.Json.** All JSON code uses
   `Newtonsoft.Json` (`JObject`, `JArray`, `JsonConvert`). System.Text.Json
   does not exist in Unity 6. See `.claude/rules/unity-deprecated-apis.md`.
+- **Test count drops = hidden compile error.** If test count unexpectedly
+  drops (e.g., 142 → 87), a compile error in one of the test files is
+  making all tests in that file invisible — no error is reported by the
+  test runner. Run `unity_console {"filter": "error"}` to find it.
+- **`internal` visibility across assemblies.** Runtime `internal` types
+  are invisible to Editor code — use `public`. Editor `internal` types
+  are visible to tests via `InternalsVisibleTo` in `Editor/AssemblyInfo.cs`.
+- **`overrideReferences` hides Newtonsoft.** The runtime asmdef has
+  `overrideReferences: true` (needed for SQLite DLLs). This means
+  `Newtonsoft.Json.dll` must be listed explicitly in `precompiledReferences`
+  — it won't resolve transitively. Same applies to the test asmdef.
 
 ### Available MCP tools
 

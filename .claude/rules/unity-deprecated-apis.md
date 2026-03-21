@@ -44,13 +44,24 @@ Never use the APIs in the left column. Always use the replacement in the right c
 | `PrefabStageUtility.GetCurrentPrefabStage()` | Editor-only — must be behind `#if UNITY_EDITOR` if called from Runtime |
 | `SerializedObject` / `SerializedProperty` | Editor-only — can only be used in Editor assembly files |
 
+### Cross-Assembly Visibility (CRITICAL — we've hit this multiple times)
+
+| Rule | Detail |
+|---|---|
+| `internal` in Runtime → invisible to Editor | Editor assembly references Runtime, but `internal` types/members are not visible. Use `public` for any Runtime type that Editor code needs to call. |
+| `internal` in Editor → invisible to Tests | Test assembly references Editor, but `internal` types are not visible. We have `[assembly: InternalsVisibleTo("com.theatre.toolkit.editor.tests")]` in `Editor/AssemblyInfo.cs` to allow tests to call internal handlers directly. |
+| `overrideReferences: true` hides ALL transitive DLLs | When ANY asmdef sets `overrideReferences: true`, it ONLY sees DLLs in its `precompiledReferences` list. If Runtime asmdef has this flag, `Newtonsoft.Json.dll` MUST be listed explicitly — it won't come through transitively from the UPM package dependency. |
+| Adding a new precompiled DLL | When adding a new DLL to `Plugins/`, you must add it to `precompiledReferences` in EVERY asmdef that has `overrideReferences: true` and needs it (currently: runtime + test asmdefs). |
+
 ## Test Assembly Rules
 
 | Rule | Detail |
 |---|---|
 | `testables` in project manifest | Required for local (`file:`) packages: `"testables": ["com.theatre.toolkit"]` |
 | `overrideReferences: true` | Test asmdefs only see DLLs listed in `precompiledReferences` — transitive deps don't come through |
-| `precompiledReferences` must include | `"nunit.framework.dll"` AND `"Newtonsoft.Json.dll"` (if tests use Newtonsoft) |
+| `precompiledReferences` must include | `"nunit.framework.dll"` AND `"Newtonsoft.Json.dll"` AND any SQLite DLLs if tests use them |
+| `InternalsVisibleTo` | `Editor/AssemblyInfo.cs` grants test assembly access to `internal` types in the editor assembly. If you add a new editor assembly, add a corresponding `InternalsVisibleTo`. |
+| Test discovery requires clean compile | If ANY `.cs` file in the test assembly has a compile error, ALL tests in that assembly become invisible to the test runner — no error is shown, tests simply disappear from the count. Always check `unity_console {"filter": "error"}` if test count drops unexpectedly. |
 
 ## Main-Thread-Only APIs (throw UnityException from background threads)
 
