@@ -150,6 +150,8 @@ namespace Theatre.Editor
             SceneSnapshotTool.Register(registry);
             SceneHierarchyTool.Register(registry);
             SceneInspectTool.Register(registry);
+            UnityConsoleTool.Register(registry);
+            UnityTestsTool.Register(registry);
         }
 
         // --- Route Handlers ---
