@@ -15,7 +15,9 @@
     "Unity.ProBuilder",
     "Unity.ProBuilder.Editor",
     "Unity.AI.Navigation",
-    "Unity.AI.Navigation.Editor"
+    "Unity.AI.Navigation.Editor",
+    "Unity.InputSystem",
+    "Unity.InputSystem.Editor"
   ],
   "includePlatforms": ["Editor"],
   "excludePlatforms": [],
@@ -54,6 +56,11 @@
       "name": "com.unity.ai.navigation",
       "expression": "",
       "define": "THEATRE_HAS_AI_NAVIGATION"
+    },
+    {
+      "name": "com.unity.inputsystem",
+      "expression": "",
+      "define": "THEATRE_HAS_INPUT_SYSTEM"
     }
   ],
   "noEngineReferences": false

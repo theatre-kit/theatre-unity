@@ -211,6 +211,12 @@ namespace Theatre.Editor
 #if THEATRE_HAS_PROBUILDER
             ProBuilderOpTool.Register(registry);            // Phase 9b
 #endif
+#if THEATRE_HAS_INPUT_SYSTEM
+            InputActionOpTool.Register(registry);           // Phase 10a
+#endif
+            LightingOpTool.Register(registry);              // Phase 10a
+            QualityOpTool.Register(registry);               // Phase 10a
+            ProjectSettingsOpTool.Register(registry);       // Phase 10a
         }
 
         // --- Route Handlers ---
