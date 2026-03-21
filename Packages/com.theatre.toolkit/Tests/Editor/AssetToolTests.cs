@@ -155,6 +155,24 @@ namespace Theatre.Tests.Editor
             });
             Assert.That(result, Does.Contain("asset_not_found"));
         }
+
+        [Test]
+        public void ListFields_OnExistingAsset_ReturnsFields()
+        {
+            // Find an existing ScriptableObject asset in the project
+            var guids = AssetDatabase.FindAssets("t:ScriptableObject");
+            if (guids.Length == 0)
+                Assert.Ignore("No ScriptableObject assets found in project — skipping");
+
+            var assetPath = AssetDatabase.GUIDToAssetPath(guids[0]);
+            var result = ScriptableObjectOpTool.ListFields(new JObject
+            {
+                ["asset_path"] = assetPath
+            });
+            Assert.That(result, Does.Contain("\"result\":\"ok\""));
+            Assert.That(result, Does.Contain("\"fields\":"));
+            Assert.That(result, Does.Contain("\"type\":"));
+        }
     }
 
     [TestFixture]

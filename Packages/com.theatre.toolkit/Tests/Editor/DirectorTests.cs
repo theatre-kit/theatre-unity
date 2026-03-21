@@ -460,6 +460,119 @@ namespace Theatre.Tests.Editor
     [TestFixture]
     public class PrefabOpTests
     {
+        private string _tempDir;
+
+        [SetUp]
+        public void SetUp()
+        {
+            _tempDir = "Assets/_TheatreTest_Prefab";
+            if (!AssetDatabase.IsValidFolder(_tempDir))
+                AssetDatabase.CreateFolder("Assets", "_TheatreTest_Prefab");
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            AssetDatabase.DeleteAsset(_tempDir);
+        }
+
+        [Test]
+        public void CreatePrefab_SavesAsset()
+        {
+            var go = new GameObject("PrefabSource_Test");
+            try
+            {
+                var prefabPath = _tempDir + "/TestPrefab.prefab";
+                var result = PrefabOpHandlers.CreatePrefab(new JObject
+                {
+                    ["source_path"] = "/PrefabSource_Test",
+                    ["asset_path"] = prefabPath
+                });
+                Assert.That(result, Does.Contain("\"result\":\"ok\""));
+                Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath));
+            }
+            finally { Object.DestroyImmediate(go); }
+        }
+
+        [Test]
+        public void Instantiate_PlacesInScene()
+        {
+            // First create a prefab asset
+            var src = new GameObject("InstPrefabSrc");
+            var prefabPath = _tempDir + "/InstTestPrefab.prefab";
+            PrefabUtility.SaveAsPrefabAsset(src, prefabPath, out _);
+            Object.DestroyImmediate(src);
+
+            try
+            {
+                var result = PrefabOpHandlers.Instantiate(new JObject
+                {
+                    ["prefab_path"] = prefabPath
+                });
+                Assert.That(result, Does.Contain("\"result\":\"ok\""));
+                Assert.That(result, Does.Contain("\"path\":"));
+                Assert.That(result, Does.Contain("\"instance_id\":"));
+                // Cleanup the instantiated object
+                var instance = GameObject.Find("InstPrefabSrc");
+                if (instance != null) Object.DestroyImmediate(instance);
+            }
+            finally { }
+        }
+
+        [Test]
+        public void Unpack_DisconnectsFromPrefab()
+        {
+            var src = new GameObject("UnpackPrefabSrc");
+            var prefabPath = _tempDir + "/UnpackTestPrefab.prefab";
+            PrefabUtility.SaveAsPrefabAsset(src, prefabPath, out _);
+            Object.DestroyImmediate(src);
+
+            var prefabAsset = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            var instance = PrefabUtility.InstantiatePrefab(prefabAsset) as GameObject;
+            Undo.RegisterCreatedObjectUndo(instance, "test");
+            try
+            {
+                Assert.IsTrue(PrefabUtility.IsPartOfPrefabInstance(instance),
+                    "Precondition: instance should be a prefab instance");
+
+                var result = PrefabOpHandlers.Unpack(new JObject
+                {
+                    ["instance_path"] = "/" + instance.name
+                });
+                Assert.That(result, Does.Contain("\"result\":\"ok\""));
+                Assert.IsFalse(PrefabUtility.IsPartOfPrefabInstance(instance),
+                    "After unpack, object should no longer be a prefab instance");
+            }
+            finally { Object.DestroyImmediate(instance); }
+        }
+
+        [Test]
+        public void ListOverrides_OnModifiedInstance_ReturnsChanges()
+        {
+            var src = new GameObject("OverridePrefabSrc");
+            var prefabPath = _tempDir + "/OverrideTestPrefab.prefab";
+            PrefabUtility.SaveAsPrefabAsset(src, prefabPath, out _);
+            Object.DestroyImmediate(src);
+
+            var prefabAsset = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            var instance = PrefabUtility.InstantiatePrefab(prefabAsset) as GameObject;
+            Undo.RegisterCreatedObjectUndo(instance, "test");
+            try
+            {
+                // Modify the instance — move it so there are position overrides
+                Undo.RecordObject(instance.transform, "test move");
+                instance.transform.position = new Vector3(5, 5, 5);
+
+                var result = PrefabOpHandlers.ListOverrides(new JObject
+                {
+                    ["instance_path"] = "/" + instance.name
+                });
+                Assert.That(result, Does.Contain("\"result\":\"ok\""));
+                Assert.That(result, Does.Contain("\"property_modifications\":"));
+            }
+            finally { Object.DestroyImmediate(instance); }
+        }
+
         [Test]
         public void ListOverrides_NotPrefab_ReturnsError()
         {
@@ -582,6 +695,59 @@ namespace Theatre.Tests.Editor
                 ["asset_path"] = "Assets/Tests/Variant.prefab"
             });
             Assert.That(result, Does.Contain("prefab_not_found"));
+        }
+    }
+
+    [TestFixture]
+    public class WireFormatContractTests
+    {
+        [Test]
+        public void SceneOp_CreateGameObject_ResponseHasFrameContext()
+        {
+            var result = SceneOpHandlers.CreateGameObject(new JObject { ["name"] = "FrameCtxTest" });
+            try
+            {
+                Assert.That(result, Does.Contain("\"frame\":"));
+                Assert.That(result, Does.Contain("\"time\":"));
+                Assert.That(result, Does.Contain("\"play_mode\":"));
+            }
+            finally
+            {
+                var go = GameObject.Find("FrameCtxTest");
+                if (go) Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void SceneOp_CreateGameObject_ResponseHasIdentity()
+        {
+            var result = SceneOpHandlers.CreateGameObject(new JObject { ["name"] = "IdentityTest" });
+            try
+            {
+                Assert.That(result, Does.Contain("\"path\":"));
+                Assert.That(result, Does.Contain("\"instance_id\":"));
+            }
+            finally
+            {
+                var go = GameObject.Find("IdentityTest");
+                if (go) Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void ErrorResponse_HasCodeMessageSuggestion()
+        {
+            // Call with invalid args to trigger error
+            var result = SceneOpHandlers.DeleteGameObject(new JObject
+            {
+                ["path"] = "/NonExistent_WireFormatTest"
+            });
+            var json = JObject.Parse(result);
+            var error = json["error"];
+            Assert.IsNotNull(error, "Error responses must have 'error' object");
+            Assert.IsNotNull(error["code"], "Error must have 'code'");
+            Assert.IsNotNull(error["message"], "Error must have 'message'");
+            Assert.IsNotNull(error["suggestion"], "Error must have 'suggestion'");
         }
     }
 }

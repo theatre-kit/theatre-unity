@@ -83,6 +83,95 @@ namespace Theatre.Tests.Editor
             });
             Assert.That(result, Does.Contain("\"result\":\"ok\""));
         }
+
+        [Test]
+        public void RemoveCurve_RemovesCurve()
+        {
+            var path = _tempDir + "/RemoveCurveClip.anim";
+            AnimationClipOpTool.Create(new JObject { ["asset_path"] = path });
+            // Add a curve first
+            AnimationClipOpTool.AddCurve(new JObject
+            {
+                ["clip_path"] = path,
+                ["property_name"] = "m_LocalPosition.x",
+                ["type"] = "Transform",
+                ["keyframes"] = new JArray
+                {
+                    new JObject { ["time"] = 0f, ["value"] = 0f },
+                    new JObject { ["time"] = 1f, ["value"] = 1f }
+                }
+            });
+
+            // Verify it exists
+            var beforeResult = AnimationClipOpTool.ListCurves(new JObject { ["clip_path"] = path });
+            Assert.That(beforeResult, Does.Contain("m_LocalPosition.x"));
+
+            // Remove it
+            var result = AnimationClipOpTool.RemoveCurve(new JObject
+            {
+                ["clip_path"] = path,
+                ["property_name"] = "m_LocalPosition.x",
+                ["type"] = "Transform"
+            });
+            Assert.That(result, Does.Contain("\"result\":\"ok\""));
+
+            // Verify it's gone
+            var afterResult = AnimationClipOpTool.ListCurves(new JObject { ["clip_path"] = path });
+            Assert.That(afterResult, Does.Not.Contain("m_LocalPosition.x"));
+        }
+
+        [Test]
+        public void SetKeyframe_AddsToExistingCurve()
+        {
+            var path = _tempDir + "/SetKeyframeClip.anim";
+            AnimationClipOpTool.Create(new JObject { ["asset_path"] = path });
+            // Create a curve with 2 keyframes
+            AnimationClipOpTool.AddCurve(new JObject
+            {
+                ["clip_path"] = path,
+                ["property_name"] = "m_LocalPosition.y",
+                ["type"] = "Transform",
+                ["keyframes"] = new JArray
+                {
+                    new JObject { ["time"] = 0f, ["value"] = 0f },
+                    new JObject { ["time"] = 2f, ["value"] = 10f }
+                }
+            });
+
+            // Add a 3rd keyframe via set_keyframe
+            var result = AnimationClipOpTool.SetKeyframe(new JObject
+            {
+                ["clip_path"] = path,
+                ["property_name"] = "m_LocalPosition.y",
+                ["type"] = "Transform",
+                ["time"] = 1f,
+                ["value"] = 5f
+            });
+            Assert.That(result, Does.Contain("\"result\":\"ok\""));
+            // keyframe_count should be 3 (0, 1, 2 seconds)
+            var parsed = JObject.Parse(result);
+            Assert.GreaterOrEqual((int)parsed["keyframe_count"], 3);
+        }
+
+        [Test]
+        public void SetEvents_AddsAnimationEvents()
+        {
+            var path = _tempDir + "/EventsClip.anim";
+            AnimationClipOpTool.Create(new JObject { ["asset_path"] = path });
+
+            var result = AnimationClipOpTool.SetEvents(new JObject
+            {
+                ["clip_path"] = path,
+                ["events"] = new JArray
+                {
+                    new JObject { ["time"] = 0.5f, ["function"] = "OnFire" },
+                    new JObject { ["time"] = 1.0f, ["function"] = "OnReload", ["int_param"] = 3 }
+                }
+            });
+            Assert.That(result, Does.Contain("\"result\":\"ok\""));
+            var parsed = JObject.Parse(result);
+            Assert.AreEqual(2, (int)parsed["event_count"]);
+        }
     }
 
     [TestFixture]
@@ -180,6 +269,78 @@ namespace Theatre.Tests.Editor
             var result = AnimatorControllerOpTool.ListStates(new JObject { ["asset_path"] = path });
             Assert.That(result, Does.Contain("\"states\""));
             Assert.That(result, Does.Contain("Run"));
+        }
+
+        [Test]
+        public void SetStateClip_AssignsClipToState()
+        {
+            var ctrlPath = _tempDir + "/SetClipCtrl.controller";
+            var clipPath = _tempDir + "/SetClipAnim.anim";
+            AnimatorControllerOpTool.Create(new JObject { ["asset_path"] = ctrlPath });
+            AnimatorControllerOpTool.AddState(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Walk" });
+            AnimationClipOpTool.Create(new JObject { ["asset_path"] = clipPath });
+
+            var result = AnimatorControllerOpTool.SetStateClip(new JObject
+            {
+                ["asset_path"] = ctrlPath,
+                ["state_name"] = "Walk",
+                ["clip_path"] = clipPath
+            });
+            Assert.That(result, Does.Contain("\"result\":\"ok\""));
+
+            // Verify the state has the clip assigned
+            var ctrl = AssetDatabase.LoadAssetAtPath<AnimatorController>(ctrlPath);
+            AnimatorState walkState = null;
+            foreach (var cs in ctrl.layers[0].stateMachine.states)
+            {
+                if (cs.state.name == "Walk") { walkState = cs.state; break; }
+            }
+            Assert.IsNotNull(walkState);
+            Assert.IsNotNull(walkState.motion, "State should have a clip assigned");
+        }
+
+        [Test]
+        public void SetDefaultState_ChangesEntryState()
+        {
+            var path = _tempDir + "/DefaultStateCtrl.controller";
+            AnimatorControllerOpTool.Create(new JObject { ["asset_path"] = path });
+            AnimatorControllerOpTool.AddState(new JObject { ["asset_path"] = path, ["name"] = "Idle" });
+            AnimatorControllerOpTool.AddState(new JObject { ["asset_path"] = path, ["name"] = "Walk" });
+
+            var result = AnimatorControllerOpTool.SetDefaultState(new JObject
+            {
+                ["asset_path"] = path,
+                ["state_name"] = "Walk"
+            });
+            Assert.That(result, Does.Contain("\"result\":\"ok\""));
+
+            // Verify Walk is the default
+            var ctrl = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
+            var defaultState = ctrl.layers[0].stateMachine.defaultState;
+            Assert.IsNotNull(defaultState);
+            Assert.AreEqual("Walk", defaultState.name);
+        }
+
+        [Test]
+        public void AddLayer_CreatesNewLayer()
+        {
+            var path = _tempDir + "/LayerCtrl.controller";
+            AnimatorControllerOpTool.Create(new JObject { ["asset_path"] = path });
+
+            // Newly created controller has 1 layer ("Base Layer")
+            var ctrlBefore = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
+            Assert.AreEqual(1, ctrlBefore.layers.Length, "Should start with 1 layer");
+
+            var result = AnimatorControllerOpTool.AddLayer(new JObject
+            {
+                ["asset_path"] = path,
+                ["name"] = "UpperBody"
+            });
+            Assert.That(result, Does.Contain("\"result\":\"ok\""));
+
+            var ctrl = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
+            Assert.AreEqual(2, ctrl.layers.Length, "Should now have 2 layers");
+            Assert.AreEqual("UpperBody", ctrl.layers[1].name);
         }
     }
 }

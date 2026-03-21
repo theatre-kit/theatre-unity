@@ -118,6 +118,45 @@ namespace Theatre.Tests.Editor
             Assert.IsNotNull(tree);
             Assert.AreEqual(BlendTreeType.FreeformCartesian2D, tree.blendType);
         }
+
+        [Test]
+        public void SetParameter_ChangesBlendParam()
+        {
+            var ctrlPath = _tempDir + "/BT_Param.controller";
+            AnimatorControllerOpTool.Create(new JObject { ["asset_path"] = ctrlPath });
+            AnimatorControllerOpTool.AddState(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Move" });
+            AnimatorControllerOpTool.AddParameter(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Speed", ["type"] = "float" });
+            AnimatorControllerOpTool.AddParameter(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Dir", ["type"] = "float" });
+            BlendTreeOpTool.Create(new JObject
+            {
+                ["controller_path"] = ctrlPath,
+                ["state_name"] = "Move",
+                ["blend_type"] = "1d",
+                ["parameter"] = "Speed"
+            });
+
+            // Change the blend parameter
+            var result = BlendTreeOpTool.SetParameter(new JObject
+            {
+                ["controller_path"] = ctrlPath,
+                ["state_name"] = "Move",
+                ["parameter"] = "Dir"
+            });
+            Assert.That(result, Does.Contain("\"result\":\"ok\""));
+            Assert.That(result, Does.Contain("\"parameter\":\"Dir\""));
+
+            // Verify
+            var ctrl = AssetDatabase.LoadAssetAtPath<AnimatorController>(ctrlPath);
+            AnimatorState moveState = null;
+            foreach (var cs in ctrl.layers[0].stateMachine.states)
+            {
+                if (cs.state.name == "Move") { moveState = cs.state; break; }
+            }
+            Assert.IsNotNull(moveState);
+            var bt = moveState.motion as BlendTree;
+            Assert.IsNotNull(bt);
+            Assert.AreEqual("Dir", bt.blendParameter);
+        }
     }
 }
 
@@ -222,6 +261,70 @@ namespace Theatre.Tests.Editor
             int clipCount = 0;
             foreach (var _ in act1.GetClips()) clipCount++;
             Assert.AreEqual(1, clipCount);
+        }
+
+        [Test]
+        public void SetClipProperties_ModifiesTiming()
+        {
+            var path = _tempDir + "/SetClipProps.playable";
+            TimelineOpTool.Create(new JObject { ["asset_path"] = path });
+            TimelineOpTool.AddTrack(new JObject
+            {
+                ["asset_path"] = path,
+                ["track_type"] = "activation",
+                ["name"] = "TimingTrack"
+            });
+            TimelineOpTool.AddClip(new JObject
+            {
+                ["asset_path"] = path,
+                ["track_name"] = "TimingTrack",
+                ["start"] = 0.0,
+                ["duration"] = 2.0
+            });
+
+            var result = TimelineOpTool.SetClipProperties(new JObject
+            {
+                ["asset_path"] = path,
+                ["track_name"] = "TimingTrack",
+                ["clip_index"] = 0,
+                ["start"] = 1.0,
+                ["duration"] = 3.0
+            });
+            Assert.That(result, Does.Contain("\"result\":\"ok\""));
+
+            var parsed = JObject.Parse(result);
+            Assert.AreEqual(1.0, (double)parsed["start"], 0.001);
+            Assert.AreEqual(3.0, (double)parsed["duration"], 0.001);
+        }
+
+        [Test]
+        public void AddTrack_MultipleTypes()
+        {
+            var path = _tempDir + "/MultiTrack.playable";
+            TimelineOpTool.Create(new JObject { ["asset_path"] = path });
+
+            TimelineOpTool.AddTrack(new JObject
+            {
+                ["asset_path"] = path,
+                ["track_type"] = "animation",
+                ["name"] = "AnimTrack"
+            });
+            TimelineOpTool.AddTrack(new JObject
+            {
+                ["asset_path"] = path,
+                ["track_type"] = "activation",
+                ["name"] = "ActTrack"
+            });
+
+            var result = TimelineOpTool.ListTracks(new JObject { ["asset_path"] = path });
+            Assert.That(result, Does.Contain("AnimTrack"));
+            Assert.That(result, Does.Contain("ActTrack"));
+
+            // Verify asset has both tracks
+            var asset = AssetDatabase.LoadAssetAtPath<TimelineAsset>(path);
+            int trackCount = 0;
+            foreach (var _ in asset.GetOutputTracks()) trackCount++;
+            Assert.AreEqual(2, trackCount, "Should have 2 tracks");
         }
     }
 }
