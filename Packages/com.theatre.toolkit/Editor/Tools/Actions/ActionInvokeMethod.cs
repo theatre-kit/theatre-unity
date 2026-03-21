@@ -28,8 +28,6 @@ namespace Theatre.Editor
                     "invoke_method requires Play Mode",
                     "Enter Play Mode first — method invocation modifies runtime state");
 
-            var path = args["path"]?.Value<string>();
-            var instanceId = args["instance_id"]?.Value<int>();
             var componentName = args["component"]?.Value<string>();
             var methodName = args["method"]?.Value<string>();
             var methodArgs = args["arguments"] as JArray;
@@ -52,30 +50,16 @@ namespace Theatre.Editor
                     $"invoke_method supports at most {MaxArgs} arguments, got {methodArgs.Count}",
                     "Simplify the call or invoke a wrapper method");
 
-            var resolved = ObjectResolver.Resolve(path, instanceId);
-            if (!resolved.Success)
-                return ResponseHelpers.ErrorResponse(
-                    resolved.ErrorCode, resolved.ErrorMessage, resolved.Suggestion);
-
-            var go = resolved.GameObject;
+            var resolveError = ObjectResolver.ResolveFromArgs(args, out var go);
+            if (resolveError != null) return resolveError;
 
             // Find the component
-            Component component = null;
-            foreach (var comp in go.GetComponents<Component>())
-            {
-                if (comp == null) continue;
-                if (string.Equals(comp.GetType().Name, componentName,
-                    StringComparison.OrdinalIgnoreCase))
-                {
-                    component = comp;
-                    break;
-                }
-            }
+            var component = ObjectResolver.FindComponent(go, componentName);
 
             if (component == null)
                 return ResponseHelpers.ErrorResponse(
                     "component_not_found",
-                    $"Component '{componentName}' not found on '{path ?? go.name}'",
+                    $"Component '{componentName}' not found on '{go.name}'",
                     "Use scene_inspect to list all components on this GameObject");
 
             // Find the method

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -241,6 +242,48 @@ namespace Theatre.Stage
             // For now, exact match only — disambiguation is resolved by
             // GetHierarchyPath when building paths
             return false;
+        }
+
+        /// <summary>
+        /// Resolve a GameObject from JObject args containing "path" and/or "instance_id".
+        /// Returns null on success (go is set), or an error response JSON string on failure.
+        /// </summary>
+        /// <param name="args">The tool arguments object.</param>
+        /// <param name="go">Set to the resolved GameObject on success; null on failure.</param>
+        /// <returns>Null on success, or a JSON error response string on failure.</returns>
+        public static string ResolveFromArgs(JObject args, out GameObject go)
+        {
+            go = null;
+            var path = args["path"]?.Value<string>();
+            int? instanceId = null;
+            if (args["instance_id"] != null)
+                instanceId = args["instance_id"].Value<int>();
+
+            var resolved = Resolve(path, instanceId);
+            if (!resolved.Success)
+                return ResponseHelpers.ErrorResponse(
+                    resolved.ErrorCode, resolved.ErrorMessage, resolved.Suggestion);
+
+            go = resolved.GameObject;
+            return null;
+        }
+
+        /// <summary>
+        /// Find a component on a GameObject by type name (case-insensitive).
+        /// Returns null if not found.
+        /// </summary>
+        /// <param name="go">The target GameObject.</param>
+        /// <param name="componentName">Component type name to search for.</param>
+        public static Component FindComponent(GameObject go, string componentName)
+        {
+            foreach (var comp in go.GetComponents<Component>())
+            {
+                if (comp == null) continue;
+                if (string.Equals(comp.GetType().Name, componentName,
+                    StringComparison.OrdinalIgnoreCase))
+                    return comp;
+            }
+            return null;
         }
 
         /// <summary>

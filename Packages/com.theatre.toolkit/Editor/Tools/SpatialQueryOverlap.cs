@@ -39,7 +39,7 @@ namespace Theatre.Editor
         private static string Execute3D(
             JObject args, string shape, int layerMask)
         {
-            var center = SpatialQueryNearest.ParseVector3(args, "center");
+            var center = JsonParamParser.ParseVector3(args, "center");
             if (!center.HasValue)
             {
                 return ResponseHelpers.ErrorResponse(
@@ -63,7 +63,7 @@ namespace Theatre.Editor
                 }
                 case "box":
                 {
-                    var halfExtents = SpatialQueryNearest.ParseVector3(
+                    var halfExtents = JsonParamParser.ParseVector3(
                         args, "size");
                     if (!halfExtents.HasValue)
                     {
@@ -79,7 +79,7 @@ namespace Theatre.Editor
                 }
                 case "capsule":
                 {
-                    var size = SpatialQueryNearest.ParseVector3(args, "size");
+                    var size = JsonParamParser.ParseVector3(args, "size");
                     if (!size.HasValue)
                     {
                         return ResponseHelpers.ErrorResponse(
@@ -110,11 +110,11 @@ namespace Theatre.Editor
         private static string Execute2D(
             JObject args, string shape, int layerMask)
         {
-            var center2D = SpatialQueryNearest.ParseVector2(args, "center");
+            var center2D = JsonParamParser.ParseVector2(args, "center");
             if (!center2D.HasValue)
             {
                 // Try parsing as Vector3 and take XY
-                var center3D = SpatialQueryNearest.ParseVector3(args, "center");
+                var center3D = JsonParamParser.ParseVector3(args, "center");
                 if (center3D.HasValue)
                     center2D = new Vector2(center3D.Value.x, center3D.Value.y);
                 else
@@ -139,10 +139,10 @@ namespace Theatre.Editor
                 }
                 case "box":
                 {
-                    var size2D = SpatialQueryNearest.ParseVector2(args, "size");
+                    var size2D = JsonParamParser.ParseVector2(args, "size");
                     if (!size2D.HasValue)
                     {
-                        var size3D = SpatialQueryNearest.ParseVector3(
+                        var size3D = JsonParamParser.ParseVector3(
                             args, "size");
                         if (size3D.HasValue)
                             size2D = new Vector2(
@@ -159,7 +159,7 @@ namespace Theatre.Editor
                 }
                 case "capsule":
                 {
-                    var size2D = SpatialQueryNearest.ParseVector2(args, "size");
+                    var size2D = JsonParamParser.ParseVector2(args, "size");
                     if (!size2D.HasValue)
                         return ResponseHelpers.ErrorResponse(
                             "invalid_parameter",

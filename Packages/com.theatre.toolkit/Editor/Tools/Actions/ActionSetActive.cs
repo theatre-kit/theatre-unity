@@ -14,8 +14,6 @@ namespace Theatre.Editor
     {
         public static string Execute(JObject args)
         {
-            var path = args["path"]?.Value<string>();
-            var instanceId = args["instance_id"]?.Value<int>();
             var active = args["active"];
 
             if (active == null)
@@ -24,12 +22,8 @@ namespace Theatre.Editor
                     "Missing required 'active' parameter (true/false)",
                     "Example: {\"operation\": \"set_active\", \"path\": \"/Enemy\", \"active\": false}");
 
-            var resolved = ObjectResolver.Resolve(path, instanceId);
-            if (!resolved.Success)
-                return ResponseHelpers.ErrorResponse(
-                    resolved.ErrorCode, resolved.ErrorMessage, resolved.Suggestion);
-
-            var go = resolved.GameObject;
+            var resolveError = ObjectResolver.ResolveFromArgs(args, out var go);
+            if (resolveError != null) return resolveError;
             var previousActive = go.activeSelf;
             var newActive = active.ToObject<bool>();
 

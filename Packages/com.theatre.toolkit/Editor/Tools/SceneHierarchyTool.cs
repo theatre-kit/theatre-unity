@@ -241,14 +241,8 @@ namespace Theatre.Editor
         {
             var filter = new HierarchyFilter();
 
-            var compToken = args["include_components"];
-            if (compToken != null && compToken.Type == JTokenType.Array)
-            {
-                var list = new List<string>();
-                foreach (var item in (JArray)compToken)
-                    list.Add(item.Value<string>());
-                filter.RequiredComponents = list.ToArray();
-            }
+            filter.RequiredComponents = JsonParamParser.ParseStringArray(
+                args, "include_components");
 
             if (args["tag"] != null)
                 filter.Tag = args["tag"].Value<string>();

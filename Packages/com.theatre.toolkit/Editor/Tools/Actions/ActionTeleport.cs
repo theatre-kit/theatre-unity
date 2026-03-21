@@ -14,8 +14,6 @@ namespace Theatre.Editor
     {
         public static string Execute(JObject args)
         {
-            var path = args["path"]?.Value<string>();
-            var instanceId = args["instance_id"]?.Value<int>();
             var posArr = args["position"] as JArray;
 
             if (posArr == null || posArr.Count < 3)
@@ -26,12 +24,8 @@ namespace Theatre.Editor
                     "Example: {\"operation\": \"teleport\", \"path\": \"/Player\", \"position\": [10, 0, 5]}");
             }
 
-            var resolved = ObjectResolver.Resolve(path, instanceId);
-            if (!resolved.Success)
-                return ResponseHelpers.ErrorResponse(
-                    resolved.ErrorCode, resolved.ErrorMessage, resolved.Suggestion);
-
-            var go = resolved.GameObject;
+            var resolveError = ObjectResolver.ResolveFromArgs(args, out var go);
+            if (resolveError != null) return resolveError;
             var newPos = new Vector3(
                 posArr[0].Value<float>(),
                 posArr[1].Value<float>(),

@@ -100,30 +100,13 @@ namespace Theatre.Editor
             {
                 var args = (JObject)arguments;
 
-                var focusToken = args["focus"];
-                if (focusToken != null && focusToken.Type == JTokenType.Array)
-                {
-                    var arr = (JArray)focusToken;
-                    if (arr.Count >= 3)
-                    {
-                        focus = new Vector3(
-                            arr[0].Value<float>(),
-                            arr[1].Value<float>(),
-                            arr[2].Value<float>());
-                    }
-                }
+                focus = JsonParamParser.ParseVector3(args, "focus");
 
                 if (args["radius"] != null)
                     radius = args["radius"].Value<float>();
 
-                var compToken = args["include_components"];
-                if (compToken != null && compToken.Type == JTokenType.Array)
-                {
-                    var list = new List<string>();
-                    foreach (var item in (JArray)compToken)
-                        list.Add(item.Value<string>());
-                    includeComponents = list.ToArray();
-                }
+                includeComponents = JsonParamParser.ParseStringArray(
+                    args, "include_components");
 
                 if (args["exclude_inactive"] != null)
                     excludeInactive = args["exclude_inactive"].Value<bool>();

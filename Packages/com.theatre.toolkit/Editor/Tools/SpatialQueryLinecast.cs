@@ -28,8 +28,8 @@ namespace Theatre.Editor
 
         private static string Execute3D(JObject args, int layerMask)
         {
-            var from = SpatialQueryNearest.ParseVector3(args, "from");
-            var to = SpatialQueryNearest.ParseVector3(args, "to");
+            var from = JsonParamParser.ParseVector3(args, "from");
+            var to = JsonParamParser.ParseVector3(args, "to");
 
             if (!from.HasValue)
                 return ResponseHelpers.ErrorResponse(
@@ -56,18 +56,18 @@ namespace Theatre.Editor
 
         private static string Execute2D(JObject args, int layerMask)
         {
-            var from2D = SpatialQueryNearest.ParseVector2(args, "from");
-            var to2D = SpatialQueryNearest.ParseVector2(args, "to");
+            var from2D = JsonParamParser.ParseVector2(args, "from");
+            var to2D = JsonParamParser.ParseVector2(args, "to");
 
             // Allow Vector3 input, take XY
             if (!from2D.HasValue)
             {
-                var f3 = SpatialQueryNearest.ParseVector3(args, "from");
+                var f3 = JsonParamParser.ParseVector3(args, "from");
                 if (f3.HasValue) from2D = new Vector2(f3.Value.x, f3.Value.y);
             }
             if (!to2D.HasValue)
             {
-                var t3 = SpatialQueryNearest.ParseVector3(args, "to");
+                var t3 = JsonParamParser.ParseVector3(args, "to");
                 if (t3.HasValue) to2D = new Vector2(t3.Value.x, t3.Value.y);
             }
 

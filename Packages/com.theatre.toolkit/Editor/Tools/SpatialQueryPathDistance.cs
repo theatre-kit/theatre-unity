@@ -18,8 +18,8 @@ namespace Theatre.Editor
 
         internal static string Execute(JObject args)
         {
-            var from = SpatialQueryNearest.ParseVector3(args, "from");
-            var to = SpatialQueryNearest.ParseVector3(args, "to");
+            var from = JsonParamParser.ParseVector3(args, "from");
+            var to = JsonParamParser.ParseVector3(args, "to");
 
             if (!from.HasValue)
                 return ResponseHelpers.ErrorResponse(

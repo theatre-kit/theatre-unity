@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Theatre.Stage;
@@ -74,56 +73,39 @@ namespace Theatre.Editor
         private static string Execute(JToken arguments)
         {
             // Parse parameters
-            string path = null;
-            int? instanceId = null;
             string[] componentFilter = null;
             var detail = PropertySerializer.DetailLevel.Summary;
             int budgetTokens = TokenBudget.DefaultBudget;
 
-            if (arguments != null && arguments.Type == JTokenType.Object)
-            {
-                var args = (JObject)arguments;
-
-                if (args["path"] != null)
-                    path = args["path"].Value<string>();
-
-                if (args["instance_id"] != null)
-                    instanceId = args["instance_id"].Value<int>();
-
-                var compToken = args["components"];
-                if (compToken != null && compToken.Type == JTokenType.Array)
-                {
-                    var list = new List<string>();
-                    foreach (var item in (JArray)compToken)
-                        list.Add(item.Value<string>());
-                    componentFilter = list.ToArray();
-                }
-
-                if (args["depth"] != null)
-                {
-                    detail = args["depth"].Value<string>() switch
-                    {
-                        "full" => PropertySerializer.DetailLevel.Full,
-                        "properties" => PropertySerializer.DetailLevel.Properties,
-                        _ => PropertySerializer.DetailLevel.Summary
-                    };
-                }
-
-                if (args["budget"] != null)
-                    budgetTokens = args["budget"].Value<int>();
-            }
-
-            // Resolve the target object
-            var resolved = ObjectResolver.Resolve(path, instanceId);
-            if (!resolved.Success)
+            if (arguments == null || arguments.Type != JTokenType.Object)
             {
                 return ResponseHelpers.ErrorResponse(
-                    resolved.ErrorCode,
-                    resolved.ErrorMessage,
-                    resolved.Suggestion);
+                    "invalid_parameter",
+                    "Either 'path' or 'instance_id' must be provided",
+                    "Provide a hierarchy path like '/Player' or an instance_id from a previous query");
             }
 
-            var go = resolved.GameObject;
+            var args = (JObject)arguments;
+
+            componentFilter = JsonParamParser.ParseStringArray(
+                args, "components");
+
+            if (args["depth"] != null)
+            {
+                detail = args["depth"].Value<string>() switch
+                {
+                    "full" => PropertySerializer.DetailLevel.Full,
+                    "properties" => PropertySerializer.DetailLevel.Properties,
+                    _ => PropertySerializer.DetailLevel.Summary
+                };
+            }
+
+            if (args["budget"] != null)
+                budgetTokens = args["budget"].Value<int>();
+
+            // Resolve the target object
+            var resolveError = ObjectResolver.ResolveFromArgs(args, out var go);
+            if (resolveError != null) return resolveError;
             var transform = go.transform;
             var budget = new TokenBudget(budgetTokens);
 

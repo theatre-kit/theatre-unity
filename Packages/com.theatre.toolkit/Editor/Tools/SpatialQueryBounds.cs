@@ -15,21 +15,9 @@ namespace Theatre.Editor
     {
         internal static string Execute(JObject args)
         {
-            var path = args["path"]?.Value<string>();
-            int? instanceId = null;
-            if (args["instance_id"] != null)
-                instanceId = args["instance_id"].Value<int>();
+            var resolveError = ObjectResolver.ResolveFromArgs(args, out var go);
+            if (resolveError != null) return resolveError;
 
-            var resolved = ObjectResolver.Resolve(path, instanceId);
-            if (!resolved.Success)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    resolved.ErrorCode,
-                    resolved.ErrorMessage,
-                    resolved.Suggestion);
-            }
-
-            var go = resolved.GameObject;
             var source = args["source"]?.Value<string>() ?? "combined";
 
             Bounds? rendererBounds = null;
@@ -110,7 +98,7 @@ namespace Theatre.Editor
             {
                 return ResponseHelpers.ErrorResponse(
                     "invalid_parameter",
-                    $"No {source} bounds found on '{path ?? instanceId?.ToString()}'",
+                    $"No {source} bounds found on '{go.name}'",
                     source == "renderer"
                         ? "This object has no Renderer. Try source='collider' or 'combined'."
                         : source == "collider"

@@ -31,14 +31,14 @@ namespace Theatre.Editor
         private static string Execute3D(
             JObject args, float maxDistance, bool all, int layerMask)
         {
-            var origin = SpatialQueryNearest.ParseVector3(args, "origin");
+            var origin = JsonParamParser.ParseVector3(args, "origin");
             if (!origin.HasValue)
                 return ResponseHelpers.ErrorResponse(
                     "invalid_parameter",
                     "Missing or invalid 'origin' parameter",
                     "Provide origin as [x, y, z]");
 
-            var direction = SpatialQueryNearest.ParseVector3(args, "direction");
+            var direction = JsonParamParser.ParseVector3(args, "direction");
             if (!direction.HasValue)
                 return ResponseHelpers.ErrorResponse(
                     "invalid_parameter",
@@ -68,10 +68,10 @@ namespace Theatre.Editor
         private static string Execute2D(
             JObject args, float maxDistance, bool all, int layerMask)
         {
-            var origin = SpatialQueryNearest.ParseVector2(args, "origin");
+            var origin = JsonParamParser.ParseVector2(args, "origin");
             if (!origin.HasValue)
             {
-                var origin3 = SpatialQueryNearest.ParseVector3(args, "origin");
+                var origin3 = JsonParamParser.ParseVector3(args, "origin");
                 if (origin3.HasValue)
                     origin = new Vector2(origin3.Value.x, origin3.Value.y);
                 else
@@ -81,11 +81,11 @@ namespace Theatre.Editor
                         "Provide origin as [x, y] or [x, y, z]");
             }
 
-            var direction = SpatialQueryNearest.ParseVector2(
+            var direction = JsonParamParser.ParseVector2(
                 args, "direction");
             if (!direction.HasValue)
             {
-                var dir3 = SpatialQueryNearest.ParseVector3(
+                var dir3 = JsonParamParser.ParseVector3(
                     args, "direction");
                 if (dir3.HasValue)
                     direction = new Vector2(dir3.Value.x, dir3.Value.y);
