@@ -5,7 +5,9 @@
     "com.theatre.toolkit.runtime",
     "com.theatre.toolkit.editor",
     "UnityEngine.TestRunner",
-    "UnityEditor.TestRunner"
+    "UnityEditor.TestRunner",
+    "Unity.RenderPipelines.Universal.Runtime",
+    "Unity.RenderPipelines.Universal.Editor"
   ],
   "includePlatforms": ["Editor"],
   "excludePlatforms": [],
@@ -14,6 +16,22 @@
   "precompiledReferences": ["nunit.framework.dll", "Newtonsoft.Json.dll", "Microsoft.Data.Sqlite.dll", "SQLitePCLRaw.core.dll", "SQLitePCLRaw.provider.e_sqlite3.dll", "SQLitePCLRaw.batteries_v2.dll"],
   "autoReferenced": false,
   "defineConstraints": ["UNITY_INCLUDE_TESTS"],
-  "versionDefines": [],
+  "versionDefines": [
+    {
+      "name": "com.unity.render-pipelines.universal",
+      "expression": "",
+      "define": "THEATRE_HAS_URP"
+    },
+    {
+      "name": "com.unity.render-pipelines.high-definition",
+      "expression": "",
+      "define": "THEATRE_HAS_HDRP"
+    },
+    {
+      "name": "com.unity.addressables",
+      "expression": "",
+      "define": "THEATRE_HAS_ADDRESSABLES"
+    }
+  ],
   "noEngineReferences": false
 }

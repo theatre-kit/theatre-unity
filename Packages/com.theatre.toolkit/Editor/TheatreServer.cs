@@ -214,6 +214,12 @@ namespace Theatre.Editor
             TextureOpTool.Register(registry);            // Phase 7b
             SpriteAtlasOpTool.Register(registry);        // Phase 7b
             AudioMixerOpTool.Register(registry);         // Phase 7b
+#if THEATRE_HAS_URP || THEATRE_HAS_HDRP
+            RenderPipelineOpTool.Register(registry);     // Phase 7c
+#endif
+#if THEATRE_HAS_ADDRESSABLES
+            AddressableOpTool.Register(registry);        // Phase 7c
+#endif
         }
 
         // --- Route Handlers ---
