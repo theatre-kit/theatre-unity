@@ -17,7 +17,11 @@
     "Unity.AI.Navigation",
     "Unity.AI.Navigation.Editor",
     "Unity.InputSystem",
-    "Unity.InputSystem.Editor"
+    "Unity.InputSystem.Editor",
+    "Unity.Entities",
+    "Unity.Transforms",
+    "Unity.Collections",
+    "Unity.Mathematics"
   ],
   "includePlatforms": ["Editor"],
   "excludePlatforms": [],
@@ -61,6 +65,11 @@
       "name": "com.unity.inputsystem",
       "expression": "",
       "define": "THEATRE_HAS_INPUT_SYSTEM"
+    },
+    {
+      "name": "com.unity.entities",
+      "expression": "",
+      "define": "THEATRE_HAS_ENTITIES"
     }
   ],
   "noEngineReferences": false

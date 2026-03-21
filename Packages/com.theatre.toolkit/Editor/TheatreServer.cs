@@ -13,6 +13,9 @@ using Theatre.Editor.Tools.Spatial;
 using Theatre.Editor.Tools.Watch;
 using Theatre.Editor.Tools.Recording;
 using Theatre.Editor.Tools.Director;
+#if THEATRE_HAS_ENTITIES
+using Theatre.Editor.Tools.ECS;
+#endif
 
 namespace Theatre.Editor
 {
@@ -218,6 +221,13 @@ namespace Theatre.Editor
             QualityOpTool.Register(registry);               // Phase 10a
             ProjectSettingsOpTool.Register(registry);       // Phase 10a
             BuildProfileOpTool.Register(registry);          // Phase 10b
+#if THEATRE_HAS_ENTITIES
+            EcsWorldTool.Register(registry);        // Phase 11
+            EcsSnapshotTool.Register(registry);     // Phase 11
+            EcsInspectTool.Register(registry);      // Phase 11
+            EcsQueryTool.Register(registry);        // Phase 11
+            EcsActionTool.Register(registry);       // Phase 11
+#endif
         }
 
         // --- Route Handlers ---
