@@ -23,20 +23,11 @@ namespace Theatre.Transport
         private bool _initialized;
         private McpImplementationInfo _clientInfo;
 
-        /// <summary>Whether a client has completed the initialize handshake.</summary>
+        /// <summary>Whether any client has completed the initialize handshake.</summary>
         public bool IsInitialized => _initialized;
 
-        /// <summary>Current session ID, or null if no session.</summary>
-        public string SessionId => _sessionId;
-
-        /// <summary>Connected client info, or null.</summary>
+        /// <summary>Connected client info from last initialize, or null.</summary>
         public McpImplementationInfo ClientInfo => _clientInfo;
-
-        /// <summary>
-        /// Raised when a new session ID is created (from initialize).
-        /// Called from a background thread — listeners must handle threading.
-        /// </summary>
-        public event Action<string> SessionChanged;
 
         /// <param name="registry">Tool registry to query.</param>
         /// <param name="getEnabledGroups">Returns current enabled groups.</param>
@@ -58,23 +49,9 @@ namespace Theatre.Transport
         }
 
         /// <summary>
-        /// Restore a session from a previous domain reload.
-        /// Accepts the old session ID so existing clients don't need to
-        /// re-initialize after Unity recompiles.
-        /// </summary>
-        public void RestoreSession(string sessionId)
-        {
-            if (string.IsNullOrEmpty(sessionId))
-                return;
-
-            _sessionId = sessionId;
-            _initialized = true;
-        }
-
-        /// <summary>
         /// Handle an incoming POST /mcp request.
         /// Reads the body, parses JSON-RPC, routes, and writes the response.
-        /// Called from a background thread.
+        /// Called from a background thread. Stateless — no session validation.
         /// </summary>
         public void HandlePost(HttpListenerContext context)
         {
@@ -84,9 +61,6 @@ namespace Theatre.Transport
             {
                 body = reader.ReadToEnd();
             }
-
-            // Validate session on non-initialize requests
-            var sessionHeader = context.Request.Headers["Mcp-Session-Id"];
 
             JsonRpcMessage message;
             try
@@ -115,17 +89,6 @@ namespace Theatre.Transport
             }
             else if (message.IsRequest)
             {
-                // Session validation (skip for initialize)
-                if (message.Method != "initialize" && _initialized
-                    && sessionHeader != _sessionId)
-                {
-                    context.Response.StatusCode = 400;
-                    SendJsonResponse(context, JsonRpcResponse.ErrorResponse(
-                        message.Id, JsonRpcResponse.InvalidRequest,
-                        "Invalid or missing Mcp-Session-Id"));
-                    return;
-                }
-
                 HandleRequest(context, message);
             }
             else
@@ -206,16 +169,10 @@ namespace Theatre.Transport
                 catch { /* best effort */ }
             }
 
-            // Reuse existing session ID if restored from domain reload.
-            // This keeps the session stable so clients that haven't
-            // re-initialized yet can still use the previous session ID.
+            // Generate a session ID for the response header (MCP spec) but
+            // don't enforce it — Theatre is stateless per-request.
             if (_sessionId == null)
-            {
                 _sessionId = Guid.NewGuid().ToString();
-
-                var handler = SessionChanged;
-                handler?.Invoke(_sessionId);
-            }
             _initialized = true;
 
             var result = new McpInitializeResult

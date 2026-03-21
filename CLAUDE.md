@@ -73,9 +73,10 @@ user to check Unity.**
 
 ### Session gotchas
 
-- **MCP sessions survive domain reload.** The session ID is persisted
-  to `SessionState` and restored when the server restarts after recompile.
-  You should NOT need to re-initialize between refresh/test cycles.
+- **MCP is stateless — no session enforcement.** The server returns a
+  `Mcp-Session-Id` header per MCP spec but does not validate it on
+  subsequent requests. Multiple agents can connect simultaneously.
+  No re-initialization needed after domain reloads.
 - **Test scene auto-generates.** `TestSceneCreator.cs` has an
   `[InitializeOnLoadMethod]` that creates `TestScene_Hierarchy.unity`
   if it doesn't exist. This fires on every domain reload.

@@ -34,8 +34,6 @@ namespace Theatre.Editor
         private static string s_cachedEnabledGroups;
         private static ToolGroup s_cachedEnabledGroupsEnum;
 
-        private const string SessionIdKey = "Theatre.McpSessionId";
-
         /// <summary>Whether the server is currently running.</summary>
         public static bool IsRunning => s_transport?.IsListening ?? false;
 
@@ -87,25 +85,6 @@ namespace Theatre.Editor
                 () => TheatreConfig.DisabledTools,
                 ExecuteToolOnMainThread
             );
-
-            // Restore MCP session from before domain reload so existing
-            // clients don't need to re-initialize after recompile.
-            var previousSessionId = SessionState.GetString(SessionIdKey, null);
-            if (!string.IsNullOrEmpty(previousSessionId))
-            {
-                s_mcpRouter.RestoreSession(previousSessionId);
-                Debug.Log("[Theatre] MCP session restored from previous domain reload");
-            }
-
-            // Persist new session IDs when clients (re-)initialize.
-            // Called from background thread — dispatch to main thread.
-            s_mcpRouter.SessionChanged += sessionId =>
-            {
-                MainThreadDispatcher.Invoke(() =>
-                {
-                    SessionState.SetString(SessionIdKey, sessionId);
-                });
-            };
 
             // Set up HTTP routes
             s_router = new RequestRouter();
