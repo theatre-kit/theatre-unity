@@ -64,10 +64,14 @@ user to check Unity.**
 ### Development loop (MANDATORY after writing C# code)
 
 1. `unity_console` `{"operation": "refresh"}` — trigger recompile
-2. Wait ~5 seconds for domain reload
-3. `unity_console` `{"filter": "error"}` — check for compile errors
+2. **Sleep 8 seconds** — domain reload destroys the HTTP server; it
+   restarts after recompile. If you call too early you get "unable to
+   connect". 8s is enough for typical recompiles; 15s after package
+   or asmdef changes.
+3. `unity_console` `{"filter": "error"}` — check for compile errors.
+   If you get a connection error, sleep another 5s and retry.
 4. If clean: `unity_tests` `{"operation": "run"}` — run tests
-5. Wait ~12 seconds for tests to complete
+5. **Sleep 15 seconds** — tests take 10-20s depending on count
 6. `unity_tests` `{"operation": "results"}` — see failures (failures_only is default)
 7. Fix any failures and repeat from step 1
 
