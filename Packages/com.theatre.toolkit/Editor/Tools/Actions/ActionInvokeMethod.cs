@@ -22,11 +22,8 @@ namespace Theatre.Editor
 
         public static string Execute(JObject args)
         {
-            if (!Application.isPlaying)
-                return ResponseHelpers.ErrorResponse(
-                    "requires_play_mode",
-                    "invoke_method requires Play Mode",
-                    "Enter Play Mode first — method invocation modifies runtime state");
+            var error = ResponseHelpers.RequirePlayMode("invoke_method");
+            if (error != null) return error;
 
             var componentName = args["component"]?.Value<string>();
             var methodName = args["method"]?.Value<string>();
@@ -137,10 +134,7 @@ namespace Theatre.Editor
             // Build response
             var response = new JObject();
             response["result"] = "ok";
-            response["path"] = ResponseHelpers.GetHierarchyPath(go.transform);
-#pragma warning disable CS0618
-            response["instance_id"] = go.GetInstanceID();
-#pragma warning restore CS0618
+            ResponseHelpers.AddIdentity(response, go);
             response["component"] = componentName;
             response["method"] = methodName;
 

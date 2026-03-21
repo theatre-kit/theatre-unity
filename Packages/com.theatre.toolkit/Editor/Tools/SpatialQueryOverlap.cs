@@ -220,10 +220,7 @@ namespace Theatre.Editor
             GameObject go, string colliderType)
         {
             var entry = new JObject();
-            entry["path"] = ResponseHelpers.GetHierarchyPath(go.transform);
-            #pragma warning disable CS0618
-            entry["instance_id"] = go.GetInstanceID();
-            #pragma warning restore CS0618
+            ResponseHelpers.AddIdentity(entry, go);
             entry["tag"] = go.tag;
             entry["layer"] = LayerMask.LayerToName(go.layer);
             entry["collider_type"] = colliderType;

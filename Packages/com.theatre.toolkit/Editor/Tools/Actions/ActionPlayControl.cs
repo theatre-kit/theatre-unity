@@ -14,11 +14,8 @@ namespace Theatre.Editor
     {
         public static string ExecutePause(JObject args)
         {
-            if (!Application.isPlaying)
-                return ResponseHelpers.ErrorResponse(
-                    "requires_play_mode",
-                    "pause requires Play Mode",
-                    "Enter Play Mode first");
+            var error = ResponseHelpers.RequirePlayMode("pause");
+            if (error != null) return error;
 
 #if UNITY_EDITOR
             EditorApplication.isPaused = true;
@@ -34,11 +31,8 @@ namespace Theatre.Editor
 
         public static string ExecuteStep(JObject args)
         {
-            if (!Application.isPlaying)
-                return ResponseHelpers.ErrorResponse(
-                    "requires_play_mode",
-                    "step requires Play Mode",
-                    "Enter Play Mode first");
+            var error = ResponseHelpers.RequirePlayMode("step");
+            if (error != null) return error;
 
 #if UNITY_EDITOR
             // Ensure paused first
@@ -57,11 +51,8 @@ namespace Theatre.Editor
 
         public static string ExecuteUnpause(JObject args)
         {
-            if (!Application.isPlaying)
-                return ResponseHelpers.ErrorResponse(
-                    "requires_play_mode",
-                    "unpause requires Play Mode",
-                    "Enter Play Mode first");
+            var error = ResponseHelpers.RequirePlayMode("unpause");
+            if (error != null) return error;
 
 #if UNITY_EDITOR
             EditorApplication.isPaused = false;

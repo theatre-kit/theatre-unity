@@ -12,11 +12,8 @@ namespace Theatre.Editor
     {
         public static string Execute(JObject args)
         {
-            if (!Application.isPlaying)
-                return ResponseHelpers.ErrorResponse(
-                    "requires_play_mode",
-                    "set_timescale requires Play Mode",
-                    "Enter Play Mode first");
+            var error = ResponseHelpers.RequirePlayMode("set_timescale");
+            if (error != null) return error;
 
             var timescale = args["timescale"];
             if (timescale == null)

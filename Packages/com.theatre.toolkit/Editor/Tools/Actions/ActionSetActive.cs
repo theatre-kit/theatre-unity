@@ -36,10 +36,7 @@ namespace Theatre.Editor
 
             var response = new JObject();
             response["result"] = "ok";
-            response["path"] = ResponseHelpers.GetHierarchyPath(go.transform);
-#pragma warning disable CS0618
-            response["instance_id"] = go.GetInstanceID();
-#pragma warning restore CS0618
+            ResponseHelpers.AddIdentity(response, go);
             response["active"] = newActive;
             response["previous_active"] = previousActive;
             ResponseHelpers.AddFrameContext(response);

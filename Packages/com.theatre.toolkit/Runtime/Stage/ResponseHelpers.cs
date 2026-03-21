@@ -107,6 +107,31 @@ namespace Theatre.Stage
         }
 
         /// <summary>
+        /// Add identity fields (path and instance_id) for a GameObject to a response.
+        /// Centralizes the CS0618 suppression for GetInstanceID().
+        /// </summary>
+        public static void AddIdentity(JObject obj, GameObject go)
+        {
+            obj["path"] = GetHierarchyPath(go.transform);
+#pragma warning disable CS0618
+            obj["instance_id"] = go.GetInstanceID();
+#pragma warning restore CS0618
+        }
+
+        /// <summary>
+        /// Guard that requires play mode. Returns null if in play mode,
+        /// or an error response string if not.
+        /// </summary>
+        public static string RequirePlayMode(string operationName)
+        {
+            if (Application.isPlaying) return null;
+            return ErrorResponse(
+                "requires_play_mode",
+                $"{operationName} requires Play Mode",
+                "Enter Play Mode first");
+        }
+
+        /// <summary>
         /// Get the hierarchy path for a Transform, handling multi-scene
         /// addressing and sibling disambiguation.
         /// </summary>

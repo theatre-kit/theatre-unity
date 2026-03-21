@@ -112,10 +112,7 @@ namespace Theatre.Editor
             response["operation"] = "bounds";
 
             var result = new JObject();
-            result["path"] = ResponseHelpers.GetHierarchyPath(go.transform);
-            #pragma warning disable CS0618
-            result["instance_id"] = go.GetInstanceID();
-            #pragma warning restore CS0618
+            ResponseHelpers.AddIdentity(result, go);
             result["source"] = source;
             result["center"] = ResponseHelpers.ToJArray(
                 finalBounds.Value.center);
