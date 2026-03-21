@@ -134,6 +134,10 @@ namespace Theatre.Tests.Editor
         [SetUp]
         public void SetUp()
         {
+            // Clear persisted watches from prior test runs
+            UnityEditor.SessionState.EraseString("Theatre_Watches");
+            UnityEditor.SessionState.EraseInt("Theatre_WatchCounter");
+
             _engine = new WatchEngine();
             _notifications = new List<JObject>();
             _engine.Initialize(n => _notifications.Add(n));
