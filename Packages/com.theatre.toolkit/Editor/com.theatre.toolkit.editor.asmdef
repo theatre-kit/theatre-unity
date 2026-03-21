@@ -4,7 +4,9 @@
   "references": [
     "com.theatre.toolkit.runtime",
     "Unity.RenderPipelines.Universal.Runtime",
-    "Unity.RenderPipelines.Universal.Editor"
+    "Unity.RenderPipelines.Universal.Editor",
+    "Unity.Timeline",
+    "Unity.Timeline.Editor"
   ],
   "includePlatforms": ["Editor"],
   "excludePlatforms": [],
@@ -28,6 +30,11 @@
       "name": "com.unity.addressables",
       "expression": "",
       "define": "THEATRE_HAS_ADDRESSABLES"
+    },
+    {
+      "name": "com.unity.timeline",
+      "expression": "",
+      "define": "THEATRE_HAS_TIMELINE"
     }
   ],
   "noEngineReferences": false

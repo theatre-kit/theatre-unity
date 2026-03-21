@@ -201,6 +201,10 @@ namespace Theatre.Editor
 #endif
             AnimationClipOpTool.Register(registry);         // Phase 8a
             AnimatorControllerOpTool.Register(registry);    // Phase 8a
+            BlendTreeOpTool.Register(registry);             // Phase 8b
+#if THEATRE_HAS_TIMELINE
+            TimelineOpTool.Register(registry);              // Phase 8b
+#endif
         }
 
         // --- Route Handlers ---
