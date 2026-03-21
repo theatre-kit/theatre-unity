@@ -280,4 +280,365 @@ namespace Theatre.Tests.Editor
             Assert.IsNotEmpty(expectedNote); // Structure validation
         }
     }
+
+    /// <summary>
+    /// Tool-level tests for ActionTool dispatch: validates that the compound
+    /// dispatcher routes correctly and returns proper error shapes.
+    /// </summary>
+    [TestFixture]
+    public class ActionToolDispatchTests
+    {
+        private string CallAction(JObject args)
+        {
+            var tool = TheatreServer.ToolRegistry?.GetTool(
+                "action", ToolGroup.Everything);
+            Assert.IsNotNull(tool, "action tool not registered");
+            return tool.Handler(args);
+        }
+
+        [Test]
+        public void ActionTool_MissingOperation_ReturnsError()
+        {
+            var result = CallAction(new JObject());
+            Assert.That(result, Does.Contain("\"error\""));
+            Assert.That(result, Does.Contain("invalid_parameter"));
+        }
+
+        [Test]
+        public void ActionTool_UnknownOperation_ReturnsError()
+        {
+            var result = CallAction(new JObject { ["operation"] = "fly_away" });
+            Assert.That(result, Does.Contain("\"error\""));
+            Assert.That(result, Does.Contain("invalid_parameter"));
+        }
+
+        [Test]
+        public void ActionTool_Pause_InEditMode_RequiresPlayMode()
+        {
+            // In EditMode tests, Application.isPlaying is false
+            var result = CallAction(new JObject { ["operation"] = "pause" });
+            Assert.That(result, Does.Contain("\"error\""));
+            Assert.That(result, Does.Contain("requires_play_mode"));
+        }
+
+        [Test]
+        public void ActionTool_Step_InEditMode_RequiresPlayMode()
+        {
+            var result = CallAction(new JObject { ["operation"] = "step" });
+            Assert.That(result, Does.Contain("\"error\""));
+            Assert.That(result, Does.Contain("requires_play_mode"));
+        }
+
+        [Test]
+        public void ActionTool_Unpause_InEditMode_RequiresPlayMode()
+        {
+            var result = CallAction(new JObject { ["operation"] = "unpause" });
+            Assert.That(result, Does.Contain("\"error\""));
+            Assert.That(result, Does.Contain("requires_play_mode"));
+        }
+
+        [Test]
+        public void ActionTool_SetTimescale_InEditMode_RequiresPlayMode()
+        {
+            var result = CallAction(new JObject
+            {
+                ["operation"] = "set_timescale",
+                ["timescale"] = 0.5f
+            });
+            Assert.That(result, Does.Contain("\"error\""));
+            Assert.That(result, Does.Contain("requires_play_mode"));
+        }
+
+        [Test]
+        public void ActionTool_Teleport_MissingPosition_ReturnsError()
+        {
+            // teleport works in edit mode but requires position
+            var result = CallAction(new JObject
+            {
+                ["operation"] = "teleport",
+                ["path"] = "/Player"
+            });
+            Assert.That(result, Does.Contain("\"error\""));
+            Assert.That(result, Does.Contain("invalid_parameter"));
+        }
+
+        [Test]
+        public void ActionTool_Teleport_MissingTarget_ReturnsError()
+        {
+            // teleport with position but no path/instance_id
+            var result = CallAction(new JObject
+            {
+                ["operation"] = "teleport",
+                ["position"] = new JArray(10f, 0f, 5f)
+            });
+            Assert.That(result, Does.Contain("\"error\""));
+        }
+
+        [Test]
+        public void ActionTool_SetActive_MissingActiveParam_ReturnsError()
+        {
+            var result = CallAction(new JObject
+            {
+                ["operation"] = "set_active",
+                ["path"] = "/Player"
+            });
+            Assert.That(result, Does.Contain("\"error\""));
+            Assert.That(result, Does.Contain("invalid_parameter"));
+        }
+
+        [Test]
+        public void ActionTool_Teleport_ToKnownObject_Succeeds()
+        {
+            // teleport /Player to a new position in edit mode (no play required)
+            var go = new GameObject("TeleportTestTarget");
+            try
+            {
+                var result = CallAction(new JObject
+                {
+                    ["operation"] = "teleport",
+                    ["path"] = "/" + go.name,
+                    ["position"] = new JArray(5f, 2f, 3f)
+                });
+                Assert.That(result, Does.Contain("\"result\":\"ok\""));
+                Assert.That(result, Does.Contain("\"position\""));
+                Assert.That(result, Does.Contain("\"previous_position\""));
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void ActionTool_SetActive_ToKnownObject_Succeeds()
+        {
+            var go = new GameObject("SetActiveTestTarget");
+            go.SetActive(true);
+            try
+            {
+                var result = CallAction(new JObject
+                {
+                    ["operation"] = "set_active",
+                    ["path"] = "/" + go.name,
+                    ["active"] = false
+                });
+                Assert.That(result, Does.Contain("\"result\":\"ok\""));
+                Assert.That(result, Does.Contain("\"active\":false"));
+                Assert.That(result, Does.Contain("\"previous_active\":true"));
+                // Restore so TearDown doesn't fail
+                go.SetActive(true);
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Tool-level tests for WatchTool dispatch: validates operations return
+    /// correct shapes without relying on play mode or SSE infrastructure.
+    /// Each test creates and cleans up its own watches to stay isolated.
+    /// </summary>
+    [TestFixture]
+    public class WatchToolDispatchTests
+    {
+        // Track watch IDs created in each test so we can remove them in TearDown
+        private readonly System.Collections.Generic.List<string> _createdWatchIds
+            = new System.Collections.Generic.List<string>();
+
+        [TearDown]
+        public void TearDown()
+        {
+            // Remove any watches created during the test
+            foreach (var id in _createdWatchIds)
+            {
+                CallWatch(new JObject
+                {
+                    ["operation"] = "remove",
+                    ["watch_id"] = id
+                });
+            }
+            _createdWatchIds.Clear();
+        }
+
+        private string CallWatch(JObject args)
+        {
+            var tool = TheatreServer.ToolRegistry?.GetTool(
+                "watch", ToolGroup.Everything);
+            Assert.IsNotNull(tool, "watch tool not registered");
+            return tool.Handler(args);
+        }
+
+        private string CreateWatch(string target = "*", string conditionType = "spawned",
+            string label = null)
+        {
+            var condObj = new JObject { ["type"] = conditionType };
+            var createArgs = new JObject
+            {
+                ["operation"] = "create",
+                ["target"] = target,
+                ["condition"] = condObj,
+                ["throttle_ms"] = 500
+            };
+            if (label != null)
+                createArgs["label"] = label;
+
+            var result = CallWatch(createArgs);
+            var watchId = JObject.Parse(result)["watch_id"]?.Value<string>();
+            if (watchId != null)
+                _createdWatchIds.Add(watchId);
+            return watchId;
+        }
+
+        [Test]
+        public void WatchTool_MissingOperation_ReturnsError()
+        {
+            var result = CallWatch(new JObject());
+            Assert.That(result, Does.Contain("\"error\""));
+            Assert.That(result, Does.Contain("invalid_parameter"));
+        }
+
+        [Test]
+        public void WatchTool_UnknownOperation_ReturnsError()
+        {
+            var result = CallWatch(new JObject { ["operation"] = "zap" });
+            Assert.That(result, Does.Contain("\"error\""));
+            Assert.That(result, Does.Contain("invalid_parameter"));
+        }
+
+        [Test]
+        public void WatchTool_List_ReturnsResultsArray()
+        {
+            // List should always return a results array (may have pre-existing watches)
+            var result = CallWatch(new JObject { ["operation"] = "list" });
+            Assert.That(result, Does.Contain("\"results\""));
+            Assert.That(result, Does.Contain("\"active_watches\""));
+        }
+
+        [Test]
+        public void WatchTool_Remove_UnknownId_ReturnsError()
+        {
+            var result = CallWatch(new JObject
+            {
+                ["operation"] = "remove",
+                ["watch_id"] = "w_nonexistent_xyz"
+            });
+            Assert.That(result, Does.Contain("\"error\""));
+        }
+
+        [Test]
+        public void WatchTool_Remove_MissingWatchId_ReturnsError()
+        {
+            var result = CallWatch(new JObject { ["operation"] = "remove" });
+            Assert.That(result, Does.Contain("\"error\""));
+            Assert.That(result, Does.Contain("invalid_parameter"));
+        }
+
+        [Test]
+        public void WatchTool_Check_UnknownId_ReturnsError()
+        {
+            var result = CallWatch(new JObject
+            {
+                ["operation"] = "check",
+                ["watch_id"] = "w_nonexistent_xyz"
+            });
+            Assert.That(result, Does.Contain("\"error\""));
+        }
+
+        [Test]
+        public void WatchTool_Check_MissingWatchId_ReturnsError()
+        {
+            var result = CallWatch(new JObject { ["operation"] = "check" });
+            Assert.That(result, Does.Contain("\"error\""));
+            Assert.That(result, Does.Contain("invalid_parameter"));
+        }
+
+        [Test]
+        public void WatchTool_Create_MissingTarget_ReturnsError()
+        {
+            var result = CallWatch(new JObject
+            {
+                ["operation"] = "create",
+                ["condition"] = new JObject { ["type"] = "spawned" }
+            });
+            Assert.That(result, Does.Contain("\"error\""));
+            Assert.That(result, Does.Contain("invalid_parameter"));
+        }
+
+        [Test]
+        public void WatchTool_Create_MissingCondition_ReturnsError()
+        {
+            var result = CallWatch(new JObject
+            {
+                ["operation"] = "create",
+                ["target"] = "/Player"
+            });
+            Assert.That(result, Does.Contain("\"error\""));
+            Assert.That(result, Does.Contain("invalid_parameter"));
+        }
+
+        [Test]
+        public void WatchTool_Create_ValidWatch_ReturnsWatchId()
+        {
+            var result = CallWatch(new JObject
+            {
+                ["operation"] = "create",
+                ["target"] = "*",
+                ["condition"] = new JObject { ["type"] = "spawned" },
+                ["throttle_ms"] = 500
+            });
+            Assert.That(result, Does.Contain("\"result\":\"ok\""));
+            Assert.That(result, Does.Contain("\"watch_id\""));
+
+            // Track created watch for cleanup
+            var watchId = JObject.Parse(result)["watch_id"]?.Value<string>();
+            if (watchId != null) _createdWatchIds.Add(watchId);
+        }
+
+        [Test]
+        public void WatchTool_CreateThenList_ShowsLabel()
+        {
+            var watchId = CreateWatch(label: "dispatch_test_label_xyz");
+            Assert.IsNotNull(watchId, "Watch creation should succeed");
+
+            // List should contain the label
+            var listResult = CallWatch(new JObject { ["operation"] = "list" });
+            Assert.That(listResult, Does.Contain("dispatch_test_label_xyz"));
+        }
+
+        [Test]
+        public void WatchTool_CreateThenRemove_ReturnsOk()
+        {
+            var watchId = CreateWatch();
+            Assert.IsNotNull(watchId);
+
+            // Remove it
+            var removeResult = CallWatch(new JObject
+            {
+                ["operation"] = "remove",
+                ["watch_id"] = watchId
+            });
+            Assert.That(removeResult, Does.Contain("\"result\":\"ok\""));
+
+            // Remove already handled — clear from tracking list to avoid double-remove
+            _createdWatchIds.Remove(watchId);
+        }
+
+        [Test]
+        public void WatchTool_CreateThenCheck_ReturnsWatchInfo()
+        {
+            var watchId = CreateWatch(target: "/Player");
+            Assert.IsNotNull(watchId);
+
+            var checkResult = CallWatch(new JObject
+            {
+                ["operation"] = "check",
+                ["watch_id"] = watchId
+            });
+            // check should return info about the watch (not an error)
+            Assert.That(checkResult, Does.Not.Contain("\"error\""));
+            Assert.That(checkResult, Does.Contain("watch_id"));
+        }
+    }
 }
