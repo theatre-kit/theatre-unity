@@ -211,6 +211,9 @@ namespace Theatre.Editor
             MaterialOpTool.Register(registry);           // Phase 7a
             ScriptableObjectOpTool.Register(registry);   // Phase 7a
             PhysicsMaterialOpTool.Register(registry);    // Phase 7a
+            TextureOpTool.Register(registry);            // Phase 7b
+            SpriteAtlasOpTool.Register(registry);        // Phase 7b
+            AudioMixerOpTool.Register(registry);         // Phase 7b
         }
 
         // --- Route Handlers ---
