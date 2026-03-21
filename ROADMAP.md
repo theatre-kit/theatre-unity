@@ -153,18 +153,25 @@ it in a scene, apply overrides, and the human can undo it all with Ctrl+Z.
 
 Agent can create and configure non-code assets.
 
+### Phase 7a — Core Asset Tools
+
 - [ ] `material_op` — create, set properties, set shader, list properties
-- [ ] `scriptable_object_op` — create instances, set fields, find by type
-- [ ] `texture_op` — import, configure import settings, sprite setup
+- [ ] `scriptable_object_op` — create instances, set fields, list fields, find by type
+- [ ] `physics_material_op` — create PhysicMaterial/PhysicsMaterial2D, set properties
+
+### Phase 7b — 2D & Media Asset Tools
+
+- [ ] `texture_op` — import, configure import settings, sprite setup, sprite sheet
 - [ ] `sprite_atlas_op` — create, add/remove entries, pack
-- [ ] `physics_material_op` — create, set friction/bounciness
 - [ ] `audio_mixer_op` — create mixer, groups, effects, snapshots, expose params
-- [ ] `render_pipeline_op` — create URP/HDRP assets, renderers, features
-- [ ] `addressable_op` — create groups, add entries, set labels, analyze
+
+### Phase 7c — Optional-Package Asset Tools
+
+- [ ] `render_pipeline_op` — create URP/HDRP assets, renderers, features (requires URP/HDRP)
+- [ ] `addressable_op` — create groups, add entries, set labels, analyze (requires com.unity.addressables)
 
 **Exit criteria**: Agent can create a material with a URP/Lit shader,
-create a ScriptableObject weapon data asset, configure an Addressable
-group, and build an audio mixer hierarchy.
+create a ScriptableObject weapon data asset, and create physics materials.
 
 ---
 
