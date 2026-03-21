@@ -269,6 +269,8 @@ archetype, inspect component data, and modify entity state.
 
 The human-facing side. See what the agent sees and does.
 
+### Phase 12a — Core Window & Settings
+
 - [ ] Theatre EditorWindow (UI Toolkit)
   - Server status bar (running, port, agent connected)
   - Tool group toggles with presets dropdown
@@ -277,17 +279,20 @@ The human-facing side. See what the agent sees and does.
   - Session stats
 - [ ] Recording section
   - Record/Stop/Mark buttons
-  - Timeline scrubber with markers and agent query indicators
   - Recording stats (duration, frames, size)
   - Recordings library (list, load, delete)
+- [ ] Project Settings provider (`Project > Theatre`)
+- [ ] Keyboard shortcuts (F8 record, F9 marker, Ctrl+Shift+T panel)
+
+### Phase 12b — Gizmos & Overlay
+
 - [ ] Scene View gizmos
   - Query visualizations (wire spheres, rays, overlap regions)
   - Watch visualizations (proximity circles, region boxes, highlights)
   - Action visualizations (teleport trails, property pulses)
   - Gizmo controls (toggle, duration, opacity)
 - [ ] Scene View overlay (compact status)
-- [ ] Project Settings provider (`Project > Theatre`)
-- [ ] Keyboard shortcuts (F8 record, F9 marker, Ctrl+Shift+T panel)
+- [ ] Timeline scrubber with markers and agent query indicators
 - [ ] First-run welcome dialog with .mcp.json snippet
 - [ ] Console logging with `[Theatre]` prefix for Director mutations
 
