@@ -207,6 +207,10 @@ namespace Theatre.Editor
 #endif
             TilemapOpTool.Register(registry);               // Phase 9a
             NavMeshOpTool.Register(registry);               // Phase 9a
+            TerrainOpTool.Register(registry);               // Phase 9b
+#if THEATRE_HAS_PROBUILDER
+            ProBuilderOpTool.Register(registry);            // Phase 9b
+#endif
         }
 
         // --- Route Handlers ---

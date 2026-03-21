@@ -9,6 +9,9 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEditor;
 using UnityEditor.AI;
+#if THEATRE_HAS_AI_NAVIGATION
+using Unity.AI.Navigation;
+#endif
 
 namespace Theatre.Editor.Tools.Director
 {
@@ -293,7 +296,32 @@ namespace Theatre.Editor.Tools.Director
                     "Missing required 'path' parameter",
                     "Provide the hierarchy path to a GameObject, e.g. '/Environment/Walls'");
 
-            // NavMeshModifier is in com.unity.ai.navigation — use reflection
+            var resolved = ObjectResolver.Resolve(path: path);
+            if (!resolved.Success)
+                return ResponseHelpers.ErrorResponse(resolved.ErrorCode, resolved.ErrorMessage, resolved.Suggestion);
+
+            var go = resolved.GameObject;
+
+#if THEATRE_HAS_AI_NAVIGATION
+            var modifier = go.GetComponent<NavMeshModifier>();
+            if (modifier == null)
+                modifier = Undo.AddComponent<NavMeshModifier>(go);
+
+            var areaToken = args["area"];
+            if (areaToken != null && areaToken.Type != JTokenType.Null)
+                modifier.area = areaToken.Value<int>();
+
+            var ignoreToken = args["ignore_from_build"];
+            if (ignoreToken != null && ignoreToken.Type != JTokenType.Null)
+                modifier.ignoreFromBuild = ignoreToken.Value<bool>();
+
+            var affectToken = args["affect_children"];
+            if (affectToken != null && affectToken.Type != JTokenType.Null)
+                modifier.applyToChildren = affectToken.Value<bool>();
+
+            EditorUtility.SetDirty(go);
+#else
+            // NavMeshModifier is in com.unity.ai.navigation — use reflection fallback
             var modifierType = FindAINavigationType("NavMeshModifier");
             if (modifierType == null)
                 return ResponseHelpers.ErrorResponse(
@@ -301,11 +329,6 @@ namespace Theatre.Editor.Tools.Director
                     "NavMeshModifier type not found. The 'com.unity.ai.navigation' package is not installed.",
                     "Install 'com.unity.ai.navigation' via the Package Manager to use add_modifier");
 
-            var resolved = ObjectResolver.Resolve(path: path);
-            if (!resolved.Success)
-                return ResponseHelpers.ErrorResponse(resolved.ErrorCode, resolved.ErrorMessage, resolved.Suggestion);
-
-            var go = resolved.GameObject;
             var existing = go.GetComponent(modifierType);
             if (existing == null)
             {
@@ -333,7 +356,6 @@ namespace Theatre.Editor.Tools.Director
             var affectToken = args["affect_children"];
             if (affectToken != null && affectToken.Type != JTokenType.Null)
             {
-                // AffectChildren may be a property or field depending on package version
                 var affectProp = modifierType.GetProperty("AffectChildren",
                     BindingFlags.Public | BindingFlags.Instance)
                     ?? modifierType.GetProperty("affectChildren",
@@ -342,6 +364,7 @@ namespace Theatre.Editor.Tools.Director
             }
 
             EditorUtility.SetDirty(go);
+#endif
 
             var response = new JObject();
             response["result"] = "ok";
@@ -516,7 +539,42 @@ namespace Theatre.Editor.Tools.Director
                     "Missing required 'path' parameter",
                     "Provide the hierarchy path to a GameObject, e.g. '/NavMeshPlane'");
 
-            // NavMeshSurface is in com.unity.ai.navigation — use reflection
+            var resolved = ObjectResolver.Resolve(path: path);
+            if (!resolved.Success)
+                return ResponseHelpers.ErrorResponse(resolved.ErrorCode, resolved.ErrorMessage, resolved.Suggestion);
+
+            var go = resolved.GameObject;
+
+#if THEATRE_HAS_AI_NAVIGATION
+            var surface = go.GetComponent<NavMeshSurface>();
+            if (surface == null)
+                surface = Undo.AddComponent<NavMeshSurface>(go);
+
+            var collectObjects = args["collect_objects"]?.Value<string>();
+            if (!string.IsNullOrEmpty(collectObjects))
+            {
+                try
+                {
+                    surface.collectObjects = (CollectObjects)Enum.Parse(
+                        typeof(CollectObjects), DirectorHelpers.ToPascalCase(collectObjects), true);
+                }
+                catch { /* best effort — ignore unknown values */ }
+            }
+
+            var useGeometry = args["use_geometry"]?.Value<string>();
+            if (!string.IsNullOrEmpty(useGeometry))
+            {
+                try
+                {
+                    surface.useGeometry = (NavMeshCollectGeometry)Enum.Parse(
+                        typeof(NavMeshCollectGeometry), DirectorHelpers.ToPascalCase(useGeometry), true);
+                }
+                catch { /* best effort — ignore unknown values */ }
+            }
+
+            EditorUtility.SetDirty(go);
+#else
+            // NavMeshSurface is in com.unity.ai.navigation — use reflection fallback
             var surfaceType = FindAINavigationType("NavMeshSurface");
             if (surfaceType == null)
                 return ResponseHelpers.ErrorResponse(
@@ -524,11 +582,6 @@ namespace Theatre.Editor.Tools.Director
                     "NavMeshSurface type not found. The 'com.unity.ai.navigation' package is not installed.",
                     "Install 'com.unity.ai.navigation' via the Package Manager to use add_surface");
 
-            var resolved = ObjectResolver.Resolve(path: path);
-            if (!resolved.Success)
-                return ResponseHelpers.ErrorResponse(resolved.ErrorCode, resolved.ErrorMessage, resolved.Suggestion);
-
-            var go = resolved.GameObject;
             var existing = go.GetComponent(surfaceType);
             if (existing == null)
             {
@@ -537,8 +590,8 @@ namespace Theatre.Editor.Tools.Director
             }
 
             // Set optional properties via reflection
-            var collectObjects = args["collect_objects"]?.Value<string>();
-            if (!string.IsNullOrEmpty(collectObjects))
+            var collectObjectsFallback = args["collect_objects"]?.Value<string>();
+            if (!string.IsNullOrEmpty(collectObjectsFallback))
             {
                 var collectProp = surfaceType.GetProperty("collectObjects",
                     BindingFlags.Public | BindingFlags.Instance);
@@ -549,7 +602,7 @@ namespace Theatre.Editor.Tools.Director
                     {
                         try
                         {
-                            var enumVal = Enum.Parse(enumType, DirectorHelpers.ToPascalCase(collectObjects), true);
+                            var enumVal = Enum.Parse(enumType, DirectorHelpers.ToPascalCase(collectObjectsFallback), true);
                             collectProp.SetValue(existing, enumVal);
                         }
                         catch { /* best effort */ }
@@ -557,8 +610,8 @@ namespace Theatre.Editor.Tools.Director
                 }
             }
 
-            var useGeometry = args["use_geometry"]?.Value<string>();
-            if (!string.IsNullOrEmpty(useGeometry))
+            var useGeometryFallback = args["use_geometry"]?.Value<string>();
+            if (!string.IsNullOrEmpty(useGeometryFallback))
             {
                 var geomProp = surfaceType.GetProperty("useGeometry",
                     BindingFlags.Public | BindingFlags.Instance);
@@ -569,7 +622,7 @@ namespace Theatre.Editor.Tools.Director
                     {
                         try
                         {
-                            var enumVal = Enum.Parse(enumType, DirectorHelpers.ToPascalCase(useGeometry), true);
+                            var enumVal = Enum.Parse(enumType, DirectorHelpers.ToPascalCase(useGeometryFallback), true);
                             geomProp.SetValue(existing, enumVal);
                         }
                         catch { /* best effort */ }
@@ -578,6 +631,7 @@ namespace Theatre.Editor.Tools.Director
             }
 
             EditorUtility.SetDirty(go);
+#endif
 
             var response = new JObject();
             response["result"] = "ok";

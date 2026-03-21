@@ -14,7 +14,11 @@
     "Unity.Timeline.Editor",
     "Unity.Addressables",
     "Unity.Addressables.Editor",
-    "Unity.ResourceManager"
+    "Unity.ResourceManager",
+    "Unity.ProBuilder",
+    "Unity.ProBuilder.Editor",
+    "Unity.AI.Navigation",
+    "Unity.AI.Navigation.Editor"
   ],
   "includePlatforms": ["Editor"],
   "excludePlatforms": [],
@@ -43,6 +47,16 @@
       "name": "com.unity.timeline",
       "expression": "",
       "define": "THEATRE_HAS_TIMELINE"
+    },
+    {
+      "name": "com.unity.probuilder",
+      "expression": "",
+      "define": "THEATRE_HAS_PROBUILDER"
+    },
+    {
+      "name": "com.unity.ai.navigation",
+      "expression": "",
+      "define": "THEATRE_HAS_AI_NAVIGATION"
     }
   ],
   "noEngineReferences": false
