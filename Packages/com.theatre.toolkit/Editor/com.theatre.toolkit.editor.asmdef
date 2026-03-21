@@ -5,8 +5,13 @@
     "com.theatre.toolkit.runtime",
     "Unity.RenderPipelines.Universal.Runtime",
     "Unity.RenderPipelines.Universal.Editor",
+    "Unity.RenderPipelines.HighDefinition.Runtime",
+    "Unity.RenderPipelines.HighDefinition.Editor",
     "Unity.Timeline",
-    "Unity.Timeline.Editor"
+    "Unity.Timeline.Editor",
+    "Unity.Addressables",
+    "Unity.Addressables.Editor",
+    "Unity.ResourceManager"
   ],
   "includePlatforms": ["Editor"],
   "excludePlatforms": [],
