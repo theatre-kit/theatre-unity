@@ -208,6 +208,9 @@ namespace Theatre.Editor
             SceneOpTool.Register(registry);       // Phase 6
             PrefabOpTool.Register(registry);      // Phase 6
             BatchTool.Register(registry);         // Phase 6b
+            MaterialOpTool.Register(registry);           // Phase 7a
+            ScriptableObjectOpTool.Register(registry);   // Phase 7a
+            PhysicsMaterialOpTool.Register(registry);    // Phase 7a
         }
 
         // --- Route Handlers ---

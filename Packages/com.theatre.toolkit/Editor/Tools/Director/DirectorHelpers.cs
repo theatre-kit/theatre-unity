@@ -87,6 +87,75 @@ namespace Theatre.Editor.Tools.Director
         }
 
         /// <summary>
+        /// Resolve a ScriptableObject type by name.
+        /// Same logic as ResolveComponentType but filters on ScriptableObject inheritance.
+        /// Returns null and sets error on failure or ambiguity.
+        /// </summary>
+        public static Type ResolveScriptableObjectType(string typeName, out string error)
+        {
+            error = null;
+            if (string.IsNullOrEmpty(typeName))
+            {
+                error = ResponseHelpers.ErrorResponse(
+                    "invalid_parameter",
+                    "ScriptableObject type name must not be empty",
+                    "Provide a ScriptableObject type name such as 'MyConfig' or 'UnityEngine.ScriptableObject'");
+                return null;
+            }
+
+            var matches = new List<Type>();
+
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                // Try exact fully-qualified name first
+                var exact = assembly.GetType(typeName);
+                if (exact != null && typeof(ScriptableObject).IsAssignableFrom(exact))
+                {
+                    matches.Add(exact);
+                    continue;
+                }
+
+                // Search by simple name
+                try
+                {
+                    foreach (var type in assembly.GetTypes())
+                    {
+                        if (type.Name == typeName && typeof(ScriptableObject).IsAssignableFrom(type))
+                        {
+                            if (!matches.Contains(type))
+                                matches.Add(type);
+                        }
+                    }
+                }
+                catch (System.Reflection.ReflectionTypeLoadException)
+                {
+                    // Some assemblies cannot enumerate types — skip them
+                }
+            }
+
+            if (matches.Count == 0)
+            {
+                error = ResponseHelpers.ErrorResponse(
+                    "type_not_found",
+                    $"ScriptableObject type '{typeName}' not found in any loaded assembly",
+                    "Check the type name is correct. Use fully-qualified name to disambiguate.");
+                return null;
+            }
+
+            if (matches.Count > 1)
+            {
+                var names = string.Join(", ", matches.Select(t => t.FullName));
+                error = ResponseHelpers.ErrorResponse(
+                    "type_ambiguous",
+                    $"ScriptableObject type name '{typeName}' is ambiguous. Matches: {names}",
+                    "Use the fully-qualified type name to disambiguate");
+                return null;
+            }
+
+            return matches[0];
+        }
+
+        /// <summary>
         /// Validate an asset path.
         /// Returns an error JSON string on failure, or null if valid.
         /// </summary>
@@ -132,22 +201,23 @@ namespace Theatre.Editor.Tools.Director
         }
 
         /// <summary>
-        /// Set multiple serialized properties on a component using a JObject map.
+        /// Set multiple fields on any UnityEngine.Object via SerializedObject.
+        /// Works for Components, ScriptableObjects, or any serialized asset.
         /// Uses the same 4-step property name fallback as ActionSetProperty.
-        /// Returns the count of successfully set properties and a list of per-property errors.
+        /// Returns the count of successfully set fields and a list of per-field errors.
         /// </summary>
-        public static (int successCount, List<string> errors) SetProperties(
-            Component component, JObject properties)
+        public static (int successCount, List<string> errors) SetFields(
+            UnityEngine.Object target, JObject fields)
         {
             int successCount = 0;
             var errors = new List<string>();
 
-            if (properties == null || !properties.HasValues)
+            if (fields == null || !fields.HasValues)
                 return (0, errors);
 
-            var so = new SerializedObject(component);
+            var so = new SerializedObject(target);
 
-            foreach (var prop in properties.Properties())
+            foreach (var prop in fields.Properties())
             {
                 var propName = prop.Name;
                 var value = prop.Value;
@@ -163,7 +233,7 @@ namespace Theatre.Editor.Tools.Director
 
                 if (sp == null)
                 {
-                    errors.Add($"Property '{propName}' not found on {component.GetType().Name}");
+                    errors.Add($"Property '{propName}' not found on {target.GetType().Name}");
                     continue;
                 }
 
@@ -178,6 +248,18 @@ namespace Theatre.Editor.Tools.Director
 
             so.ApplyModifiedProperties();
             return (successCount, errors);
+        }
+
+        /// <summary>
+        /// Set multiple serialized properties on a component using a JObject map.
+        /// Uses the same 4-step property name fallback as ActionSetProperty.
+        /// Returns the count of successfully set properties and a list of per-property errors.
+        /// Delegates to SetFields for implementation.
+        /// </summary>
+        public static (int successCount, List<string> errors) SetProperties(
+            Component component, JObject properties)
+        {
+            return SetFields(component, properties);
         }
 
         private static bool SetPropertyValue(
