@@ -186,11 +186,26 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Bake the NavMesh for the current scene.</summary>
         internal static string Bake(JObject args)
         {
-            // Unity requires the scene to be saved before NavMesh baking
+            // Unity requires the scene to be saved before NavMesh baking.
+            // SaveScene with no path on an untitled scene opens a dialog —
+            // only auto-save if the scene already has a file path.
             var activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
             if (activeScene.isDirty)
             {
-                UnityEditor.SceneManagement.EditorSceneManager.SaveScene(activeScene);
+                if (!string.IsNullOrEmpty(activeScene.path))
+                {
+                    UnityEditor.SceneManagement.EditorSceneManager.SaveScene(activeScene);
+                }
+                else
+                {
+                    // Scene has never been saved — save to a default path
+                    // to avoid the dialog popup blocking the MCP thread
+                    var defaultPath = "Assets/" + activeScene.name + ".unity";
+                    if (string.IsNullOrEmpty(activeScene.name))
+                        defaultPath = "Assets/UntitledScene.unity";
+                    UnityEditor.SceneManagement.EditorSceneManager.SaveScene(
+                        activeScene, defaultPath);
+                }
             }
 
             UnityEditor.AI.NavMeshBuilder.BuildNavMesh();
