@@ -220,6 +220,8 @@ namespace Theatre.Editor
 #if THEATRE_HAS_ADDRESSABLES
             AddressableOpTool.Register(registry);        // Phase 7c
 #endif
+            AnimationClipOpTool.Register(registry);         // Phase 8a
+            AnimatorControllerOpTool.Register(registry);    // Phase 8a
         }
 
         // --- Route Handlers ---
