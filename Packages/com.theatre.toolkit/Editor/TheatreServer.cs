@@ -119,6 +119,7 @@ namespace Theatre.Editor
         /// <summary>Stop the HTTP server.</summary>
         public static void StopServer()
         {
+            WatchTool.Shutdown();  // Phase 4: unhook update callback
             s_sseManager?.Dispose();
             s_transport?.Stop();
             s_transport = null;
@@ -170,6 +171,9 @@ namespace Theatre.Editor
             UnityConsoleTool.Register(registry);
             UnityTestsTool.Register(registry);
             SpatialQueryTool.Register(registry);  // Phase 3
+            WatchTool.Register(registry);         // Phase 4
+            ActionTool.Register(registry);        // Phase 4
+            SceneDeltaTool.Register(registry);    // Phase 4
         }
 
         // --- Route Handlers ---
