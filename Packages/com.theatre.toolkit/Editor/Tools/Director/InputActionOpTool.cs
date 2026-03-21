@@ -160,11 +160,11 @@ namespace Theatre.Editor.Tools.Director
             // Ensure parent directory exists
             EnsureParentDirectory(assetPath);
 
-            var asset = ScriptableObject.CreateInstance<InputActionAsset>();
-            var json = asset.ToJson();
-            UnityEngine.Object.DestroyImmediate(asset);
-
-            File.WriteAllText(assetPath, json);
+            // Write minimal valid InputActionAsset JSON directly.
+            // ScriptableObject.CreateInstance<InputActionAsset>().ToJson() throws
+            // on a fresh asset with null internal maps.
+            var emptyJson = "{ \"name\": \"\", \"maps\": [], \"controlSchemes\": [] }";
+            File.WriteAllText(assetPath, emptyJson);
             AssetDatabase.ImportAsset(assetPath);
 
             var response = new JObject();
