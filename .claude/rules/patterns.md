@@ -1,0 +1,10 @@
+# Theatre Unity — Code Patterns
+
+Quick reference for recurring structural patterns. Read the linked file for full details and code examples.
+
+- **Tool Handler**: Every MCP tool is `public static class` with `private static readonly JToken s_inputSchema`, static ctor that parses it, `Register(ToolRegistry)`, and `private static string Execute(JToken)`. Register in `TheatreServer.RegisterBuiltInTools()`. → [tool-handler.md]
+- **Compound Tool Dispatch**: Multi-operation tools switch on `args["operation"]` with a C# switch expression → sub-handler classes. Always include catch-all `_` error case and top-level `try/catch`. Sub-handlers are NOT registered directly. → [compound-tool-dispatch.md]
+- **Response Building**: All responses use `ResponseHelpers`: `AddFrameContext` (every success response), `AddIdentity` (when returning a GameObject), `AddEditingContext` (scene-scoped reads), `ErrorResponse`/`RequirePlayMode` (guard exits), `ToJArray` (vectors). Never inline `GetInstanceID()` with pragma. → [response-building.md]
+- **Budget-and-Truncate**: List-returning tools accept `"budget"` int param (default 1500). Loop with `budget.WouldExceed(json.Length)` pre-check → `budget.Add()` → include `"returned"` and `budget.ToBudgetJObject()` in response. Use `SpatialResultBuilder` for spatial results. → [budget-and-truncate.md]
+- **Main-Thread Dispatch**: All Unity APIs are main-thread-only. HTTP handlers run on thread pool → `MainThreadDispatcher.Invoke()` marshals work to main thread (blocking). Cache `SessionState`-backed config at startup; background threads use cached fields only. → [main-thread-dispatch.md]
+- **Domain Reload Survival**: Unity reloads destroy all static state on recompile. Use `[InitializeOnLoad]` + `EditorApplication.delayCall` to restart the server. Persist watches via `WatchPersistence` → `SessionState`. Spatial index rebuilds lazily. SSE clients reconnect. → [domain-reload-survival.md]
