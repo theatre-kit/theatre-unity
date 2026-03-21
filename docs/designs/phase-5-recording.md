@@ -30,7 +30,7 @@ Runtime/Stage/Recording/
   RecordingPersistence.cs — SessionState persistence for active recording state
   FrameSerializer.cs      — Hybrid fast-path + SerializedProperty serializer
 
-Editor/Tools/
+Editor/Tools/Recording/
   RecordingTool.cs        — MCP compound tool (start, stop, marker, list_clips, etc.)
 
 Plugins/                  — Native SQLite binaries (x86_64: .dll, .bundle, .so)
@@ -39,8 +39,9 @@ Plugins/                  — Native SQLite binaries (x86_64: .dll, .bundle, .so
 The Recording/ directory lives in Runtime assembly (same as WatchEngine,
 SpatialIndex) so that `RecordingEngine` and `RecordingDb` don't depend
 on UnityEditor. `FrameSerializer` needs `#if UNITY_EDITOR` for
-`SerializedProperty` fallback. `RecordingTool` lives in Editor assembly
-(same as all other tool handlers).
+`SerializedProperty` fallback. `RecordingTool` lives in the Editor
+assembly under `Editor/Tools/Recording/` — following the tool subdirectory
+convention (`Actions/`, `Scene/`, `Spatial/`, `Watch/`, `Recording/`).
 
 ---
 
@@ -737,7 +738,7 @@ namespace Theatre.Stage
 
 ### Unit 7: RecordingTool — MCP Compound Tool
 
-**File**: `Packages/com.theatre.toolkit/Editor/Tools/RecordingTool.cs`
+**File**: `Packages/com.theatre.toolkit/Editor/Tools/Recording/RecordingTool.cs`
 
 ```csharp
 using Newtonsoft.Json;
