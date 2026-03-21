@@ -123,6 +123,8 @@ recording to find when and where things went wrong.
 
 Agent can create and modify scenes and prefabs.
 
+### Phase 6a — Core Operations
+
 - [ ] `scene_op:create_scene` / `load_scene` / `unload_scene`
 - [ ] `scene_op:create_gameobject` — with components, position, tag, layer
 - [ ] `scene_op:delete_gameobject` / `reparent` / `duplicate`
@@ -133,10 +135,14 @@ Agent can create and modify scenes and prefabs.
 - [ ] `prefab_op:unpack` / `create_variant` / `list_overrides`
 - [ ] Component type resolution (exact, qualified, script name search)
 - [ ] Undo integration — every op undoable, grouped logically
-- [ ] `AssetDatabase.StartAssetEditing` batching
 - [ ] Asset path validation
 - [ ] Dry run mode (`dry_run: true`)
+
+### Phase 6b — Batch Operations
+
 - [ ] `batch` meta-tool — multi-op atomic transactions
+- [ ] `AssetDatabase.StartAssetEditing` batching
+- [ ] All-or-nothing rollback via `Undo.RevertAllInCurrentGroup()`
 
 **Exit criteria**: Agent can create a prefab with components, instantiate
 it in a scene, apply overrides, and the human can undo it all with Ctrl+Z.
