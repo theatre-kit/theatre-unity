@@ -744,6 +744,7 @@ package is not installed:
 | Director Tool Group | Required Package |
 |---|---|
 | Tilemap operations | `com.unity.2d.tilemap` (built-in) |
+| NavMesh operations | `com.unity.ai.navigation` |
 | ProBuilder operations | `com.unity.probuilder` |
 | Timeline operations | `com.unity.timeline` |
 | Addressable operations | `com.unity.addressables` |

@@ -252,8 +252,8 @@ Full DOTS/Entities support. Parallel tool set to the GameObject tools.
 - [ ] `ecs_world` — list_worlds, world_summary, list_archetypes, list_systems
 - [ ] `ecs_snapshot` — spatial overview of entities by archetype query
 - [ ] `ecs_inspect` — read all component data for an entity
-- [ ] `ecs_query` — nearest, radius, overlap, raycast over entities
-  with LocalTransform
+- [ ] `ecs_query` — nearest, radius, overlap over entities with LocalTransform
+- [ ] `ecs_query` raycast/linecast — requires com.unity.physics
 - [ ] `ecs_action` — set_component, add_component, remove_component,
   destroy_entity, create_entity
 - [ ] Entity addressing (index+version) with archetype decoration

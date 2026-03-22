@@ -157,6 +157,69 @@ All Director mutations return:
 The specific echo fields depend on the operation (path for hierarchy ops,
 asset_path for asset ops, watch_id for watch ops, etc.).
 
+### Director Response Envelope (Full Specification)
+
+All Director mutations return a consistent envelope. The specific fields
+depend on the operation type:
+
+**Hierarchy operations** (create_gameobject, reparent, duplicate, etc.):
+
+```json
+{
+  "result": "ok",
+  "operation": "create_gameobject",
+  "path": "/Enemy",
+  "instance_id": 19500,
+  "frame": 4580,
+  "time": 76.33,
+  "play_mode": false
+}
+```
+
+**Asset operations** (create_prefab, material_op:create, etc.):
+
+```json
+{
+  "result": "ok",
+  "operation": "create_prefab",
+  "asset_path": "Assets/Prefabs/Enemy.prefab"
+}
+```
+
+**Setting operations** (set_component, set_properties, etc.):
+
+```json
+{
+  "result": "ok",
+  "operation": "set_component",
+  "path": "/Enemy",
+  "component": "Health",
+  "properties_set": 3,
+  "errors": []
+}
+```
+
+**Read-only Director operations** (list_overrides, list_tracks, etc.):
+
+```json
+{
+  "result": "ok",
+  "operation": "list_overrides",
+  "results": [...]
+}
+```
+
+**Rules**:
+1. Always include `"result": "ok"` and `"operation": "<name>"`
+2. Echo the primary resource identifier (`path`, `asset_path`, or
+   `instance_id`) from the request
+3. Include `frame`/`time`/`play_mode` only on hierarchy operations
+   (scene objects have frame context; asset-only ops do not)
+4. Complex nested data goes in named result fields, not a generic
+   `"details"` wrapper — keep responses flat and scannable
+5. Error responses follow the standard error envelope (code + message +
+   suggestion)
+
 ### Echo Convention
 
 Response fields echo input parameter names exactly:
@@ -211,6 +274,15 @@ All errors follow this structure:
 | `no_active_recording` | Stop/marker called with no recording running |
 | `invalid_cursor` | Pagination cursor expired or invalid |
 | `dry_run` | Not an error — dry run result (returned as result, not error) |
+| `shader_not_found` | Named shader doesn't exist in project |
+| `controller_not_found` | AnimatorController asset not found at path |
+| `state_not_found` | Named state doesn't exist in controller layer |
+| `track_not_found` | Named track doesn't exist in Timeline asset |
+| `clip_index_out_of_range` | Clip index exceeds track's clip count |
+| `navmesh_unavailable` | NavMesh not baked or AI Navigation package missing |
+| `audio_mixer_api_unavailable` | AudioMixer internal API not accessible (fragile serialization path) |
+| `blend_tree_not_found` | State does not contain a BlendTree motion |
+| `operation_not_supported` | Operation exists but is unavailable in current context |
 
 ### Suggestions
 
@@ -297,6 +369,84 @@ components), the response is truncated with:
 }
 ```
 
+### Token Estimation Algorithm
+
+Theatre estimates response token count as:
+
+```
+estimated_tokens = json_string.Length / 4
+```
+
+This approximation (4 characters per token) is conservative for English
+text and JSON. It overestimates slightly for repetitive JSON structures
+(field names, brackets), which is preferred — responses stay within budget
+rather than exceeding it.
+
+The `TokenBudget` class tracks consumed tokens incrementally as the
+response is built:
+
+```csharp
+var budget = new TokenBudget(requestedBudget);
+
+// Check before adding each item
+if (budget.WouldExceed(itemJson.Length))
+{
+    // Stop adding items, report truncation
+    break;
+}
+budget.Add(itemJson);
+```
+
+The hard cap of 4000 tokens (~16,000 characters) applies regardless of
+the requested budget.
+
+---
+
+## Dry Run Mode
+
+All Director operations support `dry_run: true`. When set, the server
+validates inputs without mutating state.
+
+### Dry Run Response
+
+```json
+{
+  "dry_run": true,
+  "would_succeed": true,
+  "operation": "create_gameobject"
+}
+```
+
+### Dry Run with Validation Errors
+
+```json
+{
+  "dry_run": true,
+  "would_succeed": false,
+  "operation": "create_gameobject",
+  "errors": [
+    {
+      "field": "components[0].type",
+      "error": "type_not_found",
+      "value": "NonExistentComponent"
+    }
+  ]
+}
+```
+
+### Rules
+
+- `dry_run` responses are NOT MCP errors — they return as successful
+  tool results with `"dry_run": true`
+- `would_succeed` is `true` only if the operation would complete
+  without error
+- `errors` array is present only when `would_succeed` is `false`
+- Each error has `field` (JSON path to the problematic input),
+  `error` (error code from the Error Codes table), and `value`
+  (the invalid value for context)
+- Batch operations propagate `dry_run` to all inner operations and
+  return per-operation dry run results
+
 ---
 
 ## Vector Encoding
@@ -343,3 +493,58 @@ MCP's notification mechanism over the SSE stream:
 | `notifications/theatre/play_mode_changed` | Play/Edit mode transition |
 | `notifications/theatre/scene_changed` | Active scene changed |
 | `notifications/theatre/tool_groups_changed` | Tool visibility changed (echoes tools/list_changed) |
+
+### Watch Triggered Notification Payload
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "notifications/theatre/watch_triggered",
+  "params": {
+    "watch_id": "w_01",
+    "label": "enemy_low_health",
+    "frame": 5200,
+    "time": 86.67,
+    "trigger": {
+      "path": "/Enemies/Scout_02",
+      "instance_id": 14820,
+      "condition": "threshold",
+      "property": "current_hp",
+      "value": 22,
+      "threshold": 25
+    }
+  }
+}
+```
+
+**Fields**:
+- `watch_id` (string): The watch identifier from `watch:create` response
+- `label` (string, optional): Human-readable label if provided at creation
+- `frame` (int): Frame number when the trigger fired
+- `time` (float): Game time when the trigger fired
+- `trigger.path` (string): Hierarchy path of the triggering object
+- `trigger.instance_id` (int): InstanceID of the triggering object
+- `trigger.condition` (string): The condition type that fired
+- Remaining trigger fields vary by condition type
+
+---
+
+## Persistence Layers
+
+Theatre uses two persistence mechanisms with distinct lifecycles:
+
+| Layer | Survives Domain Reload | Survives Editor Restart | Use For |
+|---|---|---|---|
+| `SessionState` | Yes | No | Transient session data: watches, active recording, activity log, MCP session ID |
+| `EditorPrefs` | Yes | Yes | Permanent config: welcome dialog shown, user preferences |
+
+**Rules**:
+- Short-lived data that should reset on editor restart → `SessionState`
+- Permanent settings that persist across restarts → `EditorPrefs`
+- `TheatreConfig` properties (Port, EnabledGroups) use `SessionState`
+  for fast access but `TheatreSettingsProvider` writes to
+  `EditorPrefs` for persistence
+- Watch definitions: `SessionState` (via `WatchPersistence`)
+- Recording clip index: `SessionState` (via `RecordingPersistence`)
+- Tool group presets, gizmo settings: `EditorPrefs`
+- Welcome dialog "don't show again": `EditorPrefs`
