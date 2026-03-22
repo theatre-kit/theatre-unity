@@ -259,7 +259,13 @@ namespace Theatre.Editor.UI
 
             var presets = new List<string>
                 { "GameObject Project", "ECS Project", "Stage Only", "Director Only", "Everything" };
-            var dropdown = new DropdownField(presets, 0);
+            var current = TheatreConfig.EnabledGroups;
+            int selectedIndex = current == ToolGroup.GameObjectProject ? 0 :
+                                current == ToolGroup.ECSProject ? 1 :
+                                current == ToolGroup.StageAll ? 2 :
+                                current == ToolGroup.DirectorAll ? 3 :
+                                current == ToolGroup.Everything ? 4 : 0;
+            var dropdown = new DropdownField(presets, selectedIndex);
             dropdown.style.flexGrow   = 1;
             dropdown.style.maxWidth   = 220;
             dropdown.RegisterValueChangedCallback(evt =>
