@@ -354,11 +354,11 @@ namespace Theatre.Editor.UI
             var capturedFlag = flag;
 
             // Single-tool groups: no group header, just the tool row directly
-            // Add left margin to align with foldout content indentation
+            // Align with the group-level checkboxes (same level as foldout headers)
             if (tools.Length == 1)
             {
                 var row = BuildToolRow(tools[0], capturedFlag, disabledTools);
-                row.style.marginLeft = 34;
+                row.style.marginLeft = 2;
                 return row;
             }
 
