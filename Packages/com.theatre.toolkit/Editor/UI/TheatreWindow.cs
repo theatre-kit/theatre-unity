@@ -70,7 +70,8 @@ namespace Theatre.Editor.UI
         private static readonly (string groupName, ToolGroup flag, string[] tools)[] s_groups =
         {
             ("Scene Awareness", ToolGroup.StageGameObject,
-                new[] { "scene_snapshot", "scene_hierarchy", "scene_inspect", "scene_delta", "theatre_status" }),
+                new[] { "scene_snapshot", "scene_hierarchy", "scene_inspect", "scene_delta",
+                        "theatre_status", "unity_console", "unity_tests" }),
             ("Spatial Queries", ToolGroup.StageQuery,
                 new[] { "spatial_query" }),
             ("Watches",         ToolGroup.StageWatch,
@@ -100,8 +101,6 @@ namespace Theatre.Editor.UI
             ("Input & Config",  ToolGroup.DirectorInput | ToolGroup.DirectorConfig,
                 new[] { "input_action_op", "lighting_op", "quality_op",
                         "project_settings_op", "build_profile_op" }),
-            ("Utilities",       ToolGroup.StageGameObject,
-                new[] { "unity_console", "unity_tests" }),
         };
 
         // -----------------------------------------------------------------------
