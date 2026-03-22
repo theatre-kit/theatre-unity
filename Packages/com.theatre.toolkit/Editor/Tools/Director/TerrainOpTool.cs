@@ -149,30 +149,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"create\", \"asset_path\": \"Assets/MyTerrain.asset\"}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: create, set_heightmap, smooth_heightmap, paint_texture, add_terrain_layer, place_trees, place_details, set_size, get_height");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "terrain_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "create"            => Create(args),
                     "set_heightmap"     => SetHeightmap(args),
@@ -187,17 +168,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: create, set_heightmap, smooth_heightmap, paint_texture, add_terrain_layer, place_trees, place_details, set_size, get_height")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] terrain_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"terrain_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "create, set_heightmap, smooth_heightmap, paint_texture, add_terrain_layer, place_trees, place_details, set_size, get_height");
 
         // --- Sub-handlers ---
 
@@ -239,6 +211,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "create";
             response["asset_path"] = assetPath;
             ResponseHelpers.AddIdentity(response, go);
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -285,6 +258,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "set_heightmap";
             response["rows"] = rows;
             response["columns"] = cols;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -361,6 +335,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "smooth_heightmap";
             response["iterations"] = iterations;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -461,6 +436,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "paint_texture";
             response["painted"] = paintedCount;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -519,6 +495,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "add_terrain_layer";
             response["layer_index"] = existingLayers.Length;
             response["diffuse_texture"] = diffusePath;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -626,6 +603,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "place_trees";
             response["placed"] = placedCount;
             response["prototype_index"] = protoIndex;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -697,6 +675,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "place_details";
             response["painted"] = paintedCount;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -723,6 +702,7 @@ namespace Theatre.Editor.Tools.Director
             response["width"] = newWidth;
             response["height"] = newHeight;
             response["length"] = newLength;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -751,6 +731,7 @@ namespace Theatre.Editor.Tools.Director
                 Math.Round(wx, 3),
                 Math.Round(sampledHeight, 4),
                 Math.Round(wz, 3));
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 

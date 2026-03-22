@@ -97,30 +97,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"import\", \"asset_path\": \"Assets/Textures/MyTex.png\"}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: import, set_import_settings, create_sprite, sprite_sheet");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "texture_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "import"               => Import(args),
                     "set_import_settings"  => SetImportSettings(args),
@@ -130,17 +111,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: import, set_import_settings, create_sprite, sprite_sheet")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] texture_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"texture_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "import, set_import_settings, create_sprite, sprite_sheet");
 
         /// <summary>Import/verify a texture and optionally apply import settings.</summary>
         internal static string Import(JObject args)
@@ -176,6 +148,7 @@ namespace Theatre.Editor.Tools.Director
             response["height"] = texture.height;
             if (settingsApplied > 0)
                 response["settings_applied"] = settingsApplied;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -215,6 +188,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "set_import_settings";
             response["asset_path"] = assetPath;
             response["settings_applied"] = settingsApplied;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -263,6 +237,7 @@ namespace Theatre.Editor.Tools.Director
             response["sprite_mode"] = spriteModeStr;
             response["pixels_per_unit"] = pixelsPerUnit;
             response["pivot"] = new JArray(Math.Round(pivot.x, 3), Math.Round(pivot.y, 3));
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -384,6 +359,7 @@ namespace Theatre.Editor.Tools.Director
             response["asset_path"] = assetPath;
             response["mode"] = mode;
             response["sprite_count"] = metaData.Length;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 

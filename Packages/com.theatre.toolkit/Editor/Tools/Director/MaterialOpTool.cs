@@ -68,30 +68,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"create\", \"asset_path\": \"Assets/Mat.mat\", \"shader\": \"Standard\"}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: create, set_properties, set_shader, list_properties");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "material_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "create"          => Create(args),
                     "set_properties"  => SetProperties(args),
@@ -101,17 +82,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: create, set_properties, set_shader, list_properties")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] material_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"material_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "create, set_properties, set_shader, list_properties");
 
         /// <summary>Create a new Material asset at the given path.</summary>
         internal static string Create(JObject args)
@@ -163,6 +135,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "create";
             response["asset_path"] = assetPath;
             response["shader"] = shader.name;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -196,6 +169,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "set_properties";
             response["asset_path"] = assetPath;
             response["properties_set"] = propertiesSet;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -239,6 +213,7 @@ namespace Theatre.Editor.Tools.Director
             response["asset_path"] = assetPath;
             response["old_shader"] = oldShaderName;
             response["shader"] = newShader.name;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -327,6 +302,7 @@ namespace Theatre.Editor.Tools.Director
             response["asset_path"] = assetPath;
             response["shader"] = shader != null ? shader.name : null;
             response["properties"] = propsArray;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 

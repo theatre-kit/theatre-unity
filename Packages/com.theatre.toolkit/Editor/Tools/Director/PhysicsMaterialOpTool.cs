@@ -88,30 +88,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"create\", \"asset_path\": \"Assets/Mats/Bouncy.physicMaterial\"}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: create, set_properties");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "physics_material_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "create"         => Create(args),
                     "set_properties" => SetProperties(args),
@@ -119,17 +100,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: create, set_properties")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] physics_material_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"physics_material_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "create, set_properties");
 
         /// <summary>Create a new physics material asset at the given path.</summary>
         internal static string Create(JObject args)
@@ -165,6 +137,7 @@ namespace Theatre.Editor.Tools.Director
                 response2d["physics"] = "2d";
                 response2d["friction"] = mat2d.friction;
                 response2d["bounciness"] = mat2d.bounciness;
+                ResponseHelpers.AddFrameContext(response2d);
                 return response2d.ToString(Formatting.None);
             }
             else
@@ -194,6 +167,7 @@ namespace Theatre.Editor.Tools.Director
                 response3d["bounciness"] = mat3d.bounciness;
                 response3d["friction_combine"] = mat3d.frictionCombine.ToString().ToLowerInvariant();
                 response3d["bounce_combine"] = mat3d.bounceCombine.ToString().ToLowerInvariant();
+                ResponseHelpers.AddFrameContext(response3d);
                 return response3d.ToString(Formatting.None);
             }
         }
@@ -240,6 +214,7 @@ namespace Theatre.Editor.Tools.Director
                 response3d["bounciness"] = mat3d.bounciness;
                 response3d["friction_combine"] = mat3d.frictionCombine.ToString().ToLowerInvariant();
                 response3d["bounce_combine"] = mat3d.bounceCombine.ToString().ToLowerInvariant();
+                ResponseHelpers.AddFrameContext(response3d);
                 return response3d.ToString(Formatting.None);
             }
             else if (asset is PhysicsMaterial2D mat2d)
@@ -260,6 +235,7 @@ namespace Theatre.Editor.Tools.Director
                 response2d["physics"] = "2d";
                 response2d["friction"] = mat2d.friction;
                 response2d["bounciness"] = mat2d.bounciness;
+                ResponseHelpers.AddFrameContext(response2d);
                 return response2d.ToString(Formatting.None);
             }
             else

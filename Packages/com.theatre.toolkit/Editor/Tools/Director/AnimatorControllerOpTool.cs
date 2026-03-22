@@ -124,30 +124,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"create\", \"asset_path\": \"Assets/Animations/Ctrl.controller\"}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: create, add_parameter, add_state, set_state_clip, add_transition, set_transition_conditions, set_default_state, add_layer, list_states");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "animator_controller_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "create"                   => Create(args),
                     "add_parameter"            => AddParameter(args),
@@ -162,17 +143,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: create, add_parameter, add_state, set_state_clip, add_transition, set_transition_conditions, set_default_state, add_layer, list_states")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] animator_controller_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"animator_controller_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "create, add_parameter, add_state, set_state_clip, add_transition, set_transition_conditions, set_default_state, add_layer, list_states");
 
         /// <summary>Create a new AnimatorController asset at the given path.</summary>
         internal static string Create(JObject args)
@@ -192,6 +164,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "create";
             response["asset_path"] = assetPath;
             response["layer_count"] = controller.layers.Length;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -261,6 +234,7 @@ namespace Theatre.Editor.Tools.Director
             response["asset_path"] = assetPath;
             response["name"] = name;
             response["type"] = typeStr;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -309,6 +283,7 @@ namespace Theatre.Editor.Tools.Director
             response["asset_path"] = assetPath;
             response["name"] = name;
             response["layer"] = layerIndex;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -358,6 +333,7 @@ namespace Theatre.Editor.Tools.Director
             response["asset_path"] = assetPath;
             response["state_name"] = stateName;
             response["clip_path"] = clipPath;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -429,6 +405,7 @@ namespace Theatre.Editor.Tools.Director
             response["has_exit_time"] = transition.hasExitTime;
             response["exit_time"] = transition.exitTime;
             response["transition_duration"] = transition.duration;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -517,6 +494,7 @@ namespace Theatre.Editor.Tools.Director
             response["source_state"] = sourceStateName;
             response["destination_state"] = destStateName;
             response["condition_count"] = conditions.Count;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -557,6 +535,7 @@ namespace Theatre.Editor.Tools.Director
             response["asset_path"] = assetPath;
             response["state_name"] = stateName;
             response["layer"] = layerIndex;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -612,6 +591,7 @@ namespace Theatre.Editor.Tools.Director
             response["asset_path"] = assetPath;
             response["name"] = name;
             response["layer_index"] = layers.Length - 1;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -698,6 +678,7 @@ namespace Theatre.Editor.Tools.Director
             response["layer"] = layerIndex;
             response["states"] = statesArray;
             response["parameters"] = paramsArray;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 

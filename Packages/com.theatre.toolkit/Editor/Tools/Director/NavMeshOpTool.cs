@@ -137,30 +137,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"bake\"} or another navmesh_op operation");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: bake, set_area, add_modifier, add_link, set_agent_type, add_surface");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "navmesh_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "bake"           => Bake(args),
                     "set_area"       => SetArea(args),
@@ -172,17 +153,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: bake, set_area, add_modifier, add_link, set_agent_type, add_surface")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] navmesh_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"navmesh_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "bake, set_area, add_modifier, add_link, set_agent_type, add_surface");
 
         // --- Sub-handlers ---
 
@@ -210,6 +182,7 @@ namespace Theatre.Editor.Tools.Director
             var response = new JObject();
             response["result"] = "ok";
             response["operation"] = "bake";
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -274,6 +247,7 @@ namespace Theatre.Editor.Tools.Director
                 response["index"] = index;
                 response["name"] = areaName;
                 response["cost"] = cost;
+                ResponseHelpers.AddFrameContext(response);
                 return response.ToString(Formatting.None);
             }
             catch (Exception ex)
@@ -370,6 +344,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "add_modifier";
             ResponseHelpers.AddIdentity(response, go);
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -444,6 +419,7 @@ namespace Theatre.Editor.Tools.Director
                 Math.Round(endPos.z, 3));
             response["bidirectional"] = bidirectional;
             ResponseHelpers.AddIdentity(response, go);
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -517,6 +493,7 @@ namespace Theatre.Editor.Tools.Director
                 response["result"] = "ok";
                 response["operation"] = "set_agent_type";
                 response["agent_type_id"] = agentTypeId;
+                ResponseHelpers.AddFrameContext(response);
                 return response.ToString(Formatting.None);
             }
             catch (Exception ex)
@@ -637,6 +614,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "add_surface";
             ResponseHelpers.AddIdentity(response, go);
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 

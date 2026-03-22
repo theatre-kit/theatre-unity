@@ -89,30 +89,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"list_levels\"}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: set_level, set_shadow_settings, set_rendering, list_levels");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "quality_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "set_level"           => SetLevel(args),
                     "set_shadow_settings" => SetShadowSettings(args),
@@ -122,17 +103,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: set_level, set_shadow_settings, set_rendering, list_levels")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] quality_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"quality_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "set_level, set_shadow_settings, set_rendering, list_levels");
 
         /// <summary>Set the active quality level.</summary>
         internal static string SetLevel(JObject args)
@@ -176,6 +148,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "set_level";
             response["level"] = levelIndex;
             response["name"] = QualitySettings.names[levelIndex];
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -208,6 +181,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "set_shadow_settings";
             response["shadow_distance"] = QualitySettings.shadowDistance;
             response["shadow_cascades"] = QualitySettings.shadowCascades;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -251,6 +225,7 @@ namespace Theatre.Editor.Tools.Director
             response["lod_bias"] = QualitySettings.lodBias;
             response["pixel_light_count"] = QualitySettings.pixelLightCount;
             response["vsync"] = QualitySettings.vSyncCount;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -276,6 +251,7 @@ namespace Theatre.Editor.Tools.Director
             response["current_level"] = currentLevel;
             response["current_name"] = names.Length > 0 ? names[currentLevel] : null;
             response["levels"] = levelsArray;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
     }

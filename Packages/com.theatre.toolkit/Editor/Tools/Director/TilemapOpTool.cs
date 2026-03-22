@@ -115,30 +115,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"set_tile\", \"tilemap_path\": \"/Grid/Tilemap\", ...}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: set_tile, set_tiles, box_fill, flood_fill, clear, get_tile, get_used_tiles, create_rule_tile, set_tilemap_layer");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "tilemap_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "set_tile"          => SetTile(args),
                     "set_tiles"         => SetTiles(args),
@@ -153,17 +134,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: set_tile, set_tiles, box_fill, flood_fill, clear, get_tile, get_used_tiles, create_rule_tile, set_tilemap_layer")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] tilemap_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"tilemap_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "set_tile, set_tiles, box_fill, flood_fill, clear, get_tile, get_used_tiles, create_rule_tile, set_tilemap_layer");
 
         // --- Sub-handlers ---
 
@@ -200,6 +172,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "set_tile";
             response["position"] = new JArray(pos.x, pos.y, pos.z);
             response["tile_asset"] = tileAsset;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -253,6 +226,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "set_tiles";
             response["count"] = count;
             response["tile_asset"] = tileAsset;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -313,6 +287,7 @@ namespace Theatre.Editor.Tools.Director
             response["start"] = new JArray(minX, minY, z);
             response["end"] = new JArray(maxX, maxY, z);
             response["count"] = totalCount;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -348,6 +323,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "flood_fill";
             response["position"] = new JArray(pos.x, pos.y, pos.z);
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -397,6 +373,7 @@ namespace Theatre.Editor.Tools.Director
                 regionResponse["operation"] = "clear";
                 regionResponse["region"] = true;
                 regionResponse["count"] = totalCount;
+                ResponseHelpers.AddFrameContext(regionResponse);
                 return regionResponse.ToString(Formatting.None);
             }
 
@@ -408,6 +385,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "clear";
             response["region"] = false;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -430,6 +408,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "get_tile";
             response["position"] = new JArray(pos.x, pos.y, pos.z);
             response["tile"] = tileAssetPath != null ? (JToken)tileAssetPath : JValue.CreateNull();
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -485,6 +464,7 @@ namespace Theatre.Editor.Tools.Director
             response["returned"] = returned;
             if (returned < total)
                 response["truncated"] = true;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -535,6 +515,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "create_rule_tile";
             response["asset_path"] = assetPath;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -580,6 +561,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "set_tilemap_layer";
             response["sorting_layer"] = renderer.sortingLayerName;
             response["sorting_order"] = renderer.sortingOrder;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 

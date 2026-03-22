@@ -68,30 +68,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"create\", \"type\": \"MyConfig\", \"asset_path\": \"Assets/Data/MyConfig.asset\"}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: create, set_fields, list_fields, find_by_type");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "scriptable_object_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "create"       => Create(args),
                     "set_fields"   => SetFields(args),
@@ -101,17 +82,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: create, set_fields, list_fields, find_by_type")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] scriptable_object_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"scriptable_object_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "create, set_fields, list_fields, find_by_type");
 
         /// <summary>Create a new ScriptableObject asset at the given path.</summary>
         internal static string Create(JObject args)
@@ -156,6 +128,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "create";
             response["asset_path"] = assetPath;
             response["type"] = soType.Name;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -195,6 +168,7 @@ namespace Theatre.Editor.Tools.Director
                 foreach (var e in errors) errArr.Add(e);
                 response["errors"] = errArr;
             }
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -245,6 +219,7 @@ namespace Theatre.Editor.Tools.Director
             response["asset_path"] = assetPath;
             response["type"] = so.GetType().Name;
             response["fields"] = fieldsArray;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -276,6 +251,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "find_by_type";
             response["type"] = typeName;
             response["assets"] = assetsArray;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 

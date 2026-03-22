@@ -86,30 +86,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"create\", \"asset_path\": \"Assets/Audio/MyMixer.mixer\"}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: create, add_group, set_volume, add_effect, create_snapshot, expose_parameter");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "audio_mixer_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "create"           => Create(args),
                     "add_group"        => AddGroup(args),
@@ -121,17 +102,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: create, add_group, set_volume, add_effect, create_snapshot, expose_parameter")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] audio_mixer_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"audio_mixer_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "create, add_group, set_volume, add_effect, create_snapshot, expose_parameter");
 
         /// <summary>Create a new Audio Mixer asset at the given path.</summary>
         internal static string Create(JObject args)
@@ -189,6 +161,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "create";
             response["asset_path"] = assetPath;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -242,6 +215,7 @@ namespace Theatre.Editor.Tools.Director
                     response["asset_path"] = assetPath;
                     response["name"] = groupName;
                     response["parent_group"] = parentGroupName;
+                    ResponseHelpers.AddFrameContext(response);
                     return response.ToString(Formatting.None);
                 }
                 catch (Exception ex)
@@ -337,6 +311,7 @@ namespace Theatre.Editor.Tools.Director
             result["asset_path"] = assetPath;
             result["group"] = groupName;
             result["volume"] = volume;
+            ResponseHelpers.AddFrameContext(result);
             return result.ToString(Formatting.None);
         }
 
@@ -395,6 +370,7 @@ namespace Theatre.Editor.Tools.Director
                     response["asset_path"] = assetPath;
                     response["group"] = groupName;
                     response["effect"] = effectName;
+                    ResponseHelpers.AddFrameContext(response);
                     return response.ToString(Formatting.None);
                 }
                 catch (Exception ex)
@@ -449,6 +425,7 @@ namespace Theatre.Editor.Tools.Director
                     response["operation"] = "create_snapshot";
                     response["asset_path"] = assetPath;
                     response["name"] = snapshotName;
+                    ResponseHelpers.AddFrameContext(response);
                     return response.ToString(Formatting.None);
                 }
                 catch (Exception ex)

@@ -102,30 +102,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"create_asset\", \"asset_path\": \"Assets/Input/Controls.inputactions\"}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: create_asset, add_action_map, add_action, add_binding, add_composite, set_control_scheme, list_actions");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "input_action_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "create_asset"       => CreateAsset(args),
                     "add_action_map"     => AddActionMap(args),
@@ -138,17 +119,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: create_asset, add_action_map, add_action, add_binding, add_composite, set_control_scheme, list_actions")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] input_action_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"input_action_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "create_asset, add_action_map, add_action, add_binding, add_composite, set_control_scheme, list_actions");
 
         /// <summary>Create a new .inputactions asset at the given path.</summary>
         internal static string CreateAsset(JObject args)
@@ -171,6 +143,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "create_asset";
             response["asset_path"] = assetPath;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -199,6 +172,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "add_action_map";
             response["asset_path"] = assetPath;
             response["action_map"] = name;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -252,6 +226,7 @@ namespace Theatre.Editor.Tools.Director
             response["action_map"] = mapName;
             response["action"] = actionName;
             response["type"] = typeStr;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -318,6 +293,7 @@ namespace Theatre.Editor.Tools.Director
             response["action_map"] = mapName;
             response["action"] = actionName;
             response["path"] = bindingPath;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -388,6 +364,7 @@ namespace Theatre.Editor.Tools.Director
             response["action_map"] = mapName;
             response["action"] = actionName;
             response["composite_type"] = compositeType;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -431,6 +408,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "set_control_scheme";
             response["asset_path"] = assetPath;
             response["name"] = name;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -487,6 +465,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "list_actions";
             response["asset_path"] = assetPath;
             response["maps"] = mapsArray;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 

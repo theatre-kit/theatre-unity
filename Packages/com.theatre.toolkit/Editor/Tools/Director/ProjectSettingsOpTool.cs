@@ -99,30 +99,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"set_physics\", \"gravity\": [0, -9.81, 0]}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: set_physics, set_time, set_player, set_tags_and_layers");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "project_settings_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "set_physics"         => SetPhysics(args),
                     "set_time"            => SetTime(args),
@@ -132,17 +113,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: set_physics, set_time, set_player, set_tags_and_layers")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] project_settings_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"project_settings_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "set_physics, set_time, set_player, set_tags_and_layers");
 
         /// <summary>Set physics simulation settings.</summary>
         internal static string SetPhysics(JObject args)
@@ -168,6 +140,7 @@ namespace Theatre.Editor.Tools.Director
             response["gravity"] = new JArray(Physics.gravity.x, Physics.gravity.y, Physics.gravity.z);
             response["bounce_threshold"] = Physics.bounceThreshold;
             response["default_solver_iterations"] = Physics.defaultSolverIterations;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -192,6 +165,7 @@ namespace Theatre.Editor.Tools.Director
             response["fixed_timestep"] = Time.fixedDeltaTime;
             response["maximum_timestep"] = Time.maximumDeltaTime;
             response["time_scale"] = Time.timeScale;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -216,6 +190,7 @@ namespace Theatre.Editor.Tools.Director
             response["company_name"] = PlayerSettings.companyName;
             response["product_name"] = PlayerSettings.productName;
             response["version"] = PlayerSettings.bundleVersion;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -322,6 +297,7 @@ namespace Theatre.Editor.Tools.Director
             response["added_tags"] = addedTags;
             response["added_layers"] = addedLayers;
             response["added_sorting_layers"] = addedSortingLayers;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
     }

@@ -112,30 +112,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"create\", \"asset_path\": \"Assets/Timeline/MyTimeline.playable\"}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: create, add_track, add_clip, set_clip_properties, add_marker, bind_track, list_tracks");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "timeline_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "create"               => Create(args),
                     "add_track"            => AddTrack(args),
@@ -148,17 +129,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: create, add_track, add_clip, set_clip_properties, add_marker, bind_track, list_tracks")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] timeline_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"timeline_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "create, add_track, add_clip, set_clip_properties, add_marker, bind_track, list_tracks");
 
         /// <summary>Create a new TimelineAsset (.playable file).</summary>
         internal static string Create(JObject args)
@@ -181,6 +153,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "create";
             response["asset_path"] = assetPath;
             response["frame_rate"] = frameRate;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -225,6 +198,7 @@ namespace Theatre.Editor.Tools.Director
             response["asset_path"] = assetPath;
             response["track_name"] = track.name;
             response["track_type"] = trackTypeStr;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -294,6 +268,7 @@ namespace Theatre.Editor.Tools.Director
             response["track_name"] = trackName;
             response["start"] = start;
             response["duration"] = duration;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -358,6 +333,7 @@ namespace Theatre.Editor.Tools.Director
             response["clip_index"] = clipIndex;
             response["start"] = clip.start;
             response["duration"] = clip.duration;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -409,6 +385,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "add_marker";
             response["asset_path"] = assetPath;
             response["time"] = time;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -484,6 +461,7 @@ namespace Theatre.Editor.Tools.Director
             response["asset_path"] = assetPath;
             response["track_name"] = trackName;
             response["object_path"] = objectPath;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -529,6 +507,7 @@ namespace Theatre.Editor.Tools.Director
             response["asset_path"] = assetPath;
             response["tracks"] = tracksArray;
             response["track_count"] = tracksArray.Count;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 

@@ -119,30 +119,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"set_ambient\", \"mode\": \"color\", \"color\": [1,1,1,1]}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: set_ambient, set_fog, set_skybox, add_light_probe_group, add_reflection_probe, bake");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "lighting_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "set_ambient"           => SetAmbient(args),
                     "set_fog"               => SetFog(args),
@@ -154,17 +135,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: set_ambient, set_fog, set_skybox, add_light_probe_group, add_reflection_probe, bake")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] lighting_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"lighting_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "set_ambient, set_fog, set_skybox, add_light_probe_group, add_reflection_probe, bake");
 
         /// <summary>Configure ambient lighting.</summary>
         internal static string SetAmbient(JObject args)
@@ -221,6 +193,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "set_ambient";
             response["mode"] = RenderSettings.ambientMode.ToString().ToLowerInvariant();
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -267,6 +240,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "set_fog";
             response["fog_enabled"] = RenderSettings.fog;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -293,6 +267,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "set_skybox";
             response["material"] = materialPath;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -345,6 +320,7 @@ namespace Theatre.Editor.Tools.Director
             #pragma warning disable CS0618
             response["instance_id"] = go.GetInstanceID();
             #pragma warning restore CS0618
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -382,6 +358,7 @@ namespace Theatre.Editor.Tools.Director
             #pragma warning disable CS0618
             response["instance_id"] = go.GetInstanceID();
             #pragma warning restore CS0618
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -394,6 +371,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "bake";
             response["status"] = "started";
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
     }

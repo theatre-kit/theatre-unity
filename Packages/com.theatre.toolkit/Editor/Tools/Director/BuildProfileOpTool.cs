@@ -82,30 +82,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"list_profiles\"}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: create, set_scenes, set_platform, set_scripting_backend, list_profiles");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "build_profile_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "create"                => Create(args),
                     "set_scenes"            => SetScenes(args),
@@ -116,17 +97,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: create, set_scenes, set_platform, set_scripting_backend, list_profiles")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] build_profile_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"build_profile_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "create, set_scenes, set_platform, set_scripting_backend, list_profiles");
 
         // ---------------------------------------------------------------
         // Operations
@@ -187,6 +159,7 @@ namespace Theatre.Editor.Tools.Director
                     response["platform"] = platformStr;
                     response["asset_path"] = assetPath;
                     response["api"] = "build_profile";
+                    ResponseHelpers.AddFrameContext(response);
                     return response.ToString(Formatting.None);
                 }
                 catch (Exception ex)
@@ -210,6 +183,7 @@ namespace Theatre.Editor.Tools.Director
             legacyResponse["note"] = dryRun
                 ? "dry_run — no changes made"
                 : "Build Profile API not available; switched active build target using legacy settings";
+            ResponseHelpers.AddFrameContext(legacyResponse);
             return legacyResponse.ToString(Formatting.None);
         }
 
@@ -239,6 +213,7 @@ namespace Theatre.Editor.Tools.Director
             response["scene_count"] = scenePaths.Length;
             response["scenes"] = new JArray(scenePaths.Cast<object>().ToArray());
             if (dryRun) response["note"] = "dry_run — no changes made";
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -266,6 +241,7 @@ namespace Theatre.Editor.Tools.Director
             response["build_target"] = buildTarget.ToString();
             if (dryRun) response["note"] = "dry_run — no changes made";
             else response["note"] = "Platform switch may trigger a script recompile";
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -313,6 +289,7 @@ namespace Theatre.Editor.Tools.Director
             response["backend"] = backend;
             response["target_group"] = targetGroup.ToString();
             if (dryRun) response["note"] = "dry_run — no changes made";
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -365,6 +342,7 @@ namespace Theatre.Editor.Tools.Director
             response["scripting_backend"] = backendStr;
             response["scenes"] = scenesArray;
             response["profiles"] = profilesArray;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 

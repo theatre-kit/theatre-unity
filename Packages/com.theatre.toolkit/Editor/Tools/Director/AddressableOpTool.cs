@@ -86,30 +86,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"list_groups\"}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: create_group, add_entry, remove_entry, set_labels, list_groups, analyze");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "addressable_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "create_group"  => CreateGroup(args),
                     "add_entry"     => AddEntry(args),
@@ -121,17 +102,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: create_group, add_entry, remove_entry, set_labels, list_groups, analyze")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] addressable_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"addressable_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "create_group, add_entry, remove_entry, set_labels, list_groups, analyze");
 
         /// <summary>Create a new Addressables group.</summary>
         internal static string CreateGroup(JObject args)
@@ -193,6 +165,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "create_group";
             response["name"] = group.Name;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -257,6 +230,7 @@ namespace Theatre.Editor.Tools.Director
             response["asset_path"] = assetPath;
             response["address"] = entry.address;
             response["group"] = groupName;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -294,6 +268,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "remove_entry";
             response["asset_path"] = assetPath;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -350,6 +325,7 @@ namespace Theatre.Editor.Tools.Director
             foreach (var label in entry.labels)
                 labelsArray.Add(label);
             response["labels"] = labelsArray;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -364,6 +340,7 @@ namespace Theatre.Editor.Tools.Director
                 response["operation"] = "list_groups";
                 response["groups"] = new JArray();
                 response["message"] = "Addressables not initialized. Use create_group to initialize.";
+                ResponseHelpers.AddFrameContext(response);
                 return response.ToString(Formatting.None);
             }
 
@@ -391,6 +368,7 @@ namespace Theatre.Editor.Tools.Director
             result["result"] = "ok";
             result["operation"] = "list_groups";
             result["groups"] = groupsArray;
+            ResponseHelpers.AddFrameContext(result);
             return result.ToString(Formatting.None);
         }
 

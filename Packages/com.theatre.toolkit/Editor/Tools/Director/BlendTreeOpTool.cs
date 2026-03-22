@@ -99,30 +99,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"create\", \"controller_path\": \"Assets/Ctrl.controller\", \"state_name\": \"Walk\"}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: create, add_motion, set_blend_type, set_parameter, set_thresholds");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "blend_tree_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "create"         => Create(args),
                     "add_motion"     => AddMotion(args),
@@ -133,17 +114,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: create, add_motion, set_blend_type, set_parameter, set_thresholds")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] blend_tree_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"blend_tree_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "create, add_motion, set_blend_type, set_parameter, set_thresholds");
 
         /// <summary>Create a blend tree as the motion of a state.</summary>
         internal static string Create(JObject args)
@@ -193,6 +165,7 @@ namespace Theatre.Editor.Tools.Director
             response["controller_path"] = controllerPath;
             response["state_name"] = stateName;
             response["blend_type"] = blendTypeStr ?? "1d";
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -277,6 +250,7 @@ namespace Theatre.Editor.Tools.Director
             response["state_name"] = stateName;
             response["clip_path"] = clipPath;
             response["child_count"] = tree.children.Length;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -329,6 +303,7 @@ namespace Theatre.Editor.Tools.Director
             response["controller_path"] = controllerPath;
             response["state_name"] = stateName;
             response["blend_type"] = blendTypeStr;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -388,6 +363,7 @@ namespace Theatre.Editor.Tools.Director
             response["parameter"] = parameter;
             if (!string.IsNullOrEmpty(parameterY))
                 response["parameter_y"] = parameterY;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -445,6 +421,7 @@ namespace Theatre.Editor.Tools.Director
             response["controller_path"] = controllerPath;
             response["state_name"] = stateName;
             response["child_count"] = children.Length;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 

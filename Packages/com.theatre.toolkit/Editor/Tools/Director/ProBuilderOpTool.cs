@@ -110,30 +110,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"create_shape\", \"shape\": \"cube\"}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: create_shape, extrude_faces, set_material, merge, boolean_op, export_mesh");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "probuilder_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "create_shape"  => CreateShape(args),
                     "extrude_faces" => ExtrudeFaces(args),
@@ -145,17 +126,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: create_shape, extrude_faces, set_material, merge, boolean_op, export_mesh")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] probuilder_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"probuilder_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "create_shape, extrude_faces, set_material, merge, boolean_op, export_mesh");
 
         // --- Sub-handlers ---
 
@@ -204,6 +176,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "create_shape";
             response["shape"] = shapeName;
             ResponseHelpers.AddIdentity(response, mesh.gameObject);
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -248,6 +221,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "extrude_faces";
             response["extruded"] = selectedFaces.Count;
             response["distance"] = distance;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -304,6 +278,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "set_material";
             response["material"] = materialPath;
             response["faces"] = selectedFaces.Count;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -337,6 +312,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "merge";
             response["merged"] = meshes.Count;
             ResponseHelpers.AddIdentity(response, meshes[0].gameObject);
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -386,6 +362,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "export_mesh";
             response["asset_path"] = assetPath;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 

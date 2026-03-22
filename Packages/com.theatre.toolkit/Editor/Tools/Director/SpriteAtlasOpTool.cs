@@ -69,30 +69,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"create\", \"asset_path\": \"Assets/Atlases/MyAtlas.spriteatlas\"}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: create, add_entries, remove_entries, pack");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "sprite_atlas_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "create"         => Create(args),
                     "add_entries"    => AddEntries(args),
@@ -102,17 +83,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: create, add_entries, remove_entries, pack")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] sprite_atlas_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"sprite_atlas_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "create, add_entries, remove_entries, pack");
 
         /// <summary>Create a new Sprite Atlas asset at the given path.</summary>
         internal static string Create(JObject args)
@@ -151,6 +123,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "create";
             response["asset_path"] = assetPath;
             response["include_in_build"] = includeInBuild;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -208,6 +181,7 @@ namespace Theatre.Editor.Tools.Director
                 foreach (var p in notFound) notFoundArr.Add(p);
                 response["not_found"] = notFoundArr;
             }
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -256,6 +230,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "remove_entries";
             response["asset_path"] = assetPath;
             response["removed_count"] = objects.Count;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -281,6 +256,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "pack";
             response["asset_path"] = assetPath;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 

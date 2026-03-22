@@ -77,30 +77,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"create_urp_asset\", \"asset_path\": \"Assets/Pipeline.asset\"}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: create_urp_asset, create_hdrp_asset, set_quality_settings, create_renderer, add_renderer_feature");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "render_pipeline_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "create_urp_asset"      => CreateUrpAsset(args),
                     "create_hdrp_asset"     => CreateHdrpAsset(args),
@@ -111,17 +92,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: create_urp_asset, create_hdrp_asset, set_quality_settings, create_renderer, add_renderer_feature")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] render_pipeline_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"render_pipeline_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "create_urp_asset, create_hdrp_asset, set_quality_settings, create_renderer, add_renderer_feature");
 
         /// <summary>Create a new URP pipeline asset at the given path.</summary>
         internal static string CreateUrpAsset(JObject args)
@@ -151,6 +123,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "create_urp_asset";
             response["asset_path"] = assetPath;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
 #else
             return ResponseHelpers.ErrorResponse(
@@ -183,6 +156,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "create_hdrp_asset";
             response["asset_path"] = assetPath;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
 #else
             return ResponseHelpers.ErrorResponse(
@@ -223,6 +197,7 @@ namespace Theatre.Editor.Tools.Director
             response["result"] = "ok";
             response["operation"] = "set_quality_settings";
             response["asset_path"] = assetPath;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
 #else
             return ResponseHelpers.ErrorResponse(
@@ -257,6 +232,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "create_renderer";
             response["asset_path"] = assetPath;
             response["renderer_type"] = args["renderer_type"]?.Value<string>() ?? "forward";
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
 #else
             return ResponseHelpers.ErrorResponse(
@@ -346,6 +322,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "add_renderer_feature";
             response["asset_path"] = assetPath;
             response["feature_type"] = featureTypeName;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
 #else
             return ResponseHelpers.ErrorResponse(

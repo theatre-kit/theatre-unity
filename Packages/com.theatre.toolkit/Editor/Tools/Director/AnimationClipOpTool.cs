@@ -124,30 +124,11 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"create\", \"asset_path\": \"Assets/Animations/Clip.anim\"}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: create, add_curve, remove_curve, set_keyframe, set_events, set_loop, list_curves");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "animation_clip_op",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "create"        => Create(args),
                     "add_curve"     => AddCurve(args),
@@ -160,17 +141,8 @@ namespace Theatre.Editor.Tools.Director
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: create, add_curve, remove_curve, set_keyframe, set_events, set_loop, list_curves")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] animation_clip_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"animation_clip_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "create, add_curve, remove_curve, set_keyframe, set_events, set_loop, list_curves");
 
         /// <summary>Create a new AnimationClip asset at the given path.</summary>
         internal static string Create(JObject args)
@@ -205,6 +177,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "create";
             response["asset_path"] = assetPath;
             response["frame_rate"] = clip.frameRate;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -265,6 +238,7 @@ namespace Theatre.Editor.Tools.Director
             response["property_name"] = propertyName;
             response["keyframe_count"] = keys.Length;
             response["curve_count"] = allBindings.Length;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -312,6 +286,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "remove_curve";
             response["clip_path"] = clipPath;
             response["property_name"] = propertyName;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -380,6 +355,7 @@ namespace Theatre.Editor.Tools.Director
             response["time"] = time;
             response["value"] = value;
             response["keyframe_count"] = curve.length;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -429,6 +405,7 @@ namespace Theatre.Editor.Tools.Director
             response["operation"] = "set_events";
             response["clip_path"] = clipPath;
             response["event_count"] = events.Length;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -468,6 +445,7 @@ namespace Theatre.Editor.Tools.Director
             response["loop_time"] = settings.loopTime;
             response["loop_pose"] = settings.loopBlend;
             response["cycle_offset"] = settings.cycleOffset;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
@@ -506,6 +484,7 @@ namespace Theatre.Editor.Tools.Director
             response["curves"] = curvesArray;
             response["length"] = clip.length;
             response["frame_rate"] = clip.frameRate;
+            ResponseHelpers.AddFrameContext(response);
             return response.ToString(Formatting.None);
         }
 
