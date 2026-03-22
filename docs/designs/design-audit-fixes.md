@@ -16,6 +16,16 @@ Newtonsoft.Json and follows the correct patterns. These fixes align the
 design docs with reality and fill specification gaps for unimplemented
 phases.
 
+**Post-refactor note**: Since this design was written, a code refactor
+landed (commits c02fab3, 1944637, a691bac) that extracted
+`CompoundToolDispatcher`, `StringUtils`, expanded `JsonParamParser`,
+generalized `DirectorHelpers.ResolveType`, added `SetFields`, and fixed
+Director `AddFrameContext` calls. These code changes do NOT invalidate
+any units below — all units modify documentation, not code. The type
+resolution precedence in Unit 10 already matches the refactored
+`DirectorHelpers.ResolveType(typeName, baseType, label, out error)`
+signature.
+
 ---
 
 ## Implementation Units
