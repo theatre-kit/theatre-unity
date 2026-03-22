@@ -81,7 +81,11 @@ the agent can use `watch:check` to poll manually if needed.
 persisted alongside watch definitions. After domain reload, new watches
 continue from the last counter value.
 
-**Watch limit:** Maximum 32 concurrent watches. This prevents runaway memory
+Watch ID counter is stored in `SessionState.SetInt("Theatre_WatchCounter", value)`.
+Watch definitions are serialized to `SessionState.SetString("Theatre_Watches", json)`
+via `WatchPersistence`.
+
+**Watch limit:** Maximum 20 concurrent watches. This prevents runaway memory
 and CPU usage from agents creating watches in a loop. The error code
 `watch_limit_reached` is returned when the limit is hit.
 
@@ -121,6 +125,9 @@ enum (by string name), and ObjectReference (by instance_id).
 components. Limited to methods with 0-3 parameters of simple types (string,
 int, float, bool). Returns the method's return value (if any) serialized to
 JSON. If the method returns void, the response confirms execution.
+
+Supported parameter types: `int`, `float`, `bool`, `string`,
+`Vector2`, `Vector3`, `Color`. Other types return `invalid_parameter`.
 
 ### scene_delta: Frame-Based Change Detection
 

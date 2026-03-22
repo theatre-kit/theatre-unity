@@ -110,6 +110,35 @@ or `TheatreServer` after every `tools/call` completes. Add a static
 
 ### Unit 2: TheatreWindow — Main EditorWindow
 
+### UI Framework
+
+The Theatre panel MVP is built **programmatically via C# UIElements**
+(no UXML/USS files). This is intentional:
+
+- Faster iteration during development — no separate markup files
+- Easier to keep in sync with data model changes
+- UXML/USS can be adopted later for theming and layout refinement
+
+The UX.md wireframes show the **target layout**, not a UXML
+specification. The MVP implements the same sections (status bar, tool
+groups, watches, activity feed, recordings) using C# `VisualElement`
+construction.
+
+### Timeline Scrubber
+
+The timeline scrubber shown in UX.md is **Phase 12a scope** but
+implemented as a **basic label-only version** for MVP:
+- Shows duration, frame count, file size as text labels
+- Interactive timeline with markers and seek is deferred to Phase 13
+  polish (or a separate Phase 12c if needed)
+
+### WelcomeDialog Deduplication
+
+`WelcomeDialog` uses `EditorPrefs.GetBool("Theatre_WelcomeShown", false)`
+to prevent showing twice. The `[InitializeOnLoadMethod]` callback checks
+this flag before displaying. Since `EditorPrefs` persists across domain
+reloads, the dialog shows exactly once per editor installation.
+
 **File**: `Packages/com.theatre.toolkit/Editor/UI/TheatreWindow.cs`
 
 **Namespace**: `Theatre.Editor.UI`

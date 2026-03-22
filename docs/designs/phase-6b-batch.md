@@ -114,6 +114,29 @@ registry.Register(new ToolRegistration(
 ));
 ```
 
+**Tool Group**: `ToolGroup.DirectorScene`
+
+The `batch` tool belongs to `DirectorScene` because it orchestrates
+scene-level operations. If `DirectorScene` is disabled, `batch` is
+hidden from `tools/list`.
+
+**Inner tool group enforcement**: Each operation within a batch is
+validated against its own tool group. A batch can only contain tools
+whose groups are currently enabled. If an inner operation's group is
+disabled, the batch fails immediately with:
+
+```json
+{
+    "result": "error",
+    "operation": "batch",
+    "error": {
+        "code": "operation_not_supported",
+        "message": "Tool 'prefab_op' is not available (DirectorPrefab group disabled)",
+        "suggestion": "Enable the DirectorPrefab tool group or remove prefab operations from the batch"
+    }
+}
+```
+
 **Implementation Notes**:
 
 The `Execute` method:

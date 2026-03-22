@@ -98,6 +98,97 @@ namespace Theatre.Editor.Tools.ECS
 - `ReadEntityComponents`: `em.GetComponentTypes(entity)` returns `NativeArray<ComponentType>`. For each, read data and convert to JObject. Known types (LocalTransform, LocalToWorld) get fast-path serialization. Unknown types use `TypeManager.GetTypeInfo` + unsafe raw data reading.
 - `GetEntityPosition`: Check `LocalTransform` first (newer API), fallback to `LocalToWorld.Position`.
 
+### Unknown Component Data Reading (EcsHelpers.ReadEntityComponents)
+
+For components whose types are known at compile time (LocalTransform,
+LocalToWorld, etc.), use direct typed access:
+
+```csharp
+if (em.HasComponent<LocalTransform>(entity))
+{
+    var lt = em.GetComponentData<LocalTransform>(entity);
+    componentObj["position"] = ResponseHelpers.ToJArray(
+        new Vector3(lt.Position.x, lt.Position.y, lt.Position.z));
+    componentObj["rotation"] = ResponseHelpers.QuaternionToJArray(lt.Rotation);
+    componentObj["scale"] = lt.Scale;
+}
+```
+
+For unknown component types, use TypeManager + unsafe reads:
+
+```csharp
+// 1. Get all component types on the entity
+var componentTypes = em.GetComponentTypes(entity);
+
+// 2. For each type, get type info from TypeManager
+foreach (var ct in componentTypes)
+{
+    var typeIndex = ct.TypeIndex;
+    var typeInfo = TypeManager.GetTypeInfo(typeIndex);
+    var typeName = typeInfo.DebugTypeName.ToString();
+
+    // Skip zero-size (tag) components — they have no data
+    if (typeInfo.IsZeroSized)
+    {
+        result[typeName] = new JObject { ["_tag"] = true };
+        continue;
+    }
+
+    // Skip buffer, shared, managed components — too complex for MVP
+    if (typeInfo.Category != TypeManager.TypeCategory.ComponentData)
+    {
+        result[typeName] = new JObject { ["_category"] = typeInfo.Category.ToString() };
+        continue;
+    }
+
+    // 3. Read raw bytes via EntityManager
+    // GetComponentDataRawRO returns a void* to the component data
+    unsafe
+    {
+        var ptr = em.GetComponentDataRawRO(entity, typeIndex);
+        var size = typeInfo.TypeSize;
+
+        // 4. Use reflection on the managed Type to read fields
+        var managedType = typeInfo.Type;
+        if (managedType != null)
+        {
+            var fields = managedType.GetFields(
+                System.Reflection.BindingFlags.Public
+                | System.Reflection.BindingFlags.Instance);
+            var obj = new JObject();
+            foreach (var field in fields)
+            {
+                // Marshal field value from raw pointer
+                var offset = System.Runtime.InteropServices.Marshal
+                    .OffsetOf(managedType, field.Name).ToInt32();
+                obj[ToSnakeCase(field.Name)] = ReadFieldValue(
+                    (byte*)ptr + offset, field.FieldType);
+            }
+            result[typeName] = obj;
+        }
+        else
+        {
+            result[typeName] = new JObject { ["_raw_size"] = size };
+        }
+    }
+}
+```
+
+**ReadFieldValue helper** handles: `int`, `float`, `bool`, `float3`,
+`float4`, `quaternion`, `Entity` (serialize as `{index, version}`).
+Unknown field types are reported as `"<TypeName>"` string.
+
+**Safety**: This requires `allowUnsafeCode: true` in the editor asmdef.
+Currently `false` — needs to be set to `true` for Phase 11.
+
+**Limitations**:
+- Managed components (class-based) are not readable via raw pointer
+- Buffer components (DynamicBuffer) return count only, not contents
+- Shared components return the shared value index, not the value
+- Field offset via `Marshal.OffsetOf` may not match actual layout
+  for all blittable structs — verify on key ECS types and add known-
+  type fast paths for common Unity.Transforms and Unity.Physics types
+
 ---
 
 ### Unit 3: EcsWorldTool
@@ -191,6 +282,37 @@ Parameters: `entity_index`, `entity_version`, `world`, `components` (filter)
 **Note**: Physics-based queries (raycast, overlap sphere) require Unity Physics
 package which may not be installed. These 3 operations work with plain
 `LocalTransform` positions — no physics dependency.
+
+### Raycast Support (Deferred)
+
+ROADMAP Phase 11 lists `ecs_query` with raycast support. This is
+**deferred to a future phase** because:
+
+1. ECS raycasting requires `Unity.Physics` or `Havok.Physics` — these
+   are separate packages from `com.unity.entities`
+2. Most ECS projects don't have Unity Physics installed (many use
+   custom physics or DOTS physics alternatives)
+3. The three index-based queries (nearest, radius, overlap) cover the
+   majority of spatial debugging use cases
+
+**When Unity Physics is installed**: A future phase will add:
+- `ecs_query:raycast` — single/multi-hit against physics world
+- `ecs_query:linecast` — line-of-sight check
+
+These will be guarded by `#if THEATRE_HAS_UNITY_PHYSICS` with a
+separate `versionDefines` entry for `com.unity.physics`.
+
+**When Unity Physics is NOT installed**: Calling raycast/linecast
+returns:
+```json
+{
+    "error": {
+        "code": "package_not_installed",
+        "message": "ECS raycast requires com.unity.physics package",
+        "suggestion": "Install com.unity.physics via Package Manager, or use ecs_query:nearest as an alternative"
+    }
+}
+```
 
 ---
 

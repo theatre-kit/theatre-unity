@@ -193,6 +193,10 @@ AssetDatabase.ImportAsset(assetPath);
 - Or `Lightmapping.Bake()` for synchronous
 - Response: `{ "result": "ok", "operation": "bake", "status": "started" }`
 
+**Bake is fire-and-forget.** Returns `{ "result": "ok", "operation": "bake", "status": "started" }`
+immediately without waiting for completion. The agent can poll via `theatre_status`
+to check if baking is complete (future: add `lighting_op:bake_status` operation).
+
 ---
 
 ### Unit 4: QualityOpTool

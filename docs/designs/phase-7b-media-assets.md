@@ -78,7 +78,7 @@ public static class TextureOpTool
 
 #### `create_sprite`
 - Required: `asset_path`
-- Optional: `pixels_per_unit` (default 100), `pivot` ([x,y] default [0.5, 0.5]),
+- Optional: `pixels_per_unit` (default 100), `pivot` (array format `[0.5, 0.5]` — center, default `[0.5, 0.5]`),
   `sprite_mode` ("single" or "multiple", default "single")
 - Get TextureImporter, set:
   - `textureType = TextureImporterType.Sprite`
@@ -218,6 +218,52 @@ For operations that need internal access (add_group, add_effect,
 create_snapshot, expose_parameter), use `SerializedObject` on the mixer
 asset to access internal arrays. This is fragile but is the only approach
 available without reflection into internal Unity APIs.
+
+#### API Availability Probe
+
+At registration time, AudioMixerOpTool tests whether the internal
+SerializedObject path works by creating a temporary AudioMixer and
+attempting to read its internal group structure:
+
+```csharp
+private static bool ProbeInternalApi()
+{
+    var temp = ScriptableObject.CreateInstance<AudioMixer>();
+    try
+    {
+        var so = new SerializedObject(temp);
+        var groups = so.FindProperty("m_MasterGroup");
+        return groups != null;
+    }
+    catch
+    {
+        return false;
+    }
+    finally
+    {
+        Object.DestroyImmediate(temp);
+    }
+}
+```
+
+**If probe fails**: The tool still registers but fragile operations
+(`add_group`, `add_effect`, `create_snapshot`, `expose_parameter`)
+return `audio_mixer_api_unavailable` error immediately:
+
+```json
+{
+    "error": {
+        "code": "audio_mixer_api_unavailable",
+        "message": "AudioMixer internal API not accessible in this Unity version. Read-only operations (create, set_volume) are available.",
+        "suggestion": "Use 'create' and 'set_volume' operations, or modify the mixer manually in the Unity Editor"
+    }
+}
+```
+
+**If probe succeeds**: All 6 operations work normally.
+
+This probe runs once at server startup (during tool registration).
+The result is cached in a static `bool s_internalApiAvailable` field.
 
 #### `create`
 - Required: `asset_path` (must end in `.mixer`)

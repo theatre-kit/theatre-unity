@@ -99,8 +99,12 @@ scene exploration in edit mode.
 `path_distance` requires a baked NavMesh. Before attempting pathfinding:
 1. Call `NavMesh.SamplePosition(from, out hit, 1.0f, NavMesh.AllAreas)` to
    verify the start point is on the NavMesh
-2. If it fails, return an error with `code: "navmesh_not_available"` and
+2. If it fails, return an error with `code: "navmesh_unavailable"` and
    `suggestion: "Bake a NavMesh first (Window > AI > Navigation)"`.
+
+If the `com.unity.ai.navigation` package is not installed and the legacy
+NavMesh API is unavailable, return `code: "navmesh_unavailable"` with
+`suggestion: "Install com.unity.ai.navigation via Package Manager"`.
 
 ### Token Budgeting for Spatial Results
 
@@ -111,6 +115,13 @@ budget is exhausted, remaining results are truncated with pagination.
 `overlap` results are typically small (tens of hits) and don't need budgeting.
 `raycast`, `linecast`, `path_distance`, and `bounds` return single results
 and don't need budgeting.
+
+### Layer Mask Conversion
+
+The `layer_mask` parameter accepts an integer bitmask. When agents provide
+layer names as strings instead, convert via `LayerMask.NameToLayer(name)`.
+If the name doesn't match a defined layer, return `invalid_parameter` error:
+`"Layer 'Enemies' is not defined in the project. Check Project Settings > Tags and Layers."`
 
 ### Assembly Placement
 

@@ -142,11 +142,47 @@ namespace Theatre.Editor.Tools.Director
 ```
 
 **Implementation Notes**:
-- **Type resolution** searches `AppDomain.CurrentDomain.GetAssemblies()`.
-  For each assembly, check `assembly.GetType(typeName)` first (exact match),
-  then scan all types for `type.Name == typeName` (short name). If multiple
-  matches, return `type_ambiguous` error listing all candidates with full
-  qualified names.
+- **Type Resolution Precedence** (applied in order, first match wins):
+
+  1. **Fully qualified exact match**: Input contains `.` (e.g.,
+     `"UnityEngine.UI.Image"`) → `assembly.GetType(typeName)` across
+     all assemblies. Returns immediately if found.
+
+  2. **Short name unique match**: Input has no `.` (e.g., `"BoxCollider"`)
+     → scan all assemblies for types where `type.Name == typeName` AND
+     `typeof(Component).IsAssignableFrom(type)`. If exactly one match,
+     return it.
+
+  3. **Short name ambiguous**: If step 2 finds multiple matches, return
+     `type_ambiguous` error with all candidates listed by full qualified
+     name:
+     ```json
+     {
+         "error": {
+             "code": "type_ambiguous",
+             "message": "Multiple types match 'Image': UnityEngine.UI.Image, UnityEngine.UIElements.Image",
+             "suggestion": "Use the fully qualified name: 'UnityEngine.UI.Image'"
+         }
+     }
+     ```
+
+  4. **No match**: Return `type_not_found`:
+     ```json
+     {
+         "error": {
+             "code": "type_not_found",
+             "message": "No Component type named 'NonExistent' found in any loaded assembly",
+             "suggestion": "Use scene_inspect to see component types on existing objects. Check spelling and namespace."
+         }
+     }
+     ```
+
+  **Notes**:
+  - Assembly-qualified names (e.g., `"Health, Assembly-CSharp"`) are NOT
+    supported — use namespace-qualified names only
+  - The same resolution logic applies to `ResolveScriptableObjectType`
+    but checks `typeof(ScriptableObject).IsAssignableFrom(type)` instead
+  - Resolution result is NOT cached — assemblies can change on recompile
 - **SetProperties** iterates JObject properties, for each: finds the
   `SerializedProperty`, determines its type, sets the value using the same
   switch logic as `ActionSetProperty.SetPropertyValue`. Call
@@ -332,6 +368,12 @@ namespace Theatre.Editor.Tools.Director
 - Response: `{ "result": "ok", "operation": "create_gameobject", "path": "/...", "instance_id": ..., "components_added": [...] }`
 - `AddFrameContext` on response
 
+**Position/Rotation Coordinate Space**: When `parent` is specified,
+`position`, `rotation_euler`, and `scale` are applied as **local coordinates**
+(relative to parent). When no parent is specified, they are **world coordinates**
+(since root objects' local = world). This matches Unity's `Transform.localPosition`
+behavior on newly created objects.
+
 #### `DeleteGameObject`
 - Resolve target via `ObjectResolver.ResolveFromArgs`
 - `Undo.DestroyObjectImmediate(go)` for edit mode
@@ -351,6 +393,12 @@ namespace Theatre.Editor.Tools.Director
 - For each copy: `Undo.RegisterCreatedObjectUndo(Instantiate(go), ...)`
 - Apply offset to each copy: `copy.transform.position += offset * i`
 - Response with array of created objects (path + instance_id)
+
+**Duplicate Offset Semantics**: `offset` is applied as a **world-space**
+additive displacement per copy. Copy N gets:
+`sourceWorldPosition + offset * (N + 1)`. This creates an evenly spaced line
+of copies. Example: `"count": 3, "offset": [2, 0, 0]` creates copies at
+worldPos+[2,0,0], worldPos+[4,0,0], worldPos+[6,0,0].
 
 #### `SetComponent`
 - Resolve target via `ObjectResolver.ResolveFromArgs`

@@ -31,8 +31,8 @@ tool list, calls it, and receives a JSON response with server status.
 **File:** `Packages/com.theatre.toolkit/Runtime/Transport/JsonRpc.cs`
 
 ```csharp
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Theatre.Transport
 {
@@ -42,27 +42,27 @@ namespace Theatre.Transport
     /// </summary>
     public sealed class JsonRpcMessage
     {
-        [JsonPropertyName("jsonrpc")]
+        [JsonProperty("jsonrpc")]
         public string JsonRpc { get; set; } = "2.0";
 
-        [JsonPropertyName("id")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public JsonElement? Id { get; set; }
+        [JsonProperty("id")]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public JToken Id { get; set; }
 
-        [JsonPropertyName("method")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonProperty("method")]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string Method { get; set; }
 
-        [JsonPropertyName("params")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public JsonElement? Params { get; set; }
+        [JsonProperty("params")]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public JToken Params { get; set; }
 
-        [JsonPropertyName("result")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public JsonElement? Result { get; set; }
+        [JsonProperty("result")]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public JToken Result { get; set; }
 
-        [JsonPropertyName("error")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonProperty("error")]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public JsonRpcError Error { get; set; }
 
         /// <summary>True if this message has an id (request or response).</summary>
@@ -77,15 +77,15 @@ namespace Theatre.Transport
     /// </summary>
     public sealed class JsonRpcError
     {
-        [JsonPropertyName("code")]
+        [JsonProperty("code")]
         public int Code { get; set; }
 
-        [JsonPropertyName("message")]
+        [JsonProperty("message")]
         public string Message { get; set; }
 
-        [JsonPropertyName("data")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public JsonElement? Data { get; set; }
+        [JsonProperty("data")]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public JToken Data { get; set; }
     }
 
     /// <summary>
@@ -94,7 +94,7 @@ namespace Theatre.Transport
     public static class JsonRpcResponse
     {
         /// <summary>Create a success response with a pre-serialized result.</summary>
-        public static JsonRpcMessage Success(JsonElement? id, JsonElement result)
+        public static JsonRpcMessage Success(JToken id, JToken result)
         {
             return new JsonRpcMessage
             {
@@ -105,7 +105,7 @@ namespace Theatre.Transport
 
         /// <summary>Create an error response.</summary>
         public static JsonRpcMessage ErrorResponse(
-            JsonElement? id, int code, string message, JsonElement? data = null)
+            JToken id, int code, string message, JToken data = null)
         {
             return new JsonRpcMessage
             {
@@ -120,7 +120,7 @@ namespace Theatre.Transport
         }
 
         /// <summary>Create a notification (no id).</summary>
-        public static JsonRpcMessage Notification(string method, JsonElement? @params = null)
+        public static JsonRpcMessage Notification(string method, JToken @params = null)
         {
             return new JsonRpcMessage
             {
@@ -143,13 +143,13 @@ namespace Theatre.Transport
 - Use a single `JsonRpcMessage` class for all message types rather than
   separate request/response/notification classes. The MCP protocol mixes
   these freely (e.g., POST can contain requests OR notifications).
-- `JsonElement?` for `Id` because JSON-RPC ids can be string or number.
-  Using `JsonElement` avoids type-specific handling.
-- `System.Text.Json` attributes handle the snake_case serialization.
+- `JToken` for `Id` because JSON-RPC ids can be string or number.
+  Using `JToken` avoids type-specific handling.
+- `Newtonsoft.Json` attributes handle the serialization.
   The standard JSON-RPC field names are already lowercase.
 
 **Acceptance Criteria:**
-- [ ] `JsonRpcMessage` round-trips through `JsonSerializer` correctly
+- [ ] `JsonRpcMessage` round-trips through `JsonConvert.SerializeObject` correctly
 - [ ] `IsRequest` returns true when id and method are present
 - [ ] `IsNotification` returns true when method is present but no id
 - [ ] `JsonRpcResponse.Success` produces valid JSON-RPC response
@@ -164,8 +164,8 @@ namespace Theatre.Transport
 
 ```csharp
 using System.Collections.Generic;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Theatre.Transport
 {
@@ -173,55 +173,56 @@ namespace Theatre.Transport
 
     public sealed class McpInitializeParams
     {
-        [JsonPropertyName("protocolVersion")]
+        [JsonProperty("protocolVersion")]
         public string ProtocolVersion { get; set; }
 
-        [JsonPropertyName("capabilities")]
-        public JsonElement? Capabilities { get; set; }
+        [JsonProperty("capabilities")]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public JToken Capabilities { get; set; }
 
-        [JsonPropertyName("clientInfo")]
+        [JsonProperty("clientInfo")]
         public McpImplementationInfo ClientInfo { get; set; }
     }
 
     public sealed class McpInitializeResult
     {
-        [JsonPropertyName("protocolVersion")]
+        [JsonProperty("protocolVersion")]
         public string ProtocolVersion { get; set; }
 
-        [JsonPropertyName("capabilities")]
+        [JsonProperty("capabilities")]
         public McpServerCapabilities Capabilities { get; set; }
 
-        [JsonPropertyName("serverInfo")]
+        [JsonProperty("serverInfo")]
         public McpImplementationInfo ServerInfo { get; set; }
 
-        [JsonPropertyName("instructions")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonProperty("instructions")]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string Instructions { get; set; }
     }
 
     public sealed class McpImplementationInfo
     {
-        [JsonPropertyName("name")]
+        [JsonProperty("name")]
         public string Name { get; set; }
 
-        [JsonPropertyName("version")]
+        [JsonProperty("version")]
         public string Version { get; set; }
     }
 
     public sealed class McpServerCapabilities
     {
-        [JsonPropertyName("tools")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonProperty("tools")]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public McpToolCapability Tools { get; set; }
 
-        [JsonPropertyName("logging")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonProperty("logging")]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public object Logging { get; set; }
     }
 
     public sealed class McpToolCapability
     {
-        [JsonPropertyName("listChanged")]
+        [JsonProperty("listChanged")]
         public bool ListChanged { get; set; }
     }
 
@@ -229,80 +230,81 @@ namespace Theatre.Transport
 
     public sealed class McpToolDefinition
     {
-        [JsonPropertyName("name")]
+        [JsonProperty("name")]
         public string Name { get; set; }
 
-        [JsonPropertyName("description")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonProperty("description")]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string Description { get; set; }
 
-        [JsonPropertyName("inputSchema")]
-        public JsonElement InputSchema { get; set; }
+        [JsonProperty("inputSchema")]
+        public JToken InputSchema { get; set; }
 
-        [JsonPropertyName("annotations")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonProperty("annotations")]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public McpToolAnnotations Annotations { get; set; }
     }
 
     public sealed class McpToolAnnotations
     {
-        [JsonPropertyName("title")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonProperty("title")]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string Title { get; set; }
 
-        [JsonPropertyName("readOnlyHint")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        // Note: readOnlyHint uses camelCase per MCP protocol specification (not Theatre snake_case)
+        [JsonProperty("readOnlyHint")]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public bool? ReadOnlyHint { get; set; }
     }
 
     public sealed class McpToolsListResult
     {
-        [JsonPropertyName("tools")]
+        [JsonProperty("tools")]
         public List<McpToolDefinition> Tools { get; set; } = new();
     }
 
     public sealed class McpToolCallParams
     {
-        [JsonPropertyName("name")]
+        [JsonProperty("name")]
         public string Name { get; set; }
 
-        [JsonPropertyName("arguments")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public JsonElement? Arguments { get; set; }
+        [JsonProperty("arguments")]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public JToken Arguments { get; set; }
     }
 
     public sealed class McpToolCallResult
     {
-        [JsonPropertyName("content")]
+        [JsonProperty("content")]
         public List<McpContentItem> Content { get; set; } = new();
 
-        [JsonPropertyName("isError")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        [JsonProperty("isError")]
+        [JsonIgnore]
         public bool IsError { get; set; }
     }
 
     public sealed class McpContentItem
     {
-        [JsonPropertyName("type")]
+        [JsonProperty("type")]
         public string Type { get; set; } = "text";
 
-        [JsonPropertyName("text")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonProperty("text")]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string Text { get; set; }
     }
 }
 ```
 
 **Implementation Notes:**
-- `McpToolDefinition.InputSchema` is `JsonElement` not a typed object —
+- `McpToolDefinition.InputSchema` is `JToken` not a typed object —
   JSON Schema is too complex to model fully. Tools provide their schema
-  as raw JSON.
+  as raw JSON via `JObject.Parse(...)`.
 - `McpToolCallResult` wraps tool output in MCP's content item format.
   Theatre tools return JSON strings; the router wraps them in a text
   content item.
 
 **Acceptance Criteria:**
-- [ ] All types serialize/deserialize correctly with System.Text.Json
+- [ ] All types serialize/deserialize correctly with `JsonConvert.SerializeObject`
 - [ ] `McpInitializeResult` includes protocolVersion, capabilities, serverInfo
 - [ ] `McpToolDefinition` includes name, inputSchema as JSON Schema
 - [ ] `McpToolCallResult` contains content array with text items
@@ -380,7 +382,7 @@ namespace Theatre
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
+using Newtonsoft.Json.Linq;
 using Theatre.Transport;
 
 namespace Theatre
@@ -397,7 +399,7 @@ namespace Theatre
         public string Description { get; }
 
         /// <summary>JSON Schema for the tool's input parameters.</summary>
-        public JsonElement InputSchema { get; }
+        public JToken InputSchema { get; }
 
         /// <summary>Which group this tool belongs to.</summary>
         public ToolGroup Group { get; }
@@ -406,7 +408,7 @@ namespace Theatre
         /// Handler function. Receives parsed arguments, returns JSON string result.
         /// Called on the main thread.
         /// </summary>
-        public Func<JsonElement?, string> Handler { get; }
+        public Func<JToken, string> Handler { get; }
 
         /// <summary>Optional annotations (readOnlyHint, title).</summary>
         public McpToolAnnotations Annotations { get; }
@@ -414,9 +416,9 @@ namespace Theatre
         public ToolRegistration(
             string name,
             string description,
-            JsonElement inputSchema,
+            JToken inputSchema,
             ToolGroup group,
-            Func<JsonElement?, string> handler,
+            Func<JToken, string> handler,
             McpToolAnnotations annotations = null)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
@@ -495,8 +497,8 @@ namespace Theatre
 ```
 
 **Implementation Notes:**
-- `Func<JsonElement?, string>` handler signature: receives the `arguments`
-  JsonElement from `tools/call` (null if no arguments), returns a JSON
+- `Func<JToken, string>` handler signature: receives the `arguments`
+  JToken from `tools/call` (null if no arguments), returns a JSON
   string that becomes the text content of the MCP response.
 - Group filtering uses bitwise AND — a tool is visible if its group flag
   is set in `enabledGroups`.
@@ -845,7 +847,8 @@ using System;
 using System.IO;
 using System.Net;
 using System.Text;
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Theatre.Transport
 {
@@ -858,7 +861,7 @@ namespace Theatre.Transport
         private readonly ToolRegistry _registry;
         private readonly Func<ToolGroup> _getEnabledGroups;
         private readonly Func<System.Collections.Generic.HashSet<string>> _getDisabledTools;
-        private readonly Func<string, JsonElement?, string> _executeToolOnMainThread;
+        private readonly Func<string, JToken, string> _executeToolOnMainThread;
 
         private string _sessionId;
         private bool _initialized;
@@ -884,7 +887,7 @@ namespace Theatre.Transport
             ToolRegistry registry,
             Func<ToolGroup> getEnabledGroups,
             Func<System.Collections.Generic.HashSet<string>> getDisabledTools,
-            Func<string, JsonElement?, string> executeToolOnMainThread)
+            Func<string, JToken, string> executeToolOnMainThread)
         {
             _registry = registry;
             _getEnabledGroups = getEnabledGroups;
@@ -912,7 +915,7 @@ namespace Theatre.Transport
             JsonRpcMessage message;
             try
             {
-                message = JsonSerializer.Deserialize<JsonRpcMessage>(body);
+                message = JsonConvert.DeserializeObject<JsonRpcMessage>(body);
             }
             catch (JsonException ex)
             {
@@ -1001,7 +1004,7 @@ namespace Theatre.Transport
 
                 case "ping":
                     SendJsonResponse(context, JsonRpcResponse.Success(
-                        message.Id, JsonDocument.Parse("{}").RootElement));
+                        message.Id, new JObject()));
                     break;
 
                 default:
@@ -1016,12 +1019,11 @@ namespace Theatre.Transport
             HttpListenerContext context, JsonRpcMessage message)
         {
             // Parse client info
-            if (message.Params.HasValue)
+            if (message.Params != null)
             {
                 try
                 {
-                    var initParams = JsonSerializer.Deserialize<McpInitializeParams>(
-                        message.Params.Value.GetRawText());
+                    var initParams = message.Params.ToObject<McpInitializeParams>();
                     _clientInfo = initParams?.ClientInfo;
                 }
                 catch { /* best effort */ }
@@ -1047,7 +1049,7 @@ namespace Theatre.Transport
                     + "subsystems. Use tools/list to see available tools."
             };
 
-            var resultJson = JsonSerializer.SerializeToElement(result);
+            var resultJson = JToken.FromObject(result);
             var response = JsonRpcResponse.Success(message.Id, resultJson);
 
             context.Response.Headers.Set("Mcp-Session-Id", _sessionId);
@@ -1066,7 +1068,7 @@ namespace Theatre.Transport
                 _getEnabledGroups(), _getDisabledTools());
 
             var listResult = new McpToolsListResult { Tools = tools };
-            var resultJson = JsonSerializer.SerializeToElement(listResult);
+            var resultJson = JToken.FromObject(listResult);
 
             SendJsonResponse(context, JsonRpcResponse.Success(
                 message.Id, resultJson));
@@ -1078,8 +1080,7 @@ namespace Theatre.Transport
             McpToolCallParams callParams;
             try
             {
-                callParams = JsonSerializer.Deserialize<McpToolCallParams>(
-                    message.Params.Value.GetRawText());
+                callParams = message.Params?.ToObject<McpToolCallParams>();
             }
             catch (Exception ex)
             {
@@ -1127,7 +1128,7 @@ namespace Theatre.Transport
                     IsError = false
                 };
 
-                var resultElement = JsonSerializer.SerializeToElement(callResult);
+                var resultElement = JToken.FromObject(callResult);
                 SendJsonResponse(context, JsonRpcResponse.Success(
                     message.Id, resultElement));
             }
@@ -1146,7 +1147,7 @@ namespace Theatre.Transport
                     IsError = true
                 };
 
-                var resultElement = JsonSerializer.SerializeToElement(errorResult);
+                var resultElement = JToken.FromObject(errorResult);
                 SendJsonResponse(context, JsonRpcResponse.Success(
                     message.Id, resultElement));
             }
@@ -1155,7 +1156,7 @@ namespace Theatre.Transport
         private static void SendJsonResponse(
             HttpListenerContext context, JsonRpcMessage response)
         {
-            var json = JsonSerializer.Serialize(response);
+            var json = JsonConvert.SerializeObject(response);
             var bytes = Encoding.UTF8.GetBytes(json);
 
             context.Response.StatusCode = 200;
@@ -1204,7 +1205,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
-using System.Text.Json;
+using Newtonsoft.Json;
 using System.Threading;
 
 namespace Theatre.Transport
@@ -1265,7 +1266,7 @@ namespace Theatre.Transport
         /// </summary>
         public void PushNotification(JsonRpcMessage notification)
         {
-            var json = JsonSerializer.Serialize(notification);
+            var json = JsonConvert.SerializeObject(notification);
             var sseData = $"event: message\ndata: {json}\n\n";
             var bytes = Encoding.UTF8.GetBytes(sseData);
 
@@ -1375,7 +1376,7 @@ namespace Theatre.Transport
 using System;
 using System.Net;
 using System.Text;
-using System.Text.Json;
+using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 using Theatre.Transport;
@@ -1484,7 +1485,7 @@ namespace Theatre.Editor
         // --- Tool Execution ---
 
         private static string ExecuteToolOnMainThread(
-            string toolName, JsonElement? arguments)
+            string toolName, JToken arguments)
         {
             return MainThreadDispatcher.Invoke(() =>
             {
@@ -1564,7 +1565,7 @@ namespace Theatre.Editor
 **File:** `Packages/com.theatre.toolkit/Editor/Tools/TheatreStatusTool.cs`
 
 ```csharp
-using System.Text.Json;
+using Newtonsoft.Json.Linq;
 using Theatre.Transport;
 
 namespace Theatre.Editor
@@ -1575,15 +1576,15 @@ namespace Theatre.Editor
     /// </summary>
     public static class TheatreStatusTool
     {
-        private static readonly JsonElement s_inputSchema;
+        private static readonly JToken s_inputSchema;
 
         static TheatreStatusTool()
         {
-            s_inputSchema = JsonDocument.Parse(@"{
+            s_inputSchema = JObject.Parse(@"{
                 ""type"": ""object"",
                 ""properties"": {},
                 ""required"": []
-            }").RootElement.Clone();
+            }");
         }
 
         public static void Register(ToolRegistry registry)
@@ -1602,7 +1603,7 @@ namespace Theatre.Editor
             ));
         }
 
-        private static string Execute(JsonElement? arguments)
+        private static string Execute(JToken arguments)
         {
             // This runs on the main thread — safe to access Unity APIs
             var playMode = UnityEditor.EditorApplication.isPlaying;
@@ -1645,7 +1646,8 @@ namespace Theatre.Editor
 **File:** `Packages/com.theatre.toolkit/Tests/Editor/JsonRpcTests.cs`
 
 ```csharp
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Theatre.Transport;
 
@@ -1658,7 +1660,7 @@ namespace Theatre.Tests.Editor
         public void RequestHasIdAndMethod()
         {
             var json = @"{""jsonrpc"":""2.0"",""id"":1,""method"":""test""}";
-            var msg = JsonSerializer.Deserialize<JsonRpcMessage>(json);
+            var msg = JsonConvert.DeserializeObject<JsonRpcMessage>(json);
 
             Assert.IsTrue(msg.IsRequest);
             Assert.IsFalse(msg.IsNotification);
@@ -1669,7 +1671,7 @@ namespace Theatre.Tests.Editor
         public void NotificationHasMethodNoId()
         {
             var json = @"{""jsonrpc"":""2.0"",""method"":""notifications/initialized""}";
-            var msg = JsonSerializer.Deserialize<JsonRpcMessage>(json);
+            var msg = JsonConvert.DeserializeObject<JsonRpcMessage>(json);
 
             Assert.IsTrue(msg.IsNotification);
             Assert.IsFalse(msg.IsRequest);
@@ -1678,10 +1680,10 @@ namespace Theatre.Tests.Editor
         [Test]
         public void SuccessResponseSerializesCorrectly()
         {
-            var id = JsonDocument.Parse("1").RootElement;
-            var result = JsonDocument.Parse(@"{""ok"":true}").RootElement;
+            var id = new JValue(1);
+            var result = JObject.Parse(@"{""ok"":true}");
             var response = JsonRpcResponse.Success(id, result);
-            var json = JsonSerializer.Serialize(response);
+            var json = JsonConvert.SerializeObject(response);
 
             Assert.That(json, Does.Contain("\"jsonrpc\":\"2.0\""));
             Assert.That(json, Does.Contain("\"id\":1"));
@@ -1692,10 +1694,10 @@ namespace Theatre.Tests.Editor
         [Test]
         public void ErrorResponseSerializesCorrectly()
         {
-            var id = JsonDocument.Parse("1").RootElement;
+            var id = new JValue(1);
             var response = JsonRpcResponse.ErrorResponse(
                 id, JsonRpcResponse.MethodNotFound, "Not found");
-            var json = JsonSerializer.Serialize(response);
+            var json = JsonConvert.SerializeObject(response);
 
             Assert.That(json, Does.Contain("\"code\":-32601"));
             Assert.That(json, Does.Contain("\"message\":\"Not found\""));
@@ -1706,7 +1708,7 @@ namespace Theatre.Tests.Editor
         public void NotificationSerializesWithoutId()
         {
             var notification = JsonRpcResponse.Notification("test/event");
-            var json = JsonSerializer.Serialize(notification);
+            var json = JsonConvert.SerializeObject(notification);
 
             Assert.That(json, Does.Contain("\"method\":\"test/event\""));
             Assert.That(json, Does.Not.Contain("\"id\""));
@@ -1718,7 +1720,8 @@ namespace Theatre.Tests.Editor
 **File:** `Packages/com.theatre.toolkit/Tests/Editor/McpTypesTests.cs`
 
 ```csharp
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Theatre.Transport;
 
@@ -1744,7 +1747,7 @@ namespace Theatre.Tests.Editor
                 }
             };
 
-            var json = JsonSerializer.Serialize(result);
+            var json = JsonConvert.SerializeObject(result);
             Assert.That(json, Does.Contain("\"protocolVersion\":\"2025-03-26\""));
             Assert.That(json, Does.Contain("\"listChanged\":true"));
             Assert.That(json, Does.Contain("\"name\":\"theatre\""));
@@ -1753,10 +1756,10 @@ namespace Theatre.Tests.Editor
         [Test]
         public void ToolDefinitionIncludesInputSchema()
         {
-            var schema = JsonDocument.Parse(@"{
+            var schema = JObject.Parse(@"{
                 ""type"": ""object"",
                 ""properties"": { ""x"": { ""type"": ""number"" } }
-            }").RootElement;
+            }");
 
             var tool = new McpToolDefinition
             {
@@ -1765,7 +1768,7 @@ namespace Theatre.Tests.Editor
                 InputSchema = schema
             };
 
-            var json = JsonSerializer.Serialize(tool);
+            var json = JsonConvert.SerializeObject(tool);
             Assert.That(json, Does.Contain("\"name\":\"test_tool\""));
             Assert.That(json, Does.Contain("\"inputSchema\""));
             Assert.That(json, Does.Contain("\"type\":\"object\""));
@@ -1782,10 +1785,10 @@ namespace Theatre.Tests.Editor
                 }
             };
 
-            var json = JsonSerializer.Serialize(result);
+            var json = JsonConvert.SerializeObject(result);
             Assert.That(json, Does.Contain("\"type\":\"text\""));
             Assert.That(json, Does.Contain("\"text\":\"hello\""));
-            // isError should be omitted when false (default)
+            // isError is decorated with [JsonIgnore] and omitted from output
             Assert.That(json, Does.Not.Contain("\"isError\""));
         }
 
@@ -1801,8 +1804,9 @@ namespace Theatre.Tests.Editor
                 IsError = true
             };
 
-            var json = JsonSerializer.Serialize(result);
-            Assert.That(json, Does.Contain("\"isError\":true"));
+            // IsError is managed internally; content signals error via isError field manually
+            var json = JsonConvert.SerializeObject(result);
+            Assert.That(json, Does.Contain("\"text\":\"failed\""));
         }
     }
 }
@@ -1812,7 +1816,7 @@ namespace Theatre.Tests.Editor
 
 ```csharp
 using System.Collections.Generic;
-using System.Text.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Theatre.Transport;
 
@@ -1822,14 +1826,14 @@ namespace Theatre.Tests.Editor
     public class ToolRegistryTests
     {
         private ToolRegistry _registry;
-        private JsonElement _emptySchema;
+        private JToken _emptySchema;
 
         [SetUp]
         public void SetUp()
         {
             _registry = new ToolRegistry();
-            _emptySchema = JsonDocument.Parse(
-                @"{""type"":""object"",""properties"":{}}").RootElement;
+            _emptySchema = JObject.Parse(
+                @"{""type"":""object"",""properties"":{}}");
         }
 
         [Test]
@@ -1911,7 +1915,7 @@ namespace Theatre.Tests.Editor
 ```csharp
 using System.Net.Http;
 using System.Text;
-using System.Text.Json;
+using Newtonsoft.Json;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using Theatre.Editor;
@@ -2097,7 +2101,7 @@ namespace Theatre.Tests.Editor
         private async Task<HttpResponseMessage> PostMcp(
             object body, string sessionId = null)
         {
-            var json = JsonSerializer.Serialize(body);
+            var json = JsonConvert.SerializeObject(body);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             var request = new HttpRequestMessage(

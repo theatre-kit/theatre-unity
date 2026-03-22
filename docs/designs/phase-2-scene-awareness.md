@@ -105,7 +105,8 @@ includes frame context and follows the wire format contracts.
 ```csharp
 using System;
 using System.Text;
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -1032,7 +1033,8 @@ Estimates token cost and manages response truncation.
 using System;
 using System.IO;
 using System.Text;
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Theatre.Stage
 {
@@ -1230,7 +1232,8 @@ Opaque cursor encoding for paginated results.
 ```csharp
 using System;
 using System.Text;
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Theatre.Stage
 {
@@ -1263,14 +1266,15 @@ namespace Theatre.Stage
         /// </summary>
         public string Encode()
         {
-            var json = JsonSerializer.Serialize(new
+            var obj = new JObject
             {
-                tool = Tool,
-                op = Operation,
-                offset = Offset,
-                ts = Timestamp,
-                scene = SceneName
-            });
+                ["tool"] = Tool,
+                ["op"] = Operation,
+                ["offset"] = Offset,
+                ["ts"] = Timestamp,
+                ["scene"] = SceneName
+            };
+            var json = obj.ToString(Formatting.None);
             return Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
         }
 
@@ -1289,16 +1293,15 @@ namespace Theatre.Stage
             {
                 var bytes = Convert.FromBase64String(encoded);
                 var json = Encoding.UTF8.GetString(bytes);
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
+                var root = JObject.Parse(json);
 
                 var cursor = new PaginationCursor
                 {
-                    Tool = root.GetProperty("tool").GetString(),
-                    Operation = root.GetProperty("op").GetString(),
-                    Offset = root.GetProperty("offset").GetInt32(),
-                    Timestamp = root.GetProperty("ts").GetInt64(),
-                    SceneName = root.GetProperty("scene").GetString()
+                    Tool = root["tool"]?.Value<string>(),
+                    Operation = root["op"]?.Value<string>(),
+                    Offset = root["offset"]?.Value<int>() ?? 0,
+                    Timestamp = root["ts"]?.Value<long>() ?? 0,
+                    SceneName = root["scene"]?.Value<string>()
                 };
 
                 // Check expiry
@@ -1675,7 +1678,8 @@ into a JSON object following the wire format contracts.
 
 ```csharp
 using System;
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -2124,7 +2128,8 @@ MCP tool that returns a budgeted spatial overview of the scene.
 using System;
 using System.IO;
 using System.Text;
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Theatre.Stage;
 using Theatre.Transport;
 using UnityEngine;
@@ -2139,11 +2144,11 @@ namespace Theatre.Editor
     /// </summary>
     public static class SceneSnapshotTool
     {
-        private static readonly JsonElement s_inputSchema;
+        private static readonly JToken s_inputSchema;
 
         static SceneSnapshotTool()
         {
-            s_inputSchema = JsonDocument.Parse(@"{
+            s_inputSchema = JObject.Parse(@"{
                 ""type"": ""object"",
                 ""properties"": {
                     ""focus"": {
@@ -2187,7 +2192,7 @@ namespace Theatre.Editor
                     }
                 },
                 ""required"": []
-            }").RootElement.Clone();
+            }");
         }
 
         /// <summary>Register this tool with the given registry.</summary>
@@ -2208,7 +2213,7 @@ namespace Theatre.Editor
             ));
         }
 
-        private static string Execute(JsonElement? arguments)
+        private static string Execute(JToken arguments)
         {
             // Parse parameters
             Vector3? focus = null;
@@ -2432,7 +2437,7 @@ namespace Theatre.Editor
 ```
 
 **Implementation Notes:**
-- Parameters are parsed from `JsonElement?` following the `TheatreStatusTool`
+- Parameters are parsed from `JToken` following the `TheatreStatusTool`
   pattern. No deserialization into a typed params object — direct property
   access keeps the code simple and avoids defining params types.
 - Focus defaults to main camera position. In edit mode `Camera.main` may
@@ -2473,7 +2478,8 @@ MCP tool for hierarchy navigation: list, find, search, path operations.
 using System;
 using System.IO;
 using System.Text;
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Theatre.Stage;
 using Theatre.Transport;
 using UnityEngine;
@@ -2487,11 +2493,11 @@ namespace Theatre.Editor
     /// </summary>
     public static class SceneHierarchyTool
     {
-        private static readonly JsonElement s_inputSchema;
+        private static readonly JToken s_inputSchema;
 
         static SceneHierarchyTool()
         {
-            s_inputSchema = JsonDocument.Parse(@"{
+            s_inputSchema = JObject.Parse(@"{
                 ""type"": ""object"",
                 ""properties"": {
                     ""operation"": {
@@ -2535,7 +2541,7 @@ namespace Theatre.Editor
                     }
                 },
                 ""required"": [""operation""]
-            }").RootElement.Clone();
+            }");
         }
 
         /// <summary>Register this tool with the given registry.</summary>
@@ -2556,7 +2562,7 @@ namespace Theatre.Editor
             ));
         }
 
-        private static string Execute(JsonElement? arguments)
+        private static string Execute(JToken arguments)
         {
             if (!arguments.HasValue
                 || !arguments.Value.TryGetProperty("operation", out var opEl))
@@ -2582,7 +2588,7 @@ namespace Theatre.Editor
             };
         }
 
-        private static string ExecuteList(JsonElement args)
+        private static string ExecuteList(JToken args)
         {
             string parentPath = null;
             bool includeInactive = false;
@@ -2683,7 +2689,7 @@ namespace Theatre.Editor
             return Encoding.UTF8.GetString(stream.ToArray());
         }
 
-        private static string ExecuteFind(JsonElement args)
+        private static string ExecuteFind(JToken args)
         {
             if (!args.TryGetProperty("pattern", out var patternEl))
             {
@@ -2707,7 +2713,7 @@ namespace Theatre.Editor
             return BuildResultsResponse(entries);
         }
 
-        private static string ExecuteSearch(JsonElement args)
+        private static string ExecuteSearch(JToken args)
         {
             var filter = new HierarchyFilter();
 
@@ -2747,7 +2753,7 @@ namespace Theatre.Editor
             return BuildResultsResponse(entries);
         }
 
-        private static string ExecutePath(JsonElement args)
+        private static string ExecutePath(JToken args)
         {
             if (!args.TryGetProperty("instance_id", out var idEl))
             {
@@ -2930,7 +2936,8 @@ MCP tool for deep single-object inspection via SerializedProperty.
 using System;
 using System.IO;
 using System.Text;
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Theatre.Stage;
 using Theatre.Transport;
 using UnityEngine;
@@ -2945,11 +2952,11 @@ namespace Theatre.Editor
     /// </summary>
     public static class SceneInspectTool
     {
-        private static readonly JsonElement s_inputSchema;
+        private static readonly JToken s_inputSchema;
 
         static SceneInspectTool()
         {
-            s_inputSchema = JsonDocument.Parse(@"{
+            s_inputSchema = JObject.Parse(@"{
                 ""type"": ""object"",
                 ""properties"": {
                     ""path"": {
@@ -2980,7 +2987,7 @@ namespace Theatre.Editor
                     }
                 },
                 ""required"": []
-            }").RootElement.Clone();
+            }");
         }
 
         /// <summary>Register this tool with the given registry.</summary>
@@ -3001,7 +3008,7 @@ namespace Theatre.Editor
             ));
         }
 
-        private static string Execute(JsonElement? arguments)
+        private static string Execute(JToken arguments)
         {
             // Parse parameters
             string path = null;
@@ -3315,7 +3322,8 @@ HierarchyWalker, TokenBudget, PaginationCursor, Clustering.
 ```csharp
 using System.IO;
 using System.Text;
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Theatre.Stage;
 using UnityEngine;
@@ -3558,7 +3566,8 @@ namespace Theatre.Tests.Editor
 End-to-end tests that call the MCP tools against the test scene fixture.
 
 ```csharp
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using Theatre.Editor;
@@ -3587,8 +3596,8 @@ namespace Theatre.Tests.Editor
         [Test]
         public void SceneSnapshot_ReturnsObjects()
         {
-            var args = JsonDocument.Parse(
-                @"{ ""budget"": 2000 }").RootElement;
+            var args = JObject.Parse(
+                @"{ ""budget"": 2000 }");
             var result = CallTool("scene_snapshot", args);
 
             Assert.That(result, Does.Contain("\"scene\""));
@@ -3602,8 +3611,8 @@ namespace Theatre.Tests.Editor
         public void SceneSnapshot_RespectsRadius()
         {
             // Player is at origin. Scouts are at ~[11, 0, 5]. Radius 3 should exclude scouts.
-            var args = JsonDocument.Parse(
-                @"{ ""focus"": [0, 0, 0], ""radius"": 3, ""budget"": 2000 }").RootElement;
+            var args = JObject.Parse(
+                @"{ ""focus"": [0, 0, 0], ""radius"": 3, ""budget"": 2000 }");
             var result = CallTool("scene_snapshot", args);
 
             Assert.That(result, Does.Not.Contain("\"Scout_01\""));
@@ -3612,8 +3621,8 @@ namespace Theatre.Tests.Editor
         [Test]
         public void SceneSnapshot_ClustersEnemies()
         {
-            var args = JsonDocument.Parse(
-                @"{ ""budget"": 2000 }").RootElement;
+            var args = JObject.Parse(
+                @"{ ""budget"": 2000 }");
             var result = CallTool("scene_snapshot", args);
 
             // Should have cluster summaries
@@ -3623,8 +3632,8 @@ namespace Theatre.Tests.Editor
         [Test]
         public void SceneHierarchy_ListRoots()
         {
-            var args = JsonDocument.Parse(
-                @"{ ""operation"": ""list"" }").RootElement;
+            var args = JObject.Parse(
+                @"{ ""operation"": ""list"" }");
             var result = CallTool("scene_hierarchy", args);
 
             Assert.That(result, Does.Contain("\"results\""));
@@ -3634,8 +3643,8 @@ namespace Theatre.Tests.Editor
         [Test]
         public void SceneHierarchy_ListChildren()
         {
-            var args = JsonDocument.Parse(
-                @"{ ""operation"": ""list"", ""path"": ""/Enemies"" }").RootElement;
+            var args = JObject.Parse(
+                @"{ ""operation"": ""list"", ""path"": ""/Enemies"" }");
             var result = CallTool("scene_hierarchy", args);
 
             Assert.That(result, Does.Contain("\"Scout_01\""));
@@ -3645,8 +3654,8 @@ namespace Theatre.Tests.Editor
         [Test]
         public void SceneHierarchy_FindByPattern()
         {
-            var args = JsonDocument.Parse(
-                @"{ ""operation"": ""find"", ""pattern"": ""Scout*"" }").RootElement;
+            var args = JObject.Parse(
+                @"{ ""operation"": ""find"", ""pattern"": ""Scout*"" }");
             var result = CallTool("scene_hierarchy", args);
 
             Assert.That(result, Does.Contain("\"Scout_01\""));
@@ -3658,8 +3667,8 @@ namespace Theatre.Tests.Editor
         [Test]
         public void SceneHierarchy_SearchByTag()
         {
-            var args = JsonDocument.Parse(
-                @"{ ""operation"": ""search"", ""tag"": ""Player"" }").RootElement;
+            var args = JObject.Parse(
+                @"{ ""operation"": ""search"", ""tag"": ""Player"" }");
             var result = CallTool("scene_hierarchy", args);
 
             Assert.That(result, Does.Contain("\"Player\""));
@@ -3669,8 +3678,8 @@ namespace Theatre.Tests.Editor
         [Test]
         public void SceneInspect_ByPath()
         {
-            var args = JsonDocument.Parse(
-                @"{ ""path"": ""/Player"", ""depth"": ""full"" }").RootElement;
+            var args = JObject.Parse(
+                @"{ ""path"": ""/Player"", ""depth"": ""full"" }");
             var result = CallTool("scene_inspect", args);
 
             Assert.That(result, Does.Contain("\"path\":\"/Player\""));
@@ -3683,8 +3692,8 @@ namespace Theatre.Tests.Editor
         [Test]
         public void SceneInspect_NotFound()
         {
-            var args = JsonDocument.Parse(
-                @"{ ""path"": ""/DoesNotExist"" }").RootElement;
+            var args = JObject.Parse(
+                @"{ ""path"": ""/DoesNotExist"" }");
             var result = CallTool("scene_inspect", args);
 
             Assert.That(result, Does.Contain("\"error\""));
@@ -3695,8 +3704,8 @@ namespace Theatre.Tests.Editor
         [Test]
         public void SceneInspect_ComponentFilter()
         {
-            var args = JsonDocument.Parse(
-                @"{ ""path"": ""/Player/Camera"", ""components"": [""Camera""], ""depth"": ""full"" }").RootElement;
+            var args = JObject.Parse(
+                @"{ ""path"": ""/Player/Camera"", ""components"": [""Camera""], ""depth"": ""full"" }");
             var result = CallTool("scene_inspect", args);
 
             Assert.That(result, Does.Contain("\"Camera\""));
@@ -3706,7 +3715,7 @@ namespace Theatre.Tests.Editor
 
         // --- Helper ---
 
-        private string CallTool(string toolName, JsonElement args)
+        private string CallTool(string toolName, JToken args)
         {
             var tool = TheatreServer.ToolRegistry?.GetTool(
                 toolName,

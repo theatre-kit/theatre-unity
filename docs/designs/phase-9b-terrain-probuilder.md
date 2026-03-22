@@ -289,6 +289,15 @@ namespace Theatre.Editor.Tools.Director
 
 ### Unit 4: NavMeshOpTool Update — Use AI Navigation Package
 
+**Phase Dependency**: This unit modifies Phase 9a's `NavMeshOpTool` to
+add terrain integration. Phase 9b must be implemented after Phase 9a.
+This is consistent with the ROADMAP's sequential phase ordering — Phase
+9a (Tilemap & NavMesh) is a prerequisite for Phase 9b (Terrain &
+ProBuilder).
+
+If Phase 9a has not been implemented yet, skip this unit and add the
+terrain-NavMesh integration later as a follow-up.
+
 **File**: `Packages/com.theatre.toolkit/Editor/Tools/Director/NavMeshOpTool.cs` (modify)
 
 Now that `com.unity.ai.navigation` is installed, update `add_modifier` and

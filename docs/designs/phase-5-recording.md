@@ -45,6 +45,84 @@ convention (`Actions/`, `Scene/`, `Spatial/`, `Watch/`, `Recording/`).
 
 ---
 
+## Delta Compression Specification
+
+### Frame Types
+
+- **Frame 0** (full snapshot): Every tracked property for every tracked
+  object is captured. This is the baseline for delta reconstruction.
+- **Subsequent frames** (delta): Only properties whose values differ
+  from the previous frame are stored. If no properties changed for an
+  object, that object is omitted from the frame entirely.
+- **Keyframes**: Every 300 frames (configurable via
+  `RecordingEngine.KeyframeInterval`), a full snapshot is captured
+  regardless of changes. This bounds worst-case reconstruction cost.
+
+### Frame Reconstruction
+
+To reconstruct the full state at frame N:
+
+1. Find the nearest keyframe at or before N (frame 0, 300, 600, ...)
+2. Start with the keyframe's full property set
+3. Apply each subsequent delta frame up to N
+4. Unobserved properties retain their last-seen value
+
+**Example**:
+```
+Frame 0 (full):  { "/Player": { position: [1,2,3], hp: 100 } }
+Frame 1 (delta): { "/Player": { position: [1.1,2,3] } }
+Frame 2 (delta): {}  // nothing changed
+Reconstruct(2) → { "/Player": { position: [1.1,2,3], hp: 100 } }
+```
+
+### Flush Strategy
+
+- Frames buffer in memory (`_frameBuffer`, capacity 10)
+- Flushed to SQLite every `FlushInterval` frames (default 10) or
+  every 0.5 seconds, whichever comes first
+- On domain reload: buffered-but-unflushed frames are **lost**
+  (typically 0–9 frames, ~150ms at 60fps)
+- On resume after reload: recording continues from
+  `metadata.EndFrame + 1`, where EndFrame reflects the last
+  flushed frame
+- Agents can detect the gap via `query_range` — missing frames
+  return no data rather than interpolated values
+
+### Thread Safety
+
+RecordingEngine methods have the following threading constraints:
+
+| Method | Thread | Notes |
+|---|---|---|
+| `Initialize()` | Main thread | Called from TheatreServer startup |
+| `StartRecording()` | Main thread | HTTP handlers must use `MainThreadDispatcher.Invoke()` |
+| `StopRecording()` | Main thread | Same |
+| `InsertMarker()` | Main thread | Same |
+| `Tick()` | Main thread | Called from `EditorApplication.update` |
+| `IsRecording` (getter) | Any thread | Read-only bool, safe without lock |
+| `ActiveState` (getter) | Any thread | Reference read is atomic in .NET |
+| `ClipIndex` (getter) | Main thread | List not thread-safe for enumeration |
+
+The RecordingTool handler (HTTP thread pool) calls `StartRecording`,
+`StopRecording`, `InsertMarker` via `MainThreadDispatcher.Invoke()`.
+Read-only queries (`list_clips`, `clip_info`, `query_range`,
+`diff_frames`, `analyze`) open their own `RecordingDb` read connection
+and can run on the HTTP thread directly — SQLite WAL mode supports
+concurrent readers.
+
+### SessionState Keys
+
+| Key | Type | Content |
+|---|---|---|
+| `Theatre_Recording_Active` | string (JSON) | Serialized `RecordingState` or empty |
+| `Theatre_Recording_Counter` | int | Next clip ID counter |
+| `Theatre_Recording_ClipIndex` | string (JSON) | Serialized `List<ClipMetadata>` |
+
+Only one recording can be active at a time. Starting a second returns
+`recording_in_progress` error.
+
+---
+
 ## Implementation Units
 
 ### Unit 1: SQLite Integration — Native Binaries + Assembly Config

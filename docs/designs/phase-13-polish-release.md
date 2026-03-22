@@ -20,7 +20,7 @@ Contents:
 - **Quick Start**: 3 steps — install via git URL, copy `.mcp.json` snippet, open Theatre panel
 - **Installation**: Git URL (`https://github.com/theatre-kit/theatre-unity.git?path=Packages/com.theatre.toolkit`), OpenUPM option, manual download
 - **.mcp.json setup**: Full JSON config snippet for Claude Code / Cursor / etc.
-- **Tool Reference**: Table of all 37 tools with brief descriptions, grouped by category (Stage, Director, ECS)
+- **Tool Reference**: Table of all registered tools. The exact count depends on which optional packages are installed. With all packages: ~40 tools. Without optional packages: ~28 tools. The README should say "40+ tools" rather than citing a specific number. Grouped by category (Stage, Director, ECS)
 - **Requirements**: Unity 6 (6000.0+), .NET Standard 2.1
 - **Optional packages**: Table of optional packages and which tools they unlock (Timeline, ProBuilder, Entities, Addressables, etc.)
 - **License**: MIT
@@ -169,7 +169,7 @@ Ensure the template is correct and up-to-date:
 **No new files** — add tests to verify domain reload survival.
 
 Add to `Tests/Editor/`:
-- Test that `WatchPersistence.Save` + `Restore` round-trips 32 watches
+- Test that `WatchPersistence.Save` + `Restore` round-trips 20 watches (matching `TheatreConfig` max watch count)
 - Test that `RecordingPersistence.Save` + `Restore` round-trips active recording + clip index
 - Test that `ActivityLog.Save` + `Restore` round-trips 100 entries
 

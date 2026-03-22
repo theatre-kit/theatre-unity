@@ -127,17 +127,43 @@ public static class BlendTreeOpTool
 #### `set_thresholds`
 - Required: `controller_path`, `state_name`, `thresholds` (float array)
 - Optional: `layer`
-- For each child: `tree.children[i].threshold = thresholds[i]`
-  Note: `BlendTree.children` returns a copy. Must use serialized object
-  or the array setter: get children array, modify, set back.
-  Actually: `var children = tree.children;` modifies a copy. Use:
-  ```csharp
-  var children = tree.children;
-  for (int i = 0; i < children.Length && i < thresholds.Length; i++)
-      children[i].threshold = thresholds[i];
-  tree.children = children;  // set back
-  ```
-- Response
+- Find blend tree from state
+
+**Implementation**: `BlendTree.children` returns a copy (value-type
+array of `ChildMotion` structs). Modifying the copy and assigning back
+via `tree.children = modified` **does work** in Unity — the property
+setter replaces the internal array. However, this must be done within
+an Undo-aware context:
+
+```csharp
+Undo.RecordObject(tree, "Theatre Set Thresholds");
+var children = tree.children;
+for (int i = 0; i < children.Length && i < thresholds.Length; i++)
+    children[i].threshold = thresholds[i];
+tree.children = children;
+EditorUtility.SetDirty(tree);
+AssetDatabase.SaveAssetIfDirty(tree);
+```
+
+**Fallback** — If direct assignment causes issues in specific Unity
+versions, use `SerializedObject`:
+
+```csharp
+var so = new SerializedObject(tree);
+var childrenProp = so.FindProperty("m_Childs");
+for (int i = 0; i < childrenProp.arraySize && i < thresholds.Length; i++)
+{
+    var child = childrenProp.GetArrayElementAtIndex(i);
+    child.FindPropertyRelative("m_Threshold").floatValue = thresholds[i];
+}
+so.ApplyModifiedProperties();
+```
+
+The `SerializedObject` path is the safer fallback. Implementer should
+try direct assignment first and fall back to SerializedObject if Unity
+logs warnings or throws.
+
+- Response with updated threshold count
 
 **JSON Schema** properties:
 - `operation` (required, enum of 5 ops)
@@ -255,6 +281,22 @@ namespace Theatre.Editor.Tools.Director
 - For each track: name, type, clip count, duration
 - For each clip: start, duration, display name
 - Response with tracks array
+
+#### Undo Integration
+
+All TimelineOpTool mutation operations (`add_track`, `add_clip`,
+`set_clip_properties`, `add_marker`, `bind_track`) wrap their changes
+in `DirectorHelpers.BeginUndoGroup` / `EndUndoGroup` with a
+`"Theatre: <operation_name>"` label. The `create` operation uses
+`Undo.RegisterCreatedObjectUndo`. Read-only `list_tracks` has no undo.
+
+#### Missing Error Codes
+
+- `bind_track` when no PlayableDirector found:
+  `"gameobject_not_found"` with suggestion
+  `"Add a PlayableDirector component to a scene object and assign this Timeline asset"`
+- `add_track` with invalid track type:
+  `"invalid_parameter"` with suggestion listing valid track types
 
 **Acceptance Criteria**:
 - [ ] `create` produces a .playable file
