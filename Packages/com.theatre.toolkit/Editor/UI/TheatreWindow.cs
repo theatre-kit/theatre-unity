@@ -299,28 +299,46 @@ namespace Theatre.Editor.UI
         {
             var container = new VisualElement();
 
-            // Top-level category foldouts
-            var stageFoldout    = MakeCategoryFoldout("Stage",    "theatre_foldout_stage",    true);
-            var ecsFoldout      = MakeCategoryFoldout("ECS",      "theatre_foldout_ecs",      false);
-            var directorFoldout = MakeCategoryFoldout("Director", "theatre_foldout_director", false);
-
             var enabledGroups = TheatreConfig.EnabledGroups;
             var disabledTools = TheatreConfig.DisabledTools;
 
+            // Section containers for each category
+            var stageSection    = new VisualElement();
+            var ecsSection      = new VisualElement();
+            var directorSection = new VisualElement();
+
             foreach (var (groupName, flag, tools) in s_groups)
             {
-                var parentFoldout = IsStageGroup(flag)    ? stageFoldout
-                                  : IsECSGroup(flag)      ? ecsFoldout
-                                                          : directorFoldout;
+                var parent = IsStageGroup(flag) ? stageSection
+                           : IsECSGroup(flag)   ? ecsSection
+                                                : directorSection;
 
                 var groupSection = BuildGroupSection(groupName, flag, tools, enabledGroups, disabledTools);
-                parentFoldout.Add(groupSection);
+                parent.Add(groupSection);
             }
 
-            container.Add(stageFoldout);
-            container.Add(ecsFoldout);
-            container.Add(directorFoldout);
+            container.Add(MakeCategoryHeader("Stage", new Color(0.5f, 0.8f, 1f)));
+            container.Add(stageSection);
+            container.Add(MakeCategoryHeader("ECS", new Color(0.8f, 0.6f, 1f)));
+            container.Add(ecsSection);
+            container.Add(MakeCategoryHeader("Director", new Color(0.5f, 1f, 0.6f)));
+            container.Add(directorSection);
+
             return container;
+        }
+
+        private static VisualElement MakeCategoryHeader(string text, Color color)
+        {
+            var header = new Label(text);
+            header.style.unityFontStyleAndWeight = FontStyle.Bold;
+            header.style.fontSize = 11;
+            header.style.color = new StyleColor(color);
+            header.style.marginTop = 8;
+            header.style.marginBottom = 4;
+            header.style.paddingBottom = 2;
+            header.style.borderBottomWidth = 1;
+            header.style.borderBottomColor = new StyleColor(new Color(color.r * 0.5f, color.g * 0.5f, color.b * 0.5f, 0.5f));
+            return header;
         }
 
         /// <summary>
@@ -341,58 +359,47 @@ namespace Theatre.Editor.UI
                 return BuildToolRow(tools[0], capturedFlag, disabledTools);
             }
 
-            // Multi-tool groups: group header + indented tool rows
-            var section = new VisualElement();
-            section.style.marginBottom = 6;
-            section.style.marginLeft   = 2;
+            // Multi-tool groups: foldable group with toggle + per-tool rows
+            var foldout = new Foldout();
+            foldout.text = groupName;
+            foldout.viewDataKey = $"theatre_group_{groupName.Replace(' ', '_').Replace('&', '_')}";
+            foldout.value = false; // collapsed by default
+            foldout.style.marginBottom = 2;
+            foldout.style.marginLeft = 2;
 
-            // ── Group header: [toggle] GroupName ─────────────────────────────
-            var header = new VisualElement();
-            header.style.flexDirection = FlexDirection.Row;
-            header.style.alignItems    = Align.Center;
-            header.style.marginBottom  = 2;
-
-            var groupToggle = new Toggle();
-            groupToggle.style.flexShrink = 0;
-            groupToggle.style.width      = 18;
-            groupToggle.style.marginTop  = 0;
-            groupToggle.value            = (enabledGroups & flag) != 0;
-            groupToggle.tooltip          = $"Enable/disable all {groupName} tools";
-            groupToggle.RegisterValueChangedCallback(evt =>
+            // Insert a group-level toggle into the foldout header
+            var foldoutToggle = foldout.Q<Toggle>(className: "unity-foldout__toggle");
+            if (foldoutToggle != null)
             {
-                var g = TheatreConfig.EnabledGroups;
-                if (evt.newValue) g |= capturedFlag;
-                else              g &= ~capturedFlag;
-                TheatreServer.SetEnabledGroups(g);
-                // Rebuild to sync child tool checkboxes
-                var window = GetWindow<TheatreWindow>();
-                if (window != null)
+                var groupCheck = new Toggle();
+                groupCheck.style.flexShrink = 0;
+                groupCheck.style.marginRight = 4;
+                groupCheck.value = (enabledGroups & flag) != 0;
+                groupCheck.tooltip = $"Enable/disable all {groupName} tools";
+                groupCheck.RegisterValueChangedCallback(evt =>
                 {
-                    window.rootVisualElement.Clear();
-                    window.CreateGUI();
-                }
-            });
-            header.Add(groupToggle);
-
-            var groupLabel = new Label(groupName);
-            groupLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-            groupLabel.style.fontSize  = 11;
-            groupLabel.style.marginLeft = 4;
-            header.Add(groupLabel);
-
-            section.Add(header);
-
-            // ── Per-tool rows ─────────────────────────────────────────────────
-            var toolList = new VisualElement();
-            toolList.style.marginLeft = 20;
-
-            foreach (var toolName in tools)
-            {
-                toolList.Add(BuildToolRow(toolName, capturedFlag, disabledTools));
+                    var g = TheatreConfig.EnabledGroups;
+                    if (evt.newValue) g |= capturedFlag;
+                    else              g &= ~capturedFlag;
+                    TheatreServer.SetEnabledGroups(g);
+                    var window = GetWindow<TheatreWindow>();
+                    if (window != null)
+                    {
+                        window.rootVisualElement.Clear();
+                        window.CreateGUI();
+                    }
+                });
+                // Insert the group checkbox before the foldout label
+                foldoutToggle.Insert(0, groupCheck);
             }
 
-            section.Add(toolList);
-            return section;
+            // Per-tool rows inside the foldout
+            foreach (var toolName in tools)
+            {
+                foldout.Add(BuildToolRow(toolName, capturedFlag, disabledTools));
+            }
+
+            return foldout;
         }
 
         /// <summary>
