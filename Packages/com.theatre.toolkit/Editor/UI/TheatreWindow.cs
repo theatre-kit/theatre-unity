@@ -358,7 +358,7 @@ namespace Theatre.Editor.UI
             if (tools.Length == 1)
             {
                 var row = BuildToolRow(tools[0], capturedFlag, disabledTools);
-                row.style.marginLeft = 4;
+                row.style.marginLeft = 5;
                 return row;
             }
 
