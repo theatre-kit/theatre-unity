@@ -365,6 +365,13 @@ namespace Theatre.Editor.UI
                 if (evt.newValue) g |= capturedFlag;
                 else              g &= ~capturedFlag;
                 TheatreServer.SetEnabledGroups(g);
+                // Rebuild to sync child tool checkboxes
+                var window = GetWindow<TheatreWindow>();
+                if (window != null)
+                {
+                    window.rootVisualElement.Clear();
+                    window.CreateGUI();
+                }
             });
             header.Add(groupToggle);
 
