@@ -1,5 +1,4 @@
 using System;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Theatre.Stage;
 using UnityEngine;
@@ -14,23 +13,11 @@ namespace Theatre.Editor.Tools.Spatial
     {
         internal static string Execute(JObject args)
         {
-            var origin = JsonParamParser.ParseVector3(args, "origin");
-            if (!origin.HasValue)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing or invalid 'origin' parameter",
-                    "Provide origin as [x, y, z] array");
-            }
+            var error = JsonParamParser.RequireVector3(args, "origin", out var origin);
+            if (error != null) return error;
 
-            var radiusVal = args["radius"]?.Value<float>();
-            if (!radiusVal.HasValue || radiusVal.Value <= 0f)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing or invalid 'radius' parameter",
-                    "Provide a positive radius value");
-            }
+            error = JsonParamParser.RequirePositiveFloat(args, "radius", out var radius);
+            if (error != null) return error;
 
             string sortBy = args["sort_by"]?.Value<string>() ?? "distance";
             int budgetTokens = args["budget"]?.Value<int>()
@@ -45,31 +32,16 @@ namespace Theatre.Editor.Tools.Spatial
             var filter = SpatialEntryFilter.Build(includeComponents, excludeTags);
 
             var index = SpatialQueryTool.GetIndex();
-            var results = index.Radius(
-                origin.Value, radiusVal.Value, filter, sortBy);
+            var results = index.Radius(origin, radius, filter, sortBy);
 
-            // Build response
-            var budget = new TokenBudget(budgetTokens);
-            var response = new JObject();
-            ResponseHelpers.AddFrameContext(response);
-            response["operation"] = "radius";
-            response["origin"] = ResponseHelpers.ToJArray(origin.Value);
-            response["radius"] = Math.Round(radiusVal.Value, 2);
-
-            var (resultsArray, returned, truncated) =
-                SpatialResultBuilder.BuildResultsArray(results, budget);
-
-            response["results"] = resultsArray;
-            response["total"] = results.Count;
-            response["returned"] = returned;
-            response["budget"] = budget.ToBudgetJObject(
-                truncated: truncated,
-                reason: truncated ? "budget" : null,
-                suggestion: truncated
-                    ? "Reduce radius or increase budget"
-                    : null);
-
-            return response.ToString(Formatting.None);
+            return SpatialResultBuilder.BuildBudgetedResponse(
+                "radius", results, budgetTokens,
+                r =>
+                {
+                    r["origin"] = ResponseHelpers.ToJArray(origin);
+                    r["radius"] = Math.Round(radius, 2);
+                },
+                "Reduce radius or increase budget");
         }
     }
 }

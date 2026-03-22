@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
-using UnityEngine;
+using Theatre;
 using Theatre.Stage;
+using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -18,19 +19,19 @@ namespace Theatre.Editor.Tools.Director
     internal static class DirectorHelpers
     {
         /// <summary>
-        /// Resolve a Component type by name.
-        /// Searches all loaded assemblies for an exact match or Name match.
+        /// Resolve a type by name, filtering to those assignable from <paramref name="baseType"/>.
+        /// Searches all loaded assemblies for an exact fully-qualified match or simple Name match.
         /// Returns null and sets error on failure or ambiguity.
         /// </summary>
-        public static Type ResolveComponentType(string typeName, out string error)
+        public static Type ResolveType(string typeName, Type baseType, string label, out string error)
         {
             error = null;
             if (string.IsNullOrEmpty(typeName))
             {
                 error = ResponseHelpers.ErrorResponse(
                     "invalid_parameter",
-                    "Component type name must not be empty",
-                    "Provide a component type name such as 'BoxCollider' or 'Rigidbody'");
+                    $"{label} type name must not be empty",
+                    $"Provide a {label} type name such as 'BoxCollider' or 'Rigidbody'");
                 return null;
             }
 
@@ -40,7 +41,7 @@ namespace Theatre.Editor.Tools.Director
             {
                 // Try exact fully-qualified name first
                 var exact = assembly.GetType(typeName);
-                if (exact != null && typeof(Component).IsAssignableFrom(exact))
+                if (exact != null && baseType.IsAssignableFrom(exact))
                 {
                     matches.Add(exact);
                     continue;
@@ -51,7 +52,7 @@ namespace Theatre.Editor.Tools.Director
                 {
                     foreach (var type in assembly.GetTypes())
                     {
-                        if (type.Name == typeName && typeof(Component).IsAssignableFrom(type))
+                        if (type.Name == typeName && baseType.IsAssignableFrom(type))
                         {
                             if (!matches.Contains(type))
                                 matches.Add(type);
@@ -68,76 +69,7 @@ namespace Theatre.Editor.Tools.Director
             {
                 error = ResponseHelpers.ErrorResponse(
                     "type_not_found",
-                    $"Component type '{typeName}' not found in any loaded assembly",
-                    "Check the type name is correct. Use fully-qualified name (e.g. 'UnityEngine.BoxCollider') to disambiguate.");
-                return null;
-            }
-
-            if (matches.Count > 1)
-            {
-                var names = string.Join(", ", matches.Select(t => t.FullName));
-                error = ResponseHelpers.ErrorResponse(
-                    "type_ambiguous",
-                    $"Component type name '{typeName}' is ambiguous. Matches: {names}",
-                    "Use the fully-qualified type name to disambiguate");
-                return null;
-            }
-
-            return matches[0];
-        }
-
-        /// <summary>
-        /// Resolve a ScriptableObject type by name.
-        /// Same logic as ResolveComponentType but filters on ScriptableObject inheritance.
-        /// Returns null and sets error on failure or ambiguity.
-        /// </summary>
-        public static Type ResolveScriptableObjectType(string typeName, out string error)
-        {
-            error = null;
-            if (string.IsNullOrEmpty(typeName))
-            {
-                error = ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "ScriptableObject type name must not be empty",
-                    "Provide a ScriptableObject type name such as 'MyConfig' or 'UnityEngine.ScriptableObject'");
-                return null;
-            }
-
-            var matches = new List<Type>();
-
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                // Try exact fully-qualified name first
-                var exact = assembly.GetType(typeName);
-                if (exact != null && typeof(ScriptableObject).IsAssignableFrom(exact))
-                {
-                    matches.Add(exact);
-                    continue;
-                }
-
-                // Search by simple name
-                try
-                {
-                    foreach (var type in assembly.GetTypes())
-                    {
-                        if (type.Name == typeName && typeof(ScriptableObject).IsAssignableFrom(type))
-                        {
-                            if (!matches.Contains(type))
-                                matches.Add(type);
-                        }
-                    }
-                }
-                catch (System.Reflection.ReflectionTypeLoadException)
-                {
-                    // Some assemblies cannot enumerate types — skip them
-                }
-            }
-
-            if (matches.Count == 0)
-            {
-                error = ResponseHelpers.ErrorResponse(
-                    "type_not_found",
-                    $"ScriptableObject type '{typeName}' not found in any loaded assembly",
+                    $"{label} type '{typeName}' not found in any loaded assembly",
                     "Check the type name is correct. Use fully-qualified name to disambiguate.");
                 return null;
             }
@@ -147,13 +79,29 @@ namespace Theatre.Editor.Tools.Director
                 var names = string.Join(", ", matches.Select(t => t.FullName));
                 error = ResponseHelpers.ErrorResponse(
                     "type_ambiguous",
-                    $"ScriptableObject type name '{typeName}' is ambiguous. Matches: {names}",
+                    $"{label} type name '{typeName}' is ambiguous. Matches: {names}",
                     "Use the fully-qualified type name to disambiguate");
                 return null;
             }
 
             return matches[0];
         }
+
+        /// <summary>
+        /// Resolve a Component type by name.
+        /// Searches all loaded assemblies for an exact match or Name match.
+        /// Returns null and sets error on failure or ambiguity.
+        /// </summary>
+        public static Type ResolveComponentType(string typeName, out string error)
+            => ResolveType(typeName, typeof(Component), "Component", out error);
+
+        /// <summary>
+        /// Resolve a ScriptableObject type by name.
+        /// Same logic as ResolveComponentType but filters on ScriptableObject inheritance.
+        /// Returns null and sets error on failure or ambiguity.
+        /// </summary>
+        public static Type ResolveScriptableObjectType(string typeName, out string error)
+            => ResolveType(typeName, typeof(ScriptableObject), "ScriptableObject", out error);
 
         /// <summary>
         /// Validate an asset path.
@@ -223,13 +171,12 @@ namespace Theatre.Editor.Tools.Director
                 var value = prop.Value;
 
                 // 4-step fallback matching ActionSetProperty
-                var sp = so.FindProperty(propName);
-                if (sp == null)
-                    sp = so.FindProperty("m_" + ToPascalCase(propName));
-                if (sp == null)
-                    sp = so.FindProperty(ToPascalCase(propName));
-                if (sp == null)
-                    sp = so.FindProperty("m_" + propName);
+                SerializedProperty sp = null;
+                foreach (var candidate in StringUtils.GetPropertyNameCandidates(propName))
+                {
+                    sp = so.FindProperty(candidate);
+                    if (sp != null) break;
+                }
 
                 if (sp == null)
                 {
@@ -418,18 +365,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>
         /// Convert a snake_case string to PascalCase.
         /// E.g. "is_kinematic" -> "IsKinematic".
+        /// Delegates to <see cref="StringUtils.ToPascalCase"/>.
         /// </summary>
         public static string ToPascalCase(string snakeCase)
-        {
-            if (string.IsNullOrEmpty(snakeCase)) return snakeCase;
-            var parts = snakeCase.Split('_');
-            for (int i = 0; i < parts.Length; i++)
-            {
-                if (parts[i].Length > 0)
-                    parts[i] = char.ToUpperInvariant(parts[i][0])
-                             + parts[i].Substring(1);
-            }
-            return string.Join("", parts);
-        }
+            => StringUtils.ToPascalCase(snakeCase);
     }
 }

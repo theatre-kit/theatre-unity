@@ -68,48 +68,30 @@ namespace Theatre.Editor.Tools.Spatial
         private static string Execute2D(
             JObject args, float maxDistance, bool all, int layerMask)
         {
-            var origin = JsonParamParser.ParseVector2(args, "origin");
-            if (!origin.HasValue)
-            {
-                var origin3 = JsonParamParser.ParseVector3(args, "origin");
-                if (origin3.HasValue)
-                    origin = new Vector2(origin3.Value.x, origin3.Value.y);
-                else
-                    return ResponseHelpers.ErrorResponse(
-                        "invalid_parameter",
-                        "Missing or invalid 'origin'",
-                        "Provide origin as [x, y] or [x, y, z]");
-            }
+            var error = JsonParamParser.RequireVector2WithFallback(
+                args, "origin", out var origin,
+                "Provide origin as [x, y] or [x, y, z]");
+            if (error != null) return error;
 
-            var direction = JsonParamParser.ParseVector2(
-                args, "direction");
-            if (!direction.HasValue)
-            {
-                var dir3 = JsonParamParser.ParseVector3(
-                    args, "direction");
-                if (dir3.HasValue)
-                    direction = new Vector2(dir3.Value.x, dir3.Value.y);
-                else
-                    return ResponseHelpers.ErrorResponse(
-                        "invalid_parameter",
-                        "Missing or invalid 'direction'",
-                        "Provide direction as [x, y] or [x, y, z]");
-            }
+            error = JsonParamParser.RequireVector2WithFallback(
+                args, "direction", out var direction,
+                "Provide direction as [x, y] or [x, y, z]");
+            if (error != null) return error;
 
-            var dir = direction.Value.normalized;
+            var dir = direction.normalized;
 
             if (all)
             {
                 var hits = Physics2D.RaycastAll(
-                    origin.Value, dir, maxDistance, layerMask);
-                return BuildMultiHitResponse2D(hits, origin.Value, dir);
+                    origin, dir, maxDistance, layerMask);
+                return BuildMultiHitResponse2D(hits, origin, dir);
             }
             else
             {
                 var hit = Physics2D.Raycast(
-                    origin.Value, dir, maxDistance, layerMask);
+                    origin, dir, maxDistance, layerMask);
                 return BuildSingleHitResponse2D(
-                    hit, origin.Value, dir);
+                    hit, origin, dir);
             }
         }
 

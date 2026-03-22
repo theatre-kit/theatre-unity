@@ -1,4 +1,3 @@
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Theatre.Stage;
 using UnityEngine;
@@ -13,15 +12,8 @@ namespace Theatre.Editor.Tools.Spatial
     {
         internal static string Execute(JObject args)
         {
-            // Parse origin (required)
-            var origin = JsonParamParser.ParseVector3(args, "origin");
-            if (!origin.HasValue)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing or invalid 'origin' parameter",
-                    "Provide origin as [x, y, z] array");
-            }
+            var error = JsonParamParser.RequireVector3(args, "origin", out var origin);
+            if (error != null) return error;
 
             int count = args["count"]?.Value<int>() ?? 5;
             float maxDistance = args["max_distance"]?.Value<float>() ?? 0f;
@@ -37,29 +29,12 @@ namespace Theatre.Editor.Tools.Spatial
 
             // Query spatial index
             var index = SpatialQueryTool.GetIndex();
-            var results = index.Nearest(
-                origin.Value, count, maxDistance, filter);
+            var results = index.Nearest(origin, count, maxDistance, filter);
 
-            // Build response
-            var budget = new TokenBudget(budgetTokens);
-            var response = new JObject();
-            ResponseHelpers.AddFrameContext(response);
-            response["operation"] = "nearest";
-            response["origin"] = ResponseHelpers.ToJArray(origin.Value);
-
-            var (resultsArray, returned, truncated) =
-                SpatialResultBuilder.BuildResultsArray(results, budget);
-
-            response["results"] = resultsArray;
-            response["returned"] = returned;
-            response["budget"] = budget.ToBudgetJObject(
-                truncated: truncated,
-                reason: truncated ? "budget" : null,
-                suggestion: truncated
-                    ? "Reduce count or increase budget to see more results"
-                    : null);
-
-            return response.ToString(Formatting.None);
+            return SpatialResultBuilder.BuildBudgetedResponse(
+                "nearest", results, budgetTokens,
+                r => { r["origin"] = ResponseHelpers.ToJArray(origin); },
+                "Reduce count or increase budget to see more results");
         }
     }
 }

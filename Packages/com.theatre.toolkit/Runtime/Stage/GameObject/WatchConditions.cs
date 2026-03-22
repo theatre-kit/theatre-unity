@@ -1,5 +1,6 @@
 using System;
 using Newtonsoft.Json.Linq;
+using Theatre;
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -230,11 +231,11 @@ namespace Theatre.Stage
             {
                 if (comp == null) continue;
                 var so = new SerializedObject(comp);
-                var prop = so.FindProperty(propertyName);
-                if (prop == null)
+                SerializedProperty prop = null;
+                foreach (var candidate in StringUtils.GetPropertyNameCandidates(propertyName))
                 {
-                    // Try with m_ prefix (Unity internal naming)
-                    prop = so.FindProperty("m_" + ToPascalCase(propertyName));
+                    prop = so.FindProperty(candidate);
+                    if (prop != null) break;
                 }
                 if (prop != null)
                 {
@@ -281,17 +282,5 @@ namespace Theatre.Stage
         }
 #endif
 
-        private static string ToPascalCase(string snakeCase)
-        {
-            if (string.IsNullOrEmpty(snakeCase)) return snakeCase;
-            var parts = snakeCase.Split('_');
-            for (int i = 0; i < parts.Length; i++)
-            {
-                if (parts[i].Length > 0)
-                    parts[i] = char.ToUpperInvariant(parts[i][0])
-                             + parts[i].Substring(1);
-            }
-            return string.Join("", parts);
-        }
     }
 }

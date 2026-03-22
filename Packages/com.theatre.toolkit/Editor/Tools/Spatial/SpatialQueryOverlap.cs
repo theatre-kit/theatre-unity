@@ -110,19 +110,11 @@ namespace Theatre.Editor.Tools.Spatial
         private static string Execute2D(
             JObject args, string shape, int layerMask)
         {
-            var center2D = JsonParamParser.ParseVector2(args, "center");
-            if (!center2D.HasValue)
-            {
-                // Try parsing as Vector3 and take XY
-                var center3D = JsonParamParser.ParseVector3(args, "center");
-                if (center3D.HasValue)
-                    center2D = new Vector2(center3D.Value.x, center3D.Value.y);
-                else
-                    return ResponseHelpers.ErrorResponse(
-                        "invalid_parameter",
-                        "Missing or invalid 'center' parameter",
-                        "Provide center as [x, y] or [x, y, z] array");
-            }
+            // Try parsing as Vector3 and take XY
+            var error = JsonParamParser.RequireVector2WithFallback(
+                args, "center", out var center2D,
+                "Provide center as [x, y] or [x, y, z] array");
+            if (error != null) return error;
 
             Collider2D[] colliders;
 
@@ -134,7 +126,7 @@ namespace Theatre.Editor.Tools.Spatial
                     float radius = ParseRadius(args);
                     if (radius <= 0f) return RadiusError();
                     colliders = Physics2D.OverlapCircleAll(
-                        center2D.Value, radius, layerMask);
+                        center2D, radius, layerMask);
                     break;
                 }
                 case "box":
@@ -154,7 +146,7 @@ namespace Theatre.Editor.Tools.Spatial
                             "Missing 'size' for box overlap",
                             "Provide size as [x, y] half-extents");
                     colliders = Physics2D.OverlapBoxAll(
-                        center2D.Value, size2D.Value * 2f, 0f, layerMask);
+                        center2D, size2D.Value * 2f, 0f, layerMask);
                     break;
                 }
                 case "capsule":
@@ -166,7 +158,7 @@ namespace Theatre.Editor.Tools.Spatial
                             "Missing 'size' for capsule overlap",
                             "Provide size as [width, height]");
                     colliders = Physics2D.OverlapCapsuleAll(
-                        center2D.Value, size2D.Value,
+                        center2D, size2D.Value,
                         CapsuleDirection2D.Vertical, 0f, layerMask);
                     break;
                 }

@@ -18,45 +18,38 @@ namespace Theatre.Editor.Tools.Spatial
 
         internal static string Execute(JObject args)
         {
-            var from = JsonParamParser.ParseVector3(args, "from");
-            var to = JsonParamParser.ParseVector3(args, "to");
-
-            if (!from.HasValue)
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing or invalid 'from' parameter",
-                    "Provide from as [x, y, z]");
-            if (!to.HasValue)
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing or invalid 'to' parameter",
-                    "Provide to as [x, y, z]");
+            var error = JsonParamParser.RequireVector3(args, "from", out var from,
+                "Provide from as [x, y, z]");
+            if (error != null) return error;
+            error = JsonParamParser.RequireVector3(args, "to", out var to,
+                "Provide to as [x, y, z]");
+            if (error != null) return error;
 
             int agentTypeId = args["agent_type_id"]?.Value<int>() ?? 0;
 
             // Verify NavMesh is available at start point
             if (!NavMesh.SamplePosition(
-                from.Value, out NavMeshHit fromHit,
+                from, out NavMeshHit fromHit,
                 SampleRadius, NavMesh.AllAreas))
             {
                 return ResponseHelpers.ErrorResponse(
                     "navmesh_not_available",
                     $"No NavMesh found near start point "
-                    + $"[{from.Value.x:F1}, {from.Value.y:F1}, "
-                    + $"{from.Value.z:F1}]",
+                    + $"[{from.x:F1}, {from.y:F1}, "
+                    + $"{from.z:F1}]",
                     "Bake a NavMesh first: Window > AI > Navigation > Bake");
             }
 
             // Verify NavMesh at end point
             if (!NavMesh.SamplePosition(
-                to.Value, out NavMeshHit toHit,
+                to, out NavMeshHit toHit,
                 SampleRadius, NavMesh.AllAreas))
             {
                 return ResponseHelpers.ErrorResponse(
                     "navmesh_not_available",
                     $"No NavMesh found near end point "
-                    + $"[{to.Value.x:F1}, {to.Value.y:F1}, "
-                    + $"{to.Value.z:F1}]",
+                    + $"[{to.x:F1}, {to.y:F1}, "
+                    + $"{to.z:F1}]",
                     "Bake a NavMesh first: Window > AI > Navigation > Bake");
             }
 
@@ -71,10 +64,10 @@ namespace Theatre.Editor.Tools.Spatial
             response["operation"] = "path_distance";
 
             var result = new JObject();
-            result["from"] = ResponseHelpers.ToJArray(from.Value);
-            result["to"] = ResponseHelpers.ToJArray(to.Value);
+            result["from"] = ResponseHelpers.ToJArray(from);
+            result["to"] = ResponseHelpers.ToJArray(to);
             result["straight_distance"] = Math.Round(
-                Vector3.Distance(from.Value, to.Value), 2);
+                Vector3.Distance(from, to), 2);
 
             if (found && path.status == NavMeshPathStatus.PathComplete)
             {

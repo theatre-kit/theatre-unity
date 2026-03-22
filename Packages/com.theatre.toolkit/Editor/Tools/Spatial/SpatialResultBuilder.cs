@@ -14,6 +14,42 @@ namespace Theatre.Editor.Tools.Spatial
     internal static class SpatialResultBuilder
     {
         /// <summary>
+        /// Build a complete budgeted spatial query response.
+        /// Adds frame context, operation echo, results array, and budget envelope.
+        /// </summary>
+        /// <param name="operation">Operation name to echo in response.</param>
+        /// <param name="results">Spatial results to include.</param>
+        /// <param name="budgetTokens">Token budget limit.</param>
+        /// <param name="addParams">Callback to add operation-specific params to the response.</param>
+        /// <param name="truncationSuggestion">Suggestion text when results are truncated.</param>
+        public static string BuildBudgetedResponse(
+            string operation,
+            IReadOnlyList<SpatialResult> results,
+            int budgetTokens,
+            Action<JObject> addParams,
+            string truncationSuggestion)
+        {
+            var budget = new TokenBudget(budgetTokens);
+            var response = new JObject();
+            ResponseHelpers.AddFrameContext(response);
+            response["operation"] = operation;
+            addParams?.Invoke(response);
+
+            var (resultsArray, returned, truncated) =
+                BuildResultsArray(results, budget);
+
+            response["results"] = resultsArray;
+            response["total"] = results.Count;
+            response["returned"] = returned;
+            response["budget"] = budget.ToBudgetJObject(
+                truncated: truncated,
+                reason: truncated ? "budget" : null,
+                suggestion: truncated ? truncationSuggestion : null);
+
+            return response.ToString(Formatting.None);
+        }
+
+        /// <summary>
         /// Build a budgeted JArray of spatial result entry objects.
         /// </summary>
         /// <param name="results">Ordered list of spatial results to render.</param>

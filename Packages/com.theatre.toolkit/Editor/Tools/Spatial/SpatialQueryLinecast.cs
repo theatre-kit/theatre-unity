@@ -56,41 +56,24 @@ namespace Theatre.Editor.Tools.Spatial
 
         private static string Execute2D(JObject args, int layerMask)
         {
-            var from2D = JsonParamParser.ParseVector2(args, "from");
-            var to2D = JsonParamParser.ParseVector2(args, "to");
-
             // Allow Vector3 input, take XY
-            if (!from2D.HasValue)
-            {
-                var f3 = JsonParamParser.ParseVector3(args, "from");
-                if (f3.HasValue) from2D = new Vector2(f3.Value.x, f3.Value.y);
-            }
-            if (!to2D.HasValue)
-            {
-                var t3 = JsonParamParser.ParseVector3(args, "to");
-                if (t3.HasValue) to2D = new Vector2(t3.Value.x, t3.Value.y);
-            }
+            var error = JsonParamParser.RequireVector2WithFallback(
+                args, "from", out var from2D,
+                "Provide from as [x, y] or [x, y, z]");
+            if (error != null) return error;
+            error = JsonParamParser.RequireVector2WithFallback(
+                args, "to", out var to2D,
+                "Provide to as [x, y] or [x, y, z]");
+            if (error != null) return error;
 
-            if (!from2D.HasValue)
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing or invalid 'from' parameter",
-                    "Provide from as [x, y] or [x, y, z]");
-            if (!to2D.HasValue)
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing or invalid 'to' parameter",
-                    "Provide to as [x, y] or [x, y, z]");
-
-            var hit = Physics2D.Linecast(
-                from2D.Value, to2D.Value, layerMask);
+            var hit = Physics2D.Linecast(from2D, to2D, layerMask);
 
             bool blocked = hit.collider != null;
 
             return BuildResponse(
                 blocked,
-                new Vector3(from2D.Value.x, from2D.Value.y, 0),
-                new Vector3(to2D.Value.x, to2D.Value.y, 0),
+                new Vector3(from2D.x, from2D.y, 0),
+                new Vector3(to2D.x, to2D.y, 0),
                 blocked ? (Vector3?)new Vector3(
                     hit.point.x, hit.point.y, 0) : null,
                 blocked ? (Vector3?)new Vector3(
