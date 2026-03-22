@@ -374,7 +374,7 @@ namespace Theatre.Editor.UI
 
             foreach (var toolName in tools)
             {
-                toolList.Add(BuildToolRow(toolName, disabledTools));
+                toolList.Add(BuildToolRow(toolName, capturedFlag, disabledTools));
             }
 
             section.Add(toolList);
@@ -384,19 +384,23 @@ namespace Theatre.Editor.UI
         /// <summary>
         /// One tool row: bare checkbox + right column (bold name + gray description).
         /// </summary>
-        private static VisualElement BuildToolRow(string toolName, HashSet<string> disabledTools)
+        private static VisualElement BuildToolRow(string toolName, ToolGroup groupFlag, HashSet<string> disabledTools)
         {
             var row = new VisualElement();
             row.style.flexDirection = FlexDirection.Row;
             row.style.alignItems    = Align.FlexStart;
             row.style.marginBottom  = 3;
 
+            // Tool is enabled if its group is enabled AND it's not individually disabled
+            bool groupEnabled = (TheatreConfig.EnabledGroups & groupFlag) != 0;
+            bool toolEnabled = groupEnabled && !disabledTools.Contains(toolName);
+
             // Bare checkbox — Toggle() with no label
             var toggle = new Toggle();
             toggle.style.flexShrink = 0;
             toggle.style.width      = 18;
             toggle.style.marginTop  = 2;
-            toggle.value            = !disabledTools.Contains(toolName);
+            toggle.value            = toolEnabled;
             var captured = toolName;
             toggle.RegisterValueChangedCallback(evt =>
             {
