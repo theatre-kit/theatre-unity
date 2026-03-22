@@ -1,9 +1,7 @@
-using System;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Theatre.Editor.Tools;
 using Theatre.Stage;
 using Theatre.Transport;
-using UnityEngine;
 
 namespace Theatre.Editor.Tools.Actions
 {
@@ -99,55 +97,26 @@ namespace Theatre.Editor.Tools.Actions
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"teleport\", \"path\": \"/Player\", ...}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: teleport, set_property, set_active, "
-                    + "set_timescale, pause, step, unpause, invoke_method");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "action",
+                arguments,
+                (args, operation) => operation switch
                 {
-                    "teleport" => ActionTeleport.Execute(args),
-                    "set_property" => ActionSetProperty.Execute(args),
-                    "set_active" => ActionSetActive.Execute(args),
-                    "set_timescale" => ActionSetTimescale.Execute(args),
-                    "pause" => ActionPlayControl.ExecutePause(args),
-                    "step" => ActionPlayControl.ExecuteStep(args),
-                    "unpause" => ActionPlayControl.ExecuteUnpause(args),
-                    "invoke_method" => ActionInvokeMethod.Execute(args),
+                    "teleport"       => ActionTeleport.Execute(args),
+                    "set_property"   => ActionSetProperty.Execute(args),
+                    "set_active"     => ActionSetActive.Execute(args),
+                    "set_timescale"  => ActionSetTimescale.Execute(args),
+                    "pause"          => ActionPlayControl.ExecutePause(args),
+                    "step"           => ActionPlayControl.ExecuteStep(args),
+                    "unpause"        => ActionPlayControl.ExecuteUnpause(args),
+                    "invoke_method"  => ActionInvokeMethod.Execute(args),
                     _ => ResponseHelpers.ErrorResponse(
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: teleport, set_property, set_active, "
                         + "set_timescale, pause, step, unpause, invoke_method")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] action:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"action:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "teleport, set_property, set_active, set_timescale, pause, step, unpause, invoke_method");
     }
 }

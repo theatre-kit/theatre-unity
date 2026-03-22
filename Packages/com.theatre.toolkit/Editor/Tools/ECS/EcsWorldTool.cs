@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Theatre.Editor.Tools;
 using Theatre.Stage;
 using Theatre.Transport;
 using Unity.Collections;
@@ -58,46 +59,22 @@ namespace Theatre.Editor.Tools.ECS
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"list_worlds\"}");
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: list_worlds, world_summary, list_archetypes, list_systems");
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "ecs_world",
+                arguments,
+                (args, operation) => operation switch
                 {
-                    "list_worlds"      => ListWorlds(args),
-                    "world_summary"    => WorldSummary(args),
-                    "list_archetypes"  => ListArchetypes(args),
-                    "list_systems"     => ListSystems(args),
+                    "list_worlds"     => ListWorlds(args),
+                    "world_summary"   => WorldSummary(args),
+                    "list_archetypes" => ListArchetypes(args),
+                    "list_systems"    => ListSystems(args),
                     _ => ResponseHelpers.ErrorResponse(
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: list_worlds, world_summary, list_archetypes, list_systems")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] ecs_world:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"ecs_world:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "list_worlds, world_summary, list_archetypes, list_systems");
 
         /// <summary>List all active ECS worlds with entity and system counts.</summary>
         internal static string ListWorlds(JObject args)

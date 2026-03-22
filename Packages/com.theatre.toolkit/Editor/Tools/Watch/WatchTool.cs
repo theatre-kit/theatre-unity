@@ -1,9 +1,8 @@
-using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Theatre.Editor.Tools;
 using Theatre.Stage;
 using Theatre.Transport;
-using UnityEngine;
 
 namespace Theatre.Editor.Tools.Watch
 {
@@ -130,50 +129,22 @@ namespace Theatre.Editor.Tools.Watch
             TheatreServer.SseManager?.PushNotification(notification);
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"create\", \"target\": \"/Player\", ...}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: create, remove, list, check");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "watch",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "create" => ExecuteCreate(args),
                     "remove" => ExecuteRemove(args),
-                    "list" => ExecuteList(args),
-                    "check" => ExecuteCheck(args),
+                    "list"   => ExecuteList(args),
+                    "check"  => ExecuteCheck(args),
                     _ => ResponseHelpers.ErrorResponse(
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: create, remove, list, check")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] watch:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"watch:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "create, remove, list, check");
 
         private static string ExecuteCreate(JObject args)
         {

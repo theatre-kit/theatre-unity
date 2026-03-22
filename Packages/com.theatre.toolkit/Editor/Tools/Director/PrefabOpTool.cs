@@ -1,9 +1,7 @@
-using System;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Theatre.Editor.Tools;
 using Theatre.Stage;
 using Theatre.Transport;
-using UnityEngine;
 
 namespace Theatre.Editor.Tools.Director
 {
@@ -121,54 +119,25 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"instantiate\", \"prefab_path\": \"Assets/...\", ...}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: create_prefab, instantiate, apply_overrides, "
-                    + "revert_overrides, unpack, create_variant, list_overrides");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "prefab_op",
+                arguments,
+                (args, operation) => operation switch
                 {
-                    "create_prefab"     => PrefabOpHandlers.CreatePrefab(args),
-                    "instantiate"       => PrefabOpHandlers.Instantiate(args),
-                    "apply_overrides"   => PrefabOpHandlers.ApplyOverrides(args),
-                    "revert_overrides"  => PrefabOpHandlers.RevertOverrides(args),
-                    "unpack"            => PrefabOpHandlers.Unpack(args),
-                    "create_variant"    => PrefabOpHandlers.CreateVariant(args),
-                    "list_overrides"    => PrefabOpHandlers.ListOverrides(args),
+                    "create_prefab"    => PrefabOpHandlers.CreatePrefab(args),
+                    "instantiate"      => PrefabOpHandlers.Instantiate(args),
+                    "apply_overrides"  => PrefabOpHandlers.ApplyOverrides(args),
+                    "revert_overrides" => PrefabOpHandlers.RevertOverrides(args),
+                    "unpack"           => PrefabOpHandlers.Unpack(args),
+                    "create_variant"   => PrefabOpHandlers.CreateVariant(args),
+                    "list_overrides"   => PrefabOpHandlers.ListOverrides(args),
                     _ => ResponseHelpers.ErrorResponse(
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: create_prefab, instantiate, apply_overrides, "
                         + "revert_overrides, unpack, create_variant, list_overrides")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] prefab_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"prefab_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "create_prefab, instantiate, apply_overrides, revert_overrides, unpack, create_variant, list_overrides");
     }
 }

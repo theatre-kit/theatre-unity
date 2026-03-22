@@ -1,9 +1,7 @@
-using System;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Theatre.Editor.Tools;
 using Theatre.Stage;
 using Theatre.Transport;
-using UnityEngine;
 
 namespace Theatre.Editor.Tools.Director
 {
@@ -175,59 +173,29 @@ namespace Theatre.Editor.Tools.Director
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"create_gameobject\", \"name\": \"MyObject\", ...}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: create_scene, load_scene, unload_scene, "
-                    + "create_gameobject, delete_gameobject, reparent, duplicate, "
-                    + "set_component, remove_component, move_to_scene");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "scene_op",
+                arguments,
+                (args, operation) => operation switch
                 {
-                    "create_scene"       => SceneOpHandlers.CreateScene(args),
-                    "load_scene"         => SceneOpHandlers.LoadScene(args),
-                    "unload_scene"       => SceneOpHandlers.UnloadScene(args),
-                    "create_gameobject"  => SceneOpHandlers.CreateGameObject(args),
-                    "delete_gameobject"  => SceneOpHandlers.DeleteGameObject(args),
-                    "reparent"           => SceneOpHandlers.Reparent(args),
-                    "duplicate"          => SceneOpHandlers.Duplicate(args),
-                    "set_component"      => SceneOpHandlers.SetComponent(args),
-                    "remove_component"   => SceneOpHandlers.RemoveComponent(args),
-                    "move_to_scene"      => SceneOpHandlers.MoveToScene(args),
+                    "create_scene"      => SceneOpHandlers.CreateScene(args),
+                    "load_scene"        => SceneOpHandlers.LoadScene(args),
+                    "unload_scene"      => SceneOpHandlers.UnloadScene(args),
+                    "create_gameobject" => SceneOpHandlers.CreateGameObject(args),
+                    "delete_gameobject" => SceneOpHandlers.DeleteGameObject(args),
+                    "reparent"          => SceneOpHandlers.Reparent(args),
+                    "duplicate"         => SceneOpHandlers.Duplicate(args),
+                    "set_component"     => SceneOpHandlers.SetComponent(args),
+                    "remove_component"  => SceneOpHandlers.RemoveComponent(args),
+                    "move_to_scene"     => SceneOpHandlers.MoveToScene(args),
                     _ => ResponseHelpers.ErrorResponse(
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: create_scene, load_scene, unload_scene, "
                         + "create_gameobject, delete_gameobject, reparent, duplicate, "
                         + "set_component, remove_component, move_to_scene")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] scene_op:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"scene_op:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "create_scene, load_scene, unload_scene, create_gameobject, delete_gameobject, reparent, duplicate, set_component, remove_component, move_to_scene");
     }
 }

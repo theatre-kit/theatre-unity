@@ -1,9 +1,7 @@
-using System;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Theatre.Editor.Tools;
 using Theatre.Stage;
 using Theatre.Transport;
-using UnityEngine;
 
 namespace Theatre.Editor.Tools.Spatial
 {
@@ -177,60 +175,32 @@ namespace Theatre.Editor.Tools.Spatial
             s_spatialIndex?.Invalidate();
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"nearest\", \"origin\": [0,0,0]}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: nearest, radius, overlap, raycast, "
-                    + "linecast, path_distance, bounds");
-            }
-
-            // Play mode gate for physics operations
-            var playModeError = PhysicsMode.CheckPlayModeRequired(operation);
-            if (playModeError != null)
-                return playModeError;
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "spatial_query",
+                arguments,
+                (args, operation) =>
                 {
-                    "nearest" => SpatialQueryNearest.Execute(args),
-                    "radius" => SpatialQueryRadius.Execute(args),
-                    "overlap" => SpatialQueryOverlap.Execute(args),
-                    "raycast" => SpatialQueryRaycast.Execute(args),
-                    "linecast" => SpatialQueryLinecast.Execute(args),
-                    "path_distance" => SpatialQueryPathDistance.Execute(args),
-                    "bounds" => SpatialQueryBounds.Execute(args),
-                    _ => ResponseHelpers.ErrorResponse(
-                        "invalid_parameter",
-                        $"Unknown operation '{operation}'",
-                        "Valid operations: nearest, radius, overlap, raycast, "
-                        + "linecast, path_distance, bounds")
-                };
-            }
-            catch (Exception ex)
-            {
-                UnityEngine.Debug.LogError(
-                    $"[Theatre] spatial_query:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"spatial_query:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                    // Play mode gate for physics operations
+                    var playModeError = PhysicsMode.CheckPlayModeRequired(operation);
+                    if (playModeError != null) return playModeError;
+
+                    return operation switch
+                    {
+                        "nearest"       => SpatialQueryNearest.Execute(args),
+                        "radius"        => SpatialQueryRadius.Execute(args),
+                        "overlap"       => SpatialQueryOverlap.Execute(args),
+                        "raycast"       => SpatialQueryRaycast.Execute(args),
+                        "linecast"      => SpatialQueryLinecast.Execute(args),
+                        "path_distance" => SpatialQueryPathDistance.Execute(args),
+                        "bounds"        => SpatialQueryBounds.Execute(args),
+                        _ => ResponseHelpers.ErrorResponse(
+                            "invalid_parameter",
+                            $"Unknown operation '{operation}'",
+                            "Valid operations: nearest, radius, overlap, raycast, "
+                            + "linecast, path_distance, bounds")
+                    };
+                },
+                "nearest, radius, overlap, raycast, linecast, path_distance, bounds");
     }
 }

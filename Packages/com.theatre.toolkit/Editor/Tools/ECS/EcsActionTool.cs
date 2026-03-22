@@ -2,6 +2,7 @@
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Theatre.Editor.Tools;
 using Theatre.Stage;
 using Theatre.Transport;
 using Unity.Entities;
@@ -75,47 +76,23 @@ namespace Theatre.Editor.Tools.ECS
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"create_entity\"}");
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: create_entity, destroy_entity, add_component, remove_component, set_component");
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "ecs_action",
+                arguments,
+                (args, operation) => operation switch
                 {
-                    "create_entity"   => CreateEntity(args),
-                    "destroy_entity"  => DestroyEntity(args),
-                    "add_component"   => AddComponent(args),
+                    "create_entity"    => CreateEntity(args),
+                    "destroy_entity"   => DestroyEntity(args),
+                    "add_component"    => AddComponent(args),
                     "remove_component" => RemoveComponent(args),
-                    "set_component"   => SetComponent(args),
+                    "set_component"    => SetComponent(args),
                     _ => ResponseHelpers.ErrorResponse(
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: create_entity, destroy_entity, add_component, remove_component, set_component")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] ecs_action:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"ecs_action:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "create_entity, destroy_entity, add_component, remove_component, set_component");
 
         /// <summary>Create a new entity, optionally with an archetype defined by component types.</summary>
         internal static string CreateEntity(JObject args)

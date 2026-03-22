@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Theatre.Editor.Tools;
 using Theatre.Stage;
 using Theatre.Transport;
 using Unity.Collections;
@@ -99,26 +100,11 @@ namespace Theatre.Editor.Tools.ECS
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"nearest\", \"origin\": [0,0,0], \"count\": 10}");
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: nearest, radius, overlap");
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "ecs_query",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "nearest" => Nearest(args),
                     "radius"  => Radius(args),
@@ -127,17 +113,8 @@ namespace Theatre.Editor.Tools.ECS
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: nearest, radius, overlap")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] ecs_query:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"ecs_query:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "nearest, radius, overlap");
 
         /// <summary>Find the N nearest entities to an origin point.</summary>
         internal static string Nearest(JObject args)

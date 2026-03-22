@@ -1,10 +1,9 @@
-using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Theatre.Editor.Tools;
 using Theatre.Stage;
 using Theatre.Transport;
-using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace Theatre.Editor.Tools.Scene
@@ -84,40 +83,22 @@ namespace Theatre.Editor.Tools.Scene
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required parameter 'operation'",
-                    "Specify operation: 'list', 'find', 'search', or 'path'");
-            }
-
-            var args = (JObject)arguments;
-            var opToken = args["operation"];
-            if (opToken == null)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required parameter 'operation'",
-                    "Specify operation: 'list', 'find', 'search', or 'path'");
-            }
-
-            var operation = opToken.Value<string>();
-
-            return operation switch
-            {
-                "list" => ExecuteList(args),
-                "find" => ExecuteFind(args),
-                "search" => ExecuteSearch(args),
-                "path" => ExecutePath(args),
-                _ => ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    $"Unknown operation '{operation}'",
-                    "Valid operations: 'list', 'find', 'search', 'path'")
-            };
-        }
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "scene_hierarchy",
+                arguments,
+                (args, operation) => operation switch
+                {
+                    "list"   => ExecuteList(args),
+                    "find"   => ExecuteFind(args),
+                    "search" => ExecuteSearch(args),
+                    "path"   => ExecutePath(args),
+                    _ => ResponseHelpers.ErrorResponse(
+                        "invalid_parameter",
+                        $"Unknown operation '{operation}'",
+                        "Valid operations: 'list', 'find', 'search', 'path'")
+                },
+                "list, find, search, path");
 
         private static string ExecuteList(JObject args)
         {

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Theatre.Editor.Tools;
 using Theatre.Stage;
 using Theatre.Transport;
 using UnityEngine;
@@ -151,30 +152,11 @@ namespace Theatre.Editor.Tools.Recording
             TheatreServer.SseManager?.PushNotification(notification);
         }
 
-        private static string Execute(JToken arguments)
-        {
-            if (arguments == null || arguments.Type != JTokenType.Object)
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Arguments must be a JSON object with an 'operation' field",
-                    "Provide {\"operation\": \"start\", \"label\": \"my_clip\", ...}");
-            }
-
-            var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
-
-            if (string.IsNullOrEmpty(operation))
-            {
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'operation' parameter",
-                    "Valid operations: start, stop, marker, list_clips, delete_clip, query_range, diff_frames, clip_info, analyze");
-            }
-
-            try
-            {
-                return operation switch
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "recording",
+                arguments,
+                (args, operation) => operation switch
                 {
                     "start"       => ExecuteStart(args),
                     "stop"        => ExecuteStop(args),
@@ -189,17 +171,8 @@ namespace Theatre.Editor.Tools.Recording
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: start, stop, marker, list_clips, delete_clip, query_range, diff_frames, clip_info, analyze")
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Theatre] recording:{operation} failed: {ex}");
-                return ResponseHelpers.ErrorResponse(
-                    "internal_error",
-                    $"recording:{operation} failed: {ex.Message}",
-                    "Check the Unity Console for details");
-            }
-        }
+                },
+                "start, stop, marker, list_clips, delete_clip, query_range, diff_frames, clip_info, analyze");
 
         private static string ExecuteStart(JObject args)
         {
