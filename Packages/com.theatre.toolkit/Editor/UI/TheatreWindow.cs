@@ -334,6 +334,15 @@ namespace Theatre.Editor.UI
             ToolGroup enabledGroups,
             HashSet<string> disabledTools)
         {
+            var capturedFlag = flag;
+
+            // Single-tool groups: no group header, just the tool row directly
+            if (tools.Length == 1)
+            {
+                return BuildToolRow(tools[0], capturedFlag, disabledTools);
+            }
+
+            // Multi-tool groups: group header + indented tool rows
             var section = new VisualElement();
             section.style.marginBottom = 6;
             section.style.marginLeft   = 2;
@@ -350,7 +359,6 @@ namespace Theatre.Editor.UI
             groupToggle.style.marginTop  = 0;
             groupToggle.value            = (enabledGroups & flag) != 0;
             groupToggle.tooltip          = $"Enable/disable all {groupName} tools";
-            var capturedFlag = flag;
             groupToggle.RegisterValueChangedCallback(evt =>
             {
                 var g = TheatreConfig.EnabledGroups;
@@ -370,7 +378,7 @@ namespace Theatre.Editor.UI
 
             // ── Per-tool rows ─────────────────────────────────────────────────
             var toolList = new VisualElement();
-            toolList.style.marginLeft = 4;
+            toolList.style.marginLeft = 20;
 
             foreach (var toolName in tools)
             {
