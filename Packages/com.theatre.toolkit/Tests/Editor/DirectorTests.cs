@@ -387,6 +387,21 @@ namespace Theatre.Tests.Editor
     [TestFixture]
     public class BatchToolTests
     {
+        private ToolGroup _originalGroups;
+
+        [SetUp]
+        public void SetUp()
+        {
+            _originalGroups = TheatreConfig.EnabledGroups;
+            TheatreConfig.EnabledGroups = ToolGroup.Everything;
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            TheatreConfig.EnabledGroups = _originalGroups;
+        }
+
         [Test]
         public void Batch_MultipleOps_ExecutesAll()
         {
