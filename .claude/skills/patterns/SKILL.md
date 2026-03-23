@@ -23,3 +23,5 @@ Structural patterns for the Theatre Unity MCP server. Each file contains a named
 - [physics-mode-dispatch.md](physics-mode-dispatch.md) — PhysicsMode.GetEffective() → Execute2D/Execute3D branches for physics-based queries
 - [main-thread-dispatch.md](main-thread-dispatch.md) — MainThreadDispatcher.Invoke for marshaling HTTP thread → Unity main thread
 - [domain-reload-survival.md](domain-reload-survival.md) — [InitializeOnLoad] + SessionState persistence for surviving Unity recompiles
+- [dry-run-support.md](dry-run-support.md) — DirectorHelpers.CheckDryRun() for validate-without-mutate in all Director tools
+- [test-fixture.md](test-fixture.md) — Temp directory setup, CallTool helpers, and resource tracking for integration tests
