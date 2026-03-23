@@ -617,7 +617,8 @@ namespace Theatre.Editor.UI
             {
                 var toolName  = entry.ToolName ?? string.Empty;
                 var operation = entry.Operation != null ? $" / {entry.Operation}" : string.Empty;
-                var text      = $"{entry.Timestamp}  {toolName}{operation}  ~{entry.ResponseTokens}tok";
+                var size      = FormatSize(entry.ResponseChars);
+                var text      = $"{entry.Timestamp}  {toolName}{operation}  {size}";
 
                 var lbl = new Label(text);
                 lbl.style.fontSize  = 10;
@@ -644,7 +645,7 @@ namespace Theatre.Editor.UI
             _activityScroll.scrollOffset = new Vector2(0, float.MaxValue);
 
             if (_sessionStatsLabel != null)
-                _sessionStatsLabel.text = $"Session: {log.TotalCalls} calls | {log.TotalTokens:N0} tokens";
+                _sessionStatsLabel.text = $"Session: {log.TotalCalls} calls | {FormatSize(log.TotalChars)}";
         }
 
         private void RefreshRecording()
@@ -769,6 +770,13 @@ namespace Theatre.Editor.UI
                 EditorGUIUtility.systemCopyBuffer = url;
                 Debug.Log($"[Theatre] Copied URL to clipboard: {url}");
             }
+        }
+
+        private static string FormatSize(int chars)
+        {
+            if (chars < 1000)  return $"{chars} chars";
+            if (chars < 10000) return $"{chars / 1000f:F1}K chars";
+            return $"{chars / 1000}K chars";
         }
 
         private static bool IsDirectorTool(string name) =>

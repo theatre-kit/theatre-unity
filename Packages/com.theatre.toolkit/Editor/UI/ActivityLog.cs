@@ -16,7 +16,7 @@ namespace Theatre.Editor.UI
         public const int MaxEntries = 100;
         private const string SessionKeyLog    = "Theatre_ActivityLog";
         private const string SessionKeyCalls  = "Theatre_ActivityCalls";
-        private const string SessionKeyTokens = "Theatre_ActivityTokens";
+        private const string SessionKeyChars = "Theatre_ActivityTokens";
 
         /// <summary>A single tool call log entry.</summary>
         public struct Entry
@@ -27,8 +27,8 @@ namespace Theatre.Editor.UI
             public string ToolName;
             /// <summary>The operation, extracted from args["operation"] if present.</summary>
             public string Operation;
-            /// <summary>Estimated token count (resultJson.Length / 4).</summary>
-            public int ResponseTokens;
+            /// <summary>Response size in characters.</summary>
+            public int ResponseChars;
             /// <summary>True if the result JSON contains an "error" key.</summary>
             public bool IsError;
         }
@@ -41,8 +41,8 @@ namespace Theatre.Editor.UI
         /// <summary>Total tool calls recorded this session.</summary>
         public int TotalCalls { get; private set; }
 
-        /// <summary>Total estimated response tokens this session.</summary>
-        public int TotalTokens { get; private set; }
+        /// <summary>Total response characters this session.</summary>
+        public int TotalChars { get; private set; }
 
         /// <summary>
         /// Record a tool call. Inserts at index 0 (newest first).
@@ -51,7 +51,7 @@ namespace Theatre.Editor.UI
         public void Record(string toolName, JToken args, string resultJson)
         {
             var operation = args?["operation"]?.Value<string>();
-            var tokens    = (resultJson?.Length ?? 0) / 4;
+            var chars     = resultJson?.Length ?? 0;
             var isError   = resultJson != null && resultJson.Contains("\"error\"");
 
             var entry = new Entry
@@ -59,7 +59,7 @@ namespace Theatre.Editor.UI
                 Timestamp      = DateTime.Now.ToString("HH:mm:ss"),
                 ToolName       = toolName ?? string.Empty,
                 Operation      = operation,
-                ResponseTokens = tokens,
+                ResponseChars = chars,
                 IsError        = isError,
             };
 
@@ -69,15 +69,15 @@ namespace Theatre.Editor.UI
                 _entries.RemoveAt(_entries.Count - 1);
 
             TotalCalls++;
-            TotalTokens += tokens;
+            TotalChars += chars;
         }
 
         /// <summary>Clear all entries and reset counters.</summary>
         public void Clear()
         {
             _entries.Clear();
-            TotalCalls  = 0;
-            TotalTokens = 0;
+            TotalCalls = 0;
+            TotalChars = 0;
         }
 
         /// <summary>Persist entries and counters to SessionState.</summary>
@@ -88,7 +88,7 @@ namespace Theatre.Editor.UI
                 var json = JsonConvert.SerializeObject(_entries);
                 SessionState.SetString(SessionKeyLog,    json);
                 SessionState.SetInt(SessionKeyCalls,  TotalCalls);
-                SessionState.SetInt(SessionKeyTokens, TotalTokens);
+                SessionState.SetInt(SessionKeyChars, TotalChars);
             }
             catch (Exception ex)
             {
@@ -113,7 +113,7 @@ namespace Theatre.Editor.UI
                 }
 
                 TotalCalls  = SessionState.GetInt(SessionKeyCalls,  0);
-                TotalTokens = SessionState.GetInt(SessionKeyTokens, 0);
+                TotalChars = SessionState.GetInt(SessionKeyChars, 0);
             }
             catch (Exception ex)
             {

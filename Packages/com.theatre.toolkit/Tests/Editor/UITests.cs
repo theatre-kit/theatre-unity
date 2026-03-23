@@ -96,7 +96,7 @@ namespace Theatre.Tests.Editor
             _log.Clear();
             Assert.AreEqual(0, _log.Entries.Count);
             Assert.AreEqual(0, _log.TotalCalls);
-            Assert.AreEqual(0, _log.TotalTokens);
+            Assert.AreEqual(0, _log.TotalChars);
         }
     }
 
