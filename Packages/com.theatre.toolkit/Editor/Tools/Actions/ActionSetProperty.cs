@@ -57,10 +57,18 @@ namespace Theatre.Editor.Tools.Actions
             var prop = DirectorHelpers.FindPropertyFuzzy(so, propertyName);
 
             if (prop == null)
+            {
+                var available = DirectorHelpers.ListPropertyNames(so, propertyName);
+                var availStr = available.Count > 0
+                    ? $" Available: {string.Join(", ", available)}"
+                    : "";
                 return ResponseHelpers.ErrorResponse(
                     "property_not_found",
-                    $"Property '{propertyName}' not found on component '{componentName}'",
-                    "Use scene_inspect with component filter to see available properties");
+                    $"Property '{propertyName}' not found on component '{componentName}'.{availStr}",
+                    "Use scene_inspect with component filter to see all properties. "
+                    + "Property names are Unity serialized field names in snake_case, "
+                    + "not C# API property names (e.g. 'materials' not 'shared_material').");
+            }
 
             // Read previous value
             var previousValue = DirectorHelpers.ReadPropertyValue(prop);

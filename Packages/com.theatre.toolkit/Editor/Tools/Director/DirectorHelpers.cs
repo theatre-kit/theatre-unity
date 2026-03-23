@@ -152,7 +152,7 @@ namespace Theatre.Editor.Tools.Director
 
         /// <summary>
         /// Find a SerializedProperty using the 4-step name fallback
-        /// (exact, m_PascalCase, PascalCase, m_original).
+        /// (exact, m_PascalCase, PascalCase, m_original, m_Plurals, Plurals).
         /// </summary>
         public static SerializedProperty FindPropertyFuzzy(
             SerializedObject so, string snakeCaseName)
@@ -163,6 +163,68 @@ namespace Theatre.Editor.Tools.Director
                 if (prop != null) return prop;
             }
             return null;
+        }
+
+        /// <summary>
+        /// List visible serialized property names on a Unity Object, returned
+        /// as Theatre snake_case names. Skips m_Script. Max <paramref name="limit"/> entries.
+        /// </summary>
+        /// <summary>
+        /// List visible serialized property names on a Unity Object, returned
+        /// as Theatre snake_case names. Skips m_Script.
+        /// When <paramref name="attemptedName"/> is provided, results are sorted
+        /// by relevance (substring overlap) so the closest match appears first.
+        /// </summary>
+        public static List<string> ListPropertyNames(
+            SerializedObject so, string attemptedName = null, int limit = 20)
+        {
+            var names = new List<string>();
+            var prop = so.GetIterator();
+            bool enterChildren = true;
+            while (prop.NextVisible(enterChildren))
+            {
+                enterChildren = false;
+                if (prop.name == "m_Script") continue;
+                var rawName = prop.name;
+                if (rawName.StartsWith("m_") && rawName.Length > 2)
+                    rawName = rawName.Substring(2);
+                var snakeName = Tools.Scene.PropertySerializer.ToSnakeCase(rawName);
+                names.Add(snakeName);
+            }
+
+            if (!string.IsNullOrEmpty(attemptedName))
+            {
+                var query = attemptedName.ToLowerInvariant()
+                    .Replace("_", "");
+                names.Sort((a, b) =>
+                    ScoreMatch(b, query).CompareTo(ScoreMatch(a, query)));
+            }
+
+            if (names.Count > limit)
+                names.RemoveRange(limit, names.Count - limit);
+            return names;
+        }
+
+        private static int ScoreMatch(string propertyName, string query)
+        {
+            var normalized = propertyName.ToLowerInvariant()
+                .Replace("_", "");
+            // Exact match
+            if (normalized == query) return 100;
+            // One contains the other
+            if (normalized.Contains(query)) return 80;
+            if (query.Contains(normalized)) return 70;
+            // Share a common substring of 3+ chars
+            for (int len = Math.Min(normalized.Length, query.Length);
+                 len >= 3; len--)
+            {
+                for (int i = 0; i <= query.Length - len; i++)
+                {
+                    if (normalized.Contains(query.Substring(i, len)))
+                        return 40 + len;
+                }
+            }
+            return 0;
         }
 
         /// <summary>
@@ -192,7 +254,12 @@ namespace Theatre.Editor.Tools.Director
 
                 if (sp == null)
                 {
-                    errors.Add($"Property '{propName}' not found on {target.GetType().Name}");
+                    var available = ListPropertyNames(so, propName);
+                    var availStr = available.Count > 0
+                        ? $" Available: {string.Join(", ", available)}"
+                        : "";
+                    errors.Add($"Property '{propName}' not found on "
+                        + $"{target.GetType().Name}.{availStr}");
                     continue;
                 }
 

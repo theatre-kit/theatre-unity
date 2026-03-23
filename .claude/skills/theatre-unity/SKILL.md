@@ -177,6 +177,25 @@ Use `include_components`, `radius`, or `paths` filters to get more targeted resu
 ### GameObject addressing
 Always use **hierarchy paths** (`/Parent/Child`) or **instance_id** (int). Both appear in every response. Multi-scene paths: `SceneName:/Path`. Duplicate names get `(1)`, `(2)` suffixes.
 
+### Property names (set_property / set_component)
+Theatre uses Unity's **serialized field names** in snake_case — NOT the C# API property names.
+
+| You might try | Actual property name | Why |
+|---|---|---|
+| `shared_material` | `materials` | `sharedMaterial` is a C# accessor, not a serialized field. The field is `m_Materials` → `materials` |
+| `is_trigger` | `is_trigger` | This one works — `m_IsTrigger` → `is_trigger` |
+| `velocity` | _(none)_ | `Rigidbody.velocity` is a runtime-only C# property, not serialized |
+| `mesh` | `mesh` | MeshFilter's `m_Mesh` → `mesh` |
+
+**When in doubt**: use `scene_inspect` with a component filter to see the actual property names. Or just try — if a property isn't found, the error lists all available properties sorted by relevance to what you typed.
+
+**ObjectReference values** (materials, meshes, prefab refs): pass the asset path as a string.
+```
+set_component: {component: "MeshRenderer", properties: {materials: "Assets/Materials/Foo.mat"}}
+set_property:  {component: "MeshFilter", property: "mesh", value: "Assets/Models/Cube.fbx::Cube"}
+```
+Single value sets element [0] of array properties. Pass a JSON array to set multiple: `{materials: ["Assets/Mat1.mat", "Assets/Mat2.mat"]}`. Pass `null` to clear.
+
 ### Wire format
 - All field names: `snake_case` (Unity's `localPosition` becomes `local_position`)
 - Vectors: arrays `[x, y, z]`
