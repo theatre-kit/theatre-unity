@@ -197,7 +197,7 @@ namespace Theatre.Tests.Editor
         public void Create_ProducesControllerFile()
         {
             var path = _tempDir + "/TestCtrl.controller";
-            var result = AnimatorControllerOpTool.Create(new JObject { ["asset_path"] = path });
+            var result = AnimatorControllerOpHandlers.Create(new JObject { ["asset_path"] = path });
             Assert.That(result, Does.Contain("\"result\":\"ok\""));
             Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<AnimatorController>(path));
         }
@@ -206,8 +206,8 @@ namespace Theatre.Tests.Editor
         public void AddParameter_AddsFloatParam()
         {
             var path = _tempDir + "/ParamCtrl.controller";
-            AnimatorControllerOpTool.Create(new JObject { ["asset_path"] = path });
-            var result = AnimatorControllerOpTool.AddParameter(new JObject
+            AnimatorControllerOpHandlers.Create(new JObject { ["asset_path"] = path });
+            var result = AnimatorControllerOpHandlers.AddParameter(new JObject
             {
                 ["asset_path"] = path,
                 ["name"] = "Speed",
@@ -223,8 +223,8 @@ namespace Theatre.Tests.Editor
         public void AddState_AddsToStateMachine()
         {
             var path = _tempDir + "/StateCtrl.controller";
-            AnimatorControllerOpTool.Create(new JObject { ["asset_path"] = path });
-            var result = AnimatorControllerOpTool.AddState(new JObject
+            AnimatorControllerOpHandlers.Create(new JObject { ["asset_path"] = path });
+            var result = AnimatorControllerOpHandlers.AddState(new JObject
             {
                 ["asset_path"] = path,
                 ["name"] = "Walk"
@@ -236,17 +236,17 @@ namespace Theatre.Tests.Editor
         public void AddTransition_CreatesTransition()
         {
             var path = _tempDir + "/TransCtrl.controller";
-            AnimatorControllerOpTool.Create(new JObject { ["asset_path"] = path });
+            AnimatorControllerOpHandlers.Create(new JObject { ["asset_path"] = path });
             // Add two named states
-            AnimatorControllerOpTool.AddState(new JObject { ["asset_path"] = path, ["name"] = "Idle" });
-            AnimatorControllerOpTool.AddState(new JObject { ["asset_path"] = path, ["name"] = "Walk" });
-            AnimatorControllerOpTool.AddParameter(new JObject
+            AnimatorControllerOpHandlers.AddState(new JObject { ["asset_path"] = path, ["name"] = "Idle" });
+            AnimatorControllerOpHandlers.AddState(new JObject { ["asset_path"] = path, ["name"] = "Walk" });
+            AnimatorControllerOpHandlers.AddParameter(new JObject
             {
                 ["asset_path"] = path,
                 ["name"] = "Speed",
                 ["type"] = "float"
             });
-            var result = AnimatorControllerOpTool.AddTransition(new JObject
+            var result = AnimatorControllerOpHandlers.AddTransition(new JObject
             {
                 ["asset_path"] = path,
                 ["source_state"] = "Idle",
@@ -264,9 +264,9 @@ namespace Theatre.Tests.Editor
         public void ListStates_ReturnsStatesAndParams()
         {
             var path = _tempDir + "/ListCtrl.controller";
-            AnimatorControllerOpTool.Create(new JObject { ["asset_path"] = path });
-            AnimatorControllerOpTool.AddState(new JObject { ["asset_path"] = path, ["name"] = "Run" });
-            var result = AnimatorControllerOpTool.ListStates(new JObject { ["asset_path"] = path });
+            AnimatorControllerOpHandlers.Create(new JObject { ["asset_path"] = path });
+            AnimatorControllerOpHandlers.AddState(new JObject { ["asset_path"] = path, ["name"] = "Run" });
+            var result = AnimatorControllerOpHandlers.ListStates(new JObject { ["asset_path"] = path });
             Assert.That(result, Does.Contain("\"states\""));
             Assert.That(result, Does.Contain("Run"));
         }
@@ -276,11 +276,11 @@ namespace Theatre.Tests.Editor
         {
             var ctrlPath = _tempDir + "/SetClipCtrl.controller";
             var clipPath = _tempDir + "/SetClipAnim.anim";
-            AnimatorControllerOpTool.Create(new JObject { ["asset_path"] = ctrlPath });
-            AnimatorControllerOpTool.AddState(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Walk" });
+            AnimatorControllerOpHandlers.Create(new JObject { ["asset_path"] = ctrlPath });
+            AnimatorControllerOpHandlers.AddState(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Walk" });
             AnimationClipOpTool.Create(new JObject { ["asset_path"] = clipPath });
 
-            var result = AnimatorControllerOpTool.SetStateClip(new JObject
+            var result = AnimatorControllerOpHandlers.SetStateClip(new JObject
             {
                 ["asset_path"] = ctrlPath,
                 ["state_name"] = "Walk",
@@ -303,11 +303,11 @@ namespace Theatre.Tests.Editor
         public void SetDefaultState_ChangesEntryState()
         {
             var path = _tempDir + "/DefaultStateCtrl.controller";
-            AnimatorControllerOpTool.Create(new JObject { ["asset_path"] = path });
-            AnimatorControllerOpTool.AddState(new JObject { ["asset_path"] = path, ["name"] = "Idle" });
-            AnimatorControllerOpTool.AddState(new JObject { ["asset_path"] = path, ["name"] = "Walk" });
+            AnimatorControllerOpHandlers.Create(new JObject { ["asset_path"] = path });
+            AnimatorControllerOpHandlers.AddState(new JObject { ["asset_path"] = path, ["name"] = "Idle" });
+            AnimatorControllerOpHandlers.AddState(new JObject { ["asset_path"] = path, ["name"] = "Walk" });
 
-            var result = AnimatorControllerOpTool.SetDefaultState(new JObject
+            var result = AnimatorControllerOpHandlers.SetDefaultState(new JObject
             {
                 ["asset_path"] = path,
                 ["state_name"] = "Walk"
@@ -325,13 +325,13 @@ namespace Theatre.Tests.Editor
         public void AddLayer_CreatesNewLayer()
         {
             var path = _tempDir + "/LayerCtrl.controller";
-            AnimatorControllerOpTool.Create(new JObject { ["asset_path"] = path });
+            AnimatorControllerOpHandlers.Create(new JObject { ["asset_path"] = path });
 
             // Newly created controller has 1 layer ("Base Layer")
             var ctrlBefore = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
             Assert.AreEqual(1, ctrlBefore.layers.Length, "Should start with 1 layer");
 
-            var result = AnimatorControllerOpTool.AddLayer(new JObject
+            var result = AnimatorControllerOpHandlers.AddLayer(new JObject
             {
                 ["asset_path"] = path,
                 ["name"] = "UpperBody"

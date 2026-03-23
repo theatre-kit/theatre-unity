@@ -34,7 +34,7 @@ namespace Theatre.Tests.Editor
         [Test]
         public void SetTile_MissingTilemap_ReturnsError()
         {
-            var result = TilemapOpTool.SetTile(new JObject
+            var result = TilemapOpHandlers.SetTile(new JObject
             {
                 ["tilemap_path"] = "/NonExistent_Tilemap",
                 ["position"] = new JArray(0, 0, 0),
@@ -46,7 +46,7 @@ namespace Theatre.Tests.Editor
         [Test]
         public void SetTile_MissingTileAsset_ReturnsError()
         {
-            var result = TilemapOpTool.SetTile(new JObject
+            var result = TilemapOpHandlers.SetTile(new JObject
             {
                 ["tilemap_path"] = "/TestGrid_Tilemap/TestTilemap",
                 ["position"] = new JArray(0, 0, 0),
@@ -58,7 +58,7 @@ namespace Theatre.Tests.Editor
         [Test]
         public void Clear_ClearsAllTiles()
         {
-            var result = TilemapOpTool.Clear(new JObject
+            var result = TilemapOpHandlers.Clear(new JObject
             {
                 ["tilemap_path"] = "/TestGrid_Tilemap/TestTilemap"
             });
@@ -68,7 +68,7 @@ namespace Theatre.Tests.Editor
         [Test]
         public void GetTile_EmptyPosition_ReturnsNullTile()
         {
-            var result = TilemapOpTool.GetTile(new JObject
+            var result = TilemapOpHandlers.GetTile(new JObject
             {
                 ["tilemap_path"] = "/TestGrid_Tilemap/TestTilemap",
                 ["position"] = new JArray(0, 0, 0)
@@ -79,7 +79,7 @@ namespace Theatre.Tests.Editor
         [Test]
         public void GetUsedTiles_EmptyTilemap_ReturnsZeroCount()
         {
-            var result = TilemapOpTool.GetUsedTiles(new JObject
+            var result = TilemapOpHandlers.GetUsedTiles(new JObject
             {
                 ["tilemap_path"] = "/TestGrid_Tilemap/TestTilemap"
             });
@@ -90,14 +90,14 @@ namespace Theatre.Tests.Editor
         [Test]
         public void Clear_MissingTilemapPath_ReturnsError()
         {
-            var result = TilemapOpTool.Clear(new JObject());
+            var result = TilemapOpHandlers.Clear(new JObject());
             Assert.That(result, Does.Contain("error"));
         }
 
         [Test]
         public void SetTilemapLayer_ValidTilemap_SetsOrder()
         {
-            var result = TilemapOpTool.SetTilemapLayer(new JObject
+            var result = TilemapOpHandlers.SetTilemapLayer(new JObject
             {
                 ["tilemap_path"] = "/TestGrid_Tilemap/TestTilemap",
                 ["sorting_order"] = 5
@@ -109,7 +109,7 @@ namespace Theatre.Tests.Editor
         [Test]
         public void BoxFill_MissingTileAsset_ReturnsError()
         {
-            var result = TilemapOpTool.BoxFill(new JObject
+            var result = TilemapOpHandlers.BoxFill(new JObject
             {
                 ["tilemap_path"] = "/TestGrid_Tilemap/TestTilemap",
                 ["tile_asset"] = "Assets/NonExistent.asset",
@@ -122,7 +122,7 @@ namespace Theatre.Tests.Editor
         [Test]
         public void FloodFill_MissingTilemap_ReturnsError()
         {
-            var result = TilemapOpTool.FloodFill(new JObject
+            var result = TilemapOpHandlers.FloodFill(new JObject
             {
                 ["tilemap_path"] = "/NonExistent",
                 ["tile_asset"] = "Assets/SomeTile.asset",
@@ -143,12 +143,12 @@ namespace Theatre.Tests.Editor
             if (string.IsNullOrEmpty(scene.path))
             {
                 // Scene not saved — bake should return scene_not_saved error
-                var result = NavMeshOpTool.Bake(new JObject());
+                var result = NavMeshOpHandlers.Bake(new JObject());
                 Assert.That(result, Does.Contain("scene_not_saved"));
             }
             else
             {
-                var result = NavMeshOpTool.Bake(new JObject());
+                var result = NavMeshOpHandlers.Bake(new JObject());
                 Assert.That(result, Does.Contain("\"result\":\"ok\""));
             }
         }
@@ -171,7 +171,7 @@ namespace Theatre.Tests.Editor
         [Test]
         public void AddLink_CreatesOffMeshLink()
         {
-            var result = NavMeshOpTool.AddLink(new JObject
+            var result = NavMeshOpHandlers.AddLink(new JObject
             {
                 ["start"] = new JArray(0, 0, 0),
                 ["end"] = new JArray(10, 0, 0)
@@ -185,21 +185,21 @@ namespace Theatre.Tests.Editor
         [Test]
         public void AddModifier_MissingPath_ReturnsError()
         {
-            var result = NavMeshOpTool.AddModifier(new JObject());
+            var result = NavMeshOpHandlers.AddModifier(new JObject());
             Assert.That(result, Does.Contain("error"));
         }
 
         [Test]
         public void AddSurface_MissingPath_ReturnsError()
         {
-            var result = NavMeshOpTool.AddSurface(new JObject());
+            var result = NavMeshOpHandlers.AddSurface(new JObject());
             Assert.That(result, Does.Contain("error"));
         }
 
         [Test]
         public void SetArea_InvalidIndex_ReturnsError()
         {
-            var result = NavMeshOpTool.SetArea(new JObject
+            var result = NavMeshOpHandlers.SetArea(new JObject
             {
                 ["index"] = 99,
                 ["name"] = "TestArea",
@@ -211,7 +211,7 @@ namespace Theatre.Tests.Editor
         [Test]
         public void AddLink_MissingEnd_ReturnsError()
         {
-            var result = NavMeshOpTool.AddLink(new JObject
+            var result = NavMeshOpHandlers.AddLink(new JObject
             {
                 ["start"] = new JArray(0, 0, 0)
             });
@@ -221,7 +221,7 @@ namespace Theatre.Tests.Editor
         [Test]
         public void SetAgentType_MissingId_ReturnsError()
         {
-            var result = NavMeshOpTool.SetAgentType(new JObject());
+            var result = NavMeshOpHandlers.SetAgentType(new JObject());
             Assert.That(result, Does.Contain("error"));
         }
     }

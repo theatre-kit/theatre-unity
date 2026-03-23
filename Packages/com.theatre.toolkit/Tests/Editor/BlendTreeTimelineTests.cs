@@ -31,9 +31,9 @@ namespace Theatre.Tests.Editor
         {
             // Create controller with a state first
             var ctrlPath = _tempDir + "/BT_Ctrl.controller";
-            AnimatorControllerOpTool.Create(new JObject { ["asset_path"] = ctrlPath });
-            AnimatorControllerOpTool.AddState(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Blend" });
-            AnimatorControllerOpTool.AddParameter(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Speed", ["type"] = "float" });
+            AnimatorControllerOpHandlers.Create(new JObject { ["asset_path"] = ctrlPath });
+            AnimatorControllerOpHandlers.AddState(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Blend" });
+            AnimatorControllerOpHandlers.AddParameter(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Speed", ["type"] = "float" });
 
             var result = BlendTreeOpTool.Create(new JObject
             {
@@ -62,9 +62,9 @@ namespace Theatre.Tests.Editor
         {
             var ctrlPath = _tempDir + "/BT_Motion.controller";
             var clipPath = _tempDir + "/BT_Clip.anim";
-            AnimatorControllerOpTool.Create(new JObject { ["asset_path"] = ctrlPath });
-            AnimatorControllerOpTool.AddState(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Blend" });
-            AnimatorControllerOpTool.AddParameter(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Speed", ["type"] = "float" });
+            AnimatorControllerOpHandlers.Create(new JObject { ["asset_path"] = ctrlPath });
+            AnimatorControllerOpHandlers.AddState(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Blend" });
+            AnimatorControllerOpHandlers.AddParameter(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Speed", ["type"] = "float" });
             BlendTreeOpTool.Create(new JObject
             {
                 ["controller_path"] = ctrlPath,
@@ -89,8 +89,8 @@ namespace Theatre.Tests.Editor
         public void SetBlendType_ChangesType()
         {
             var ctrlPath = _tempDir + "/BT_Type.controller";
-            AnimatorControllerOpTool.Create(new JObject { ["asset_path"] = ctrlPath });
-            AnimatorControllerOpTool.AddState(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Walk" });
+            AnimatorControllerOpHandlers.Create(new JObject { ["asset_path"] = ctrlPath });
+            AnimatorControllerOpHandlers.AddState(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Walk" });
             BlendTreeOpTool.Create(new JObject
             {
                 ["controller_path"] = ctrlPath,
@@ -123,10 +123,10 @@ namespace Theatre.Tests.Editor
         public void SetParameter_ChangesBlendParam()
         {
             var ctrlPath = _tempDir + "/BT_Param.controller";
-            AnimatorControllerOpTool.Create(new JObject { ["asset_path"] = ctrlPath });
-            AnimatorControllerOpTool.AddState(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Move" });
-            AnimatorControllerOpTool.AddParameter(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Speed", ["type"] = "float" });
-            AnimatorControllerOpTool.AddParameter(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Dir", ["type"] = "float" });
+            AnimatorControllerOpHandlers.Create(new JObject { ["asset_path"] = ctrlPath });
+            AnimatorControllerOpHandlers.AddState(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Move" });
+            AnimatorControllerOpHandlers.AddParameter(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Speed", ["type"] = "float" });
+            AnimatorControllerOpHandlers.AddParameter(new JObject { ["asset_path"] = ctrlPath, ["name"] = "Dir", ["type"] = "float" });
             BlendTreeOpTool.Create(new JObject
             {
                 ["controller_path"] = ctrlPath,

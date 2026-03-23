@@ -52,7 +52,7 @@ namespace Theatre.Tests.Editor
         public void Create_ProducesTerrainAssetAndGameObject()
         {
             var path = _tempDir + "/TestTerrain.asset";
-            var result = TerrainOpTool.Create(new JObject
+            var result = TerrainOpHandlers.Create(new JObject
             {
                 ["asset_path"] = path,
                 ["width"] = 100,
@@ -72,14 +72,14 @@ namespace Theatre.Tests.Editor
         [Test]
         public void Create_MissingAssetPath_ReturnsError()
         {
-            var result = TerrainOpTool.Create(new JObject());
+            var result = TerrainOpHandlers.Create(new JObject());
             Assert.That(result, Does.Contain("error"), $"Expected error but got: {result}");
         }
 
         [Test]
         public void Create_InvalidAssetPathExtension_ReturnsError()
         {
-            var result = TerrainOpTool.Create(new JObject
+            var result = TerrainOpHandlers.Create(new JObject
             {
                 ["asset_path"] = _tempDir + "/TestTerrain.prefab"
             });
@@ -90,7 +90,7 @@ namespace Theatre.Tests.Editor
         public void GetHeight_ReturnsSampledHeight()
         {
             var path = _tempDir + "/HeightTerrain.asset";
-            TerrainOpTool.Create(new JObject
+            TerrainOpHandlers.Create(new JObject
             {
                 ["asset_path"] = path,
                 ["width"] = 100,
@@ -102,7 +102,7 @@ namespace Theatre.Tests.Editor
             var terrain = Object.FindAnyObjectByType<Terrain>();
             Assert.IsNotNull(terrain, "Terrain must exist for GetHeight test");
 
-            var result = TerrainOpTool.GetHeight(new JObject
+            var result = TerrainOpHandlers.GetHeight(new JObject
             {
                 ["terrain_path"] = "/" + terrain.gameObject.name,
                 ["position"] = new JArray(50, 50)
@@ -116,7 +116,7 @@ namespace Theatre.Tests.Editor
         public void GetHeight_MissingPosition_ReturnsError()
         {
             var path = _tempDir + "/HeightTerrain2.asset";
-            TerrainOpTool.Create(new JObject
+            TerrainOpHandlers.Create(new JObject
             {
                 ["asset_path"] = path,
                 ["width"] = 100,
@@ -128,7 +128,7 @@ namespace Theatre.Tests.Editor
             var terrain = Object.FindAnyObjectByType<Terrain>();
             Assert.IsNotNull(terrain);
 
-            var result = TerrainOpTool.GetHeight(new JObject
+            var result = TerrainOpHandlers.GetHeight(new JObject
             {
                 ["terrain_path"] = "/" + terrain.gameObject.name
             });
@@ -139,7 +139,7 @@ namespace Theatre.Tests.Editor
         public void SetSize_ChangesDimensions()
         {
             var path = _tempDir + "/SizeTerrain.asset";
-            TerrainOpTool.Create(new JObject
+            TerrainOpHandlers.Create(new JObject
             {
                 ["asset_path"] = path,
                 ["width"] = 100,
@@ -151,7 +151,7 @@ namespace Theatre.Tests.Editor
             var terrain = Object.FindAnyObjectByType<Terrain>();
             Assert.IsNotNull(terrain, "Terrain must exist for SetSize test");
 
-            var result = TerrainOpTool.SetSize(new JObject
+            var result = TerrainOpHandlers.SetSize(new JObject
             {
                 ["terrain_path"] = "/" + terrain.gameObject.name,
                 ["width"] = 200,
@@ -168,7 +168,7 @@ namespace Theatre.Tests.Editor
         public void SetHeightmap_ModifiesHeights()
         {
             var path = _tempDir + "/HmapTerrain.asset";
-            TerrainOpTool.Create(new JObject
+            TerrainOpHandlers.Create(new JObject
             {
                 ["asset_path"] = path,
                 ["width"] = 100,
@@ -185,7 +185,7 @@ namespace Theatre.Tests.Editor
                 new JArray(0.5f, 0.5f),
                 new JArray(0.5f, 0.5f));
 
-            var result = TerrainOpTool.SetHeightmap(new JObject
+            var result = TerrainOpHandlers.SetHeightmap(new JObject
             {
                 ["terrain_path"] = "/" + terrain.gameObject.name,
                 ["heights"] = heights,
@@ -199,7 +199,7 @@ namespace Theatre.Tests.Editor
         public void SmoothHeightmap_Succeeds()
         {
             var path = _tempDir + "/SmoothTerrain.asset";
-            TerrainOpTool.Create(new JObject
+            TerrainOpHandlers.Create(new JObject
             {
                 ["asset_path"] = path,
                 ["width"] = 100,
@@ -211,7 +211,7 @@ namespace Theatre.Tests.Editor
             var terrain = Object.FindAnyObjectByType<Terrain>();
             Assert.IsNotNull(terrain);
 
-            var result = TerrainOpTool.SmoothHeightmap(new JObject
+            var result = TerrainOpHandlers.SmoothHeightmap(new JObject
             {
                 ["terrain_path"] = "/" + terrain.gameObject.name,
                 ["iterations"] = 1
@@ -224,7 +224,7 @@ namespace Theatre.Tests.Editor
         public void AddTerrainLayer_AddsDiffuseLayer()
         {
             var path = _tempDir + "/LayerTerrain.asset";
-            TerrainOpTool.Create(new JObject
+            TerrainOpHandlers.Create(new JObject
             {
                 ["asset_path"] = path,
                 ["width"] = 100,
@@ -238,7 +238,7 @@ namespace Theatre.Tests.Editor
 
             // We can't test with a real texture in unit tests without assets
             // Instead, test that missing diffuse_texture returns error
-            var result = TerrainOpTool.AddTerrainLayer(new JObject
+            var result = TerrainOpHandlers.AddTerrainLayer(new JObject
             {
                 ["terrain_path"] = "/" + terrain.gameObject.name
             });
