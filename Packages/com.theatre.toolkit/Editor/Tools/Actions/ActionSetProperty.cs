@@ -54,12 +54,7 @@ namespace Theatre.Editor.Tools.Actions
             var so = new SerializedObject(component);
 
             // Try direct name, then with m_ prefix
-            SerializedProperty prop = null;
-            foreach (var candidate in StringUtils.GetPropertyNameCandidates(propertyName))
-            {
-                prop = so.FindProperty(candidate);
-                if (prop != null) break;
-            }
+            var prop = DirectorHelpers.FindPropertyFuzzy(so, propertyName);
 
             if (prop == null)
                 return ResponseHelpers.ErrorResponse(

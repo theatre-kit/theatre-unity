@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Theatre.Editor.Tools;
@@ -172,16 +173,9 @@ namespace Theatre.Editor.Tools.Scene
                 if (!scene.isLoaded) continue;
 
                 var roots = scene.GetRootGameObjects();
-                int activeRootCount = 0;
-                if (!includeInactive)
-                {
-                    foreach (var root in roots)
-                        if (root.activeInHierarchy) activeRootCount++;
-                }
-                else
-                {
-                    activeRootCount = roots.Length;
-                }
+                int activeRootCount = includeInactive
+                    ? roots.Length
+                    : roots.Count(r => r.activeInHierarchy);
 
                 var sceneObj = new JObject();
                 sceneObj["scene"] = scene.name;

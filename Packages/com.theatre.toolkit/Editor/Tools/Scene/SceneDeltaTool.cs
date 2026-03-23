@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Theatre.Stage;
@@ -135,50 +136,40 @@ namespace Theatre.Editor.Tools.Scene
             var path = ResponseHelpers.GetHierarchyPath(transform);
 
             // Apply path filter
-            bool skipObject = false;
-            if (pathFilter != null)
+            if (pathFilter != null && !pathFilter.Any(p => path == p || path.StartsWith(p + "/")))
             {
-                bool match = false;
-                foreach (var p in pathFilter)
-                {
-                    if (path == p || path.StartsWith(p + "/"))
-                    {
-                        match = true;
-                        break;
-                    }
-                }
-                if (!match) skipObject = true;
+                // Path doesn't match filter — skip this object but still recurse children
+                for (int i = 0; i < transform.childCount; i++)
+                    CaptureObject(baseline, transform.GetChild(i), pathFilter, track);
+                return;
             }
 
-            if (!skipObject)
-            {
 #pragma warning disable CS0618
-                var instanceId = transform.gameObject.GetInstanceID();
+            var instanceId = transform.gameObject.GetInstanceID();
 #pragma warning restore CS0618
 
-                var snapshot = new ObjectSnapshot
-                {
-                    Path = path,
-                    InstanceId = instanceId,
-                    Position = transform.position,
-                    EulerAngles = transform.eulerAngles,
-                    LocalScale = transform.localScale,
-                    TrackedProperties = new Dictionary<string, JToken>()
-                };
+            var snapshot = new ObjectSnapshot
+            {
+                Path = path,
+                InstanceId = instanceId,
+                Position = transform.position,
+                EulerAngles = transform.eulerAngles,
+                LocalScale = transform.localScale,
+                TrackedProperties = new Dictionary<string, JToken>()
+            };
 
-                // Read tracked properties
-                if (track != null)
+            // Read tracked properties
+            if (track != null)
+            {
+                foreach (var propName in track)
                 {
-                    foreach (var propName in track)
-                    {
-                        var value = ReadProperty(transform.gameObject, propName);
-                        if (value != null)
-                            snapshot.TrackedProperties[propName] = value;
-                    }
+                    var value = ReadProperty(transform.gameObject, propName);
+                    if (value != null)
+                        snapshot.TrackedProperties[propName] = value;
                 }
-
-                baseline.Objects[instanceId] = snapshot;
             }
+
+            baseline.Objects[instanceId] = snapshot;
 
             for (int i = 0; i < transform.childCount; i++)
                 CaptureObject(baseline, transform.GetChild(i), pathFilter, track);

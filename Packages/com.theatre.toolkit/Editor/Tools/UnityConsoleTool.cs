@@ -1,3 +1,4 @@
+using System.Linq;
 using Newtonsoft.Json.Linq;
 using Theatre.Editor.Tools;
 using Theatre.Stage;
@@ -140,16 +141,12 @@ namespace Theatre.Editor
                 ["exception"] = exceptions
             };
 
-            var top = new JArray();
-            foreach (var (message, count, type) in topRepeated)
+            var top = new JArray(topRepeated.Select(t => new JObject
             {
-                top.Add(new JObject
-                {
-                    ["message"] = message,
-                    ["count"] = count,
-                    ["type"] = type.ToString().ToLowerInvariant()
-                });
-            }
+                ["message"] = t.message,
+                ["count"] = t.count,
+                ["type"] = t.type.ToString().ToLowerInvariant()
+            }));
             result["top_repeated"] = top;
 
             return result.ToString(Newtonsoft.Json.Formatting.None);

@@ -141,13 +141,11 @@ namespace Theatre.Editor.Tools.Scene
                         $"Scene '{sceneName}' is not loaded",
                         "Use scene_hierarchy to see loaded scenes");
                 }
-                foreach (var go in scene.GetRootGameObjects())
-                    roots.Add(go.transform);
+                roots.AddRange(scene.GetRootGameObjects().Select(go => go.transform));
             }
             else
             {
-                foreach (var go in ObjectResolver.GetAllRoots())
-                    roots.Add(go.transform);
+                roots.AddRange(ObjectResolver.GetAllRoots().Select(go => go.transform));
             }
 
             // Walk hierarchy

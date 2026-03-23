@@ -151,6 +151,21 @@ namespace Theatre.Editor.Tools.Director
         }
 
         /// <summary>
+        /// Find a SerializedProperty using the 4-step name fallback
+        /// (exact, m_PascalCase, PascalCase, m_original).
+        /// </summary>
+        public static SerializedProperty FindPropertyFuzzy(
+            SerializedObject so, string snakeCaseName)
+        {
+            foreach (var candidate in StringUtils.GetPropertyNameCandidates(snakeCaseName))
+            {
+                var prop = so.FindProperty(candidate);
+                if (prop != null) return prop;
+            }
+            return null;
+        }
+
+        /// <summary>
         /// Set multiple fields on any UnityEngine.Object via SerializedObject.
         /// Works for Components, ScriptableObjects, or any serialized asset.
         /// Uses the same 4-step property name fallback as ActionSetProperty.
@@ -173,12 +188,7 @@ namespace Theatre.Editor.Tools.Director
                 var value = prop.Value;
 
                 // 4-step fallback matching ActionSetProperty
-                SerializedProperty sp = null;
-                foreach (var candidate in StringUtils.GetPropertyNameCandidates(propName))
-                {
-                    sp = so.FindProperty(candidate);
-                    if (sp != null) break;
-                }
+                var sp = FindPropertyFuzzy(so, propName);
 
                 if (sp == null)
                 {
@@ -477,12 +487,9 @@ namespace Theatre.Editor.Tools.Director
             }
 
             // Build suggestion with available sub-asset names
-            var names = new List<string>();
-            foreach (var asset in allAssets)
-            {
-                if (asset != null && !string.IsNullOrEmpty(asset.name))
-                    names.Add(asset.name);
-            }
+            var names = allAssets
+                .Where(a => a != null && !string.IsNullOrEmpty(a.name))
+                .Select(a => a.name).ToList();
 
             error = $"Sub-asset '{subAssetName}' not found in '{mainPath}'. "
                   + $"Available: {string.Join(", ", names)}";

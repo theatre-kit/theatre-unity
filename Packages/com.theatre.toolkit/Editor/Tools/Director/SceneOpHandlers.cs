@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 using Theatre.Stage;
 using UnityEngine;
@@ -324,8 +325,8 @@ namespace Theatre.Editor.Tools.Director
             var tag = args["tag"]?.Value<string>();
             if (!string.IsNullOrEmpty(tag))
             {
-                try { go.tag = tag; }
-                catch { /* Invalid tag — ignore */ }
+                if (UnityEditorInternal.InternalEditorUtility.tags.Contains(tag))
+                    go.tag = tag;
             }
 
             // Layer
