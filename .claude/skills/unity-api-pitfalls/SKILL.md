@@ -14,7 +14,8 @@ user-invocable: false
 
 # Unity 6 API Rules for Theatre
 
-See [findings.md](findings.md) for the complete reference.
+See [api-rules.md](api-rules.md) for API replacements, assembly boundaries, and serialization.
+See [threading.md](threading.md) for threading patterns, domain reload, and test setup.
 
 ## Key Rules
 

@@ -1,150 +1,304 @@
-# UI Toolkit Findings — Quick Reference
+# UI Toolkit Deep Reference
 
 Compiled from Unity 6000.4.0f1 documentation and source analysis (March 2026).
 
-## Loading UXML + USS from a Package
+## Contents
 
-```csharp
-const string k_Uxml = "Packages/com.theatre.toolkit/Editor/UI/TheatreWindow.uxml";
-const string k_Uss  = "Packages/com.theatre.toolkit/Editor/UI/TheatreWindow.uss";
+- [USS File Structure](#uss-file-structure)
+- [Foldout](#foldout)
+- [Two-Column Tool List](#two-column-tool-list)
+- [ListView (Virtualized)](#listview-virtualized)
+- [Scrollable Feed](#scrollable-feed)
+- [Status Indicators](#status-indicators)
+- [ViewData Persistence](#viewdata-persistence)
+- [UXML Reference](#uxml-reference)
 
-static readonly Lazy<VisualTreeAsset> s_Tree  = new(() => AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(k_Uxml));
-static readonly Lazy<StyleSheet>      s_Style = new(() => AssetDatabase.LoadAssetAtPath<StyleSheet>(k_Uss));
+---
 
-public void CreateGUI()
-{
-    s_Tree.Value.CloneTree(rootVisualElement);
-    rootVisualElement.styleSheets.Add(s_Style.Value);
-    // wire up with rootVisualElement.Q<T>("name")
-}
-```
-
-Pattern confirmed in `RenderPipelineConvertersEditor.cs` and multiple Unity built-in packages.
-
-## USS vs Inline C# Styles
-
-- **USS for:** repeated styles, dark/light theme vars, hover/focus states (can't be set inline)
-- **Inline C# for:** truly dynamic values only (e.g., progress bar width at runtime)
-- Inline style.color overrides USS but ignores pseudo-states — avoid for status indicators
-
-## Toggle Internal Structure
-
-```
-Toggle (.unity-toggle)
-  └── .unity-base-field__input
-        ├── #unity-checkmark (.unity-toggle__checkmark)   ← 14×14 box
-        └── .unity-base-field__label                      ← the text
-```
-
-BaseField lays out with label LEFT and input RIGHT. Setting `width` on the Toggle container
-clips the label because there's no room for both checkmark and label text.
-
-**Fix — separate container + bare Toggle:**
-```csharp
-var row = new VisualElement();
-row.style.flexDirection = FlexDirection.Row;
-row.style.alignItems = Align.Center;
-
-var toggle = new Toggle();       // no label text!
-toggle.style.flexShrink = 0;
-toggle.style.width = 18;
-
-var label = new Label("Tool Name");
-label.style.flexShrink = 0;
-label.style.width = 160;
-
-row.Add(toggle);
-row.Add(label);
-```
-
-## Foldout Structure
-
-```
-Foldout (.unity-foldout)
-  ├── Toggle (.unity-foldout__toggle)    ← header, arrow + text
-  └── VE (.unity-foldout__content)       ← children go here
-```
-
-- Cannot add elements to the header (it's built-in)
-- Target with USS: `.unity-foldout__text`, `.unity-foldout__content`
-- Set `foldout.viewDataKey = "unique-key"` → expansion state saved across domain reloads
-
-## Two-Column Row (Toggle | Name | Description)
+## USS File Structure
 
 ```css
+/* Variables — define once, reuse everywhere */
+:root {
+    --theatre-stage-color:    #7ECFFF;
+    --theatre-director-color: #7EFF9A;
+    --theatre-watch-color:    #FFE566;
+    --theatre-error-color:    #FF6666;
+    --theatre-muted:          #666666;
+}
+
+/* Section header */
+.section-header {
+    font-style: bold;
+    margin-top: 8px;
+    margin-bottom: 2px;
+    padding-bottom: 2px;
+    border-bottom-width: 1px;
+    border-bottom-color: #555555;
+    color: var(--unity-colors-label-text);
+}
+
+/* Group header row (toggle + label) */
+.group-row {
+    flex-direction: row;
+    align-items: center;
+    margin: 2px 0;
+}
+.group-toggle {
+    flex-shrink: 0;
+    width: 18px;
+}
+.group-label {
+    font-size: 11px;
+    flex-shrink: 0;
+    margin-left: 2px;
+}
+
+/* Two-column tool row: checkbox | name | description */
 .tool-row {
     flex-direction: row;
     align-items: flex-start;
     padding: 2px 4px;
+    margin: 1px 0;
 }
-.tool-toggle { flex-shrink: 0; width: 18px; margin-top: 1px; }
-.tool-name   { width: 180px; flex-shrink: 0; font-size: 11px; white-space: nowrap; overflow: hidden; }
-.tool-desc   { flex-grow: 1; flex-shrink: 1; min-width: 0; font-size: 10px; white-space: normal; }
+.tool-row:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+}
+.tool-toggle {
+    flex-shrink: 0;
+    width: 18px;
+    margin-top: 1px;
+    margin-right: 4px;
+}
+.tool-name {
+    width: 180px;
+    flex-shrink: 0;
+    font-size: 11px;
+    overflow: hidden;
+    -unity-text-overflow-position: end;
+    white-space: nowrap;
+}
+.tool-desc {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;        /* CRITICAL: allows shrink below content size */
+    font-size: 10px;
+    color: var(--theatre-muted);
+    white-space: normal; /* allow text to wrap */
+    overflow: visible;
+}
+
+/* Activity feed entries */
+.activity-feed {
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+    padding: 2px;
+}
+.activity-entry {
+    font-size: 10px;
+    padding: 1px 2px;
+    white-space: nowrap;
+}
+.activity-stage    { color: var(--theatre-stage-color); }
+.activity-director { color: var(--theatre-director-color); }
+.activity-watch    { color: var(--theatre-watch-color); }
+.activity-error    { color: var(--theatre-error-color); }
+
+/* Status indicator dot */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-right: 6px;
+    margin-top: 3px;
+}
+.status-running { background-color: #44CC44; }
+.status-stopped { background-color: #CC4444; }
+.status-warning { background-color: #CC8822; }
 ```
 
-`min-width: 0` on the description label is critical — without it, flex items won't shrink
-below content size (auto), causing overflow.
+---
 
-## ListView vs ScrollView + foreach
+## Foldout
 
-- 37 tools → `ScrollView` + `foreach` is fine
-- Use `ListView` (virtualized) only for > 100 items
-- `fixedItemHeight` required for ListView performance
+```csharp
+var foldout = new Foldout();
+foldout.text = "Individual Tool Overrides";
+foldout.value = false;  // collapsed by default
+foldout.viewDataKey = "theatre-tool-overrides-foldout";  // persist state
+
+// Add children to the content area (done via foldout.Add()):
+foldout.Add(new Label("child element"));
+
+// Style the header and content via USS:
+// .unity-foldout__text   → label text
+// .unity-foldout__content → indented content area
+// .unity-foldout__toggle → the arrow + text row
+```
+
+**You cannot add extra elements to the Foldout header.** It's a built-in Toggle.
+For group headers needing toggle + extra controls, build a custom `VisualElement` row.
+
+---
+
+## Two-Column Tool List
+
+```csharp
+private static VisualElement BuildToolList(
+    IReadOnlyList<ToolInfo> tools,
+    HashSet<string> disabled)
+{
+    var container = new VisualElement();
+
+    foreach (var tool in tools)
+    {
+        var row = new VisualElement();
+        row.AddToClassList("tool-row");
+
+        var toggle = new Toggle();
+        toggle.AddToClassList("tool-toggle");
+        toggle.value = !disabled.Contains(tool.Name);
+        var toolName = tool.Name;
+        toggle.RegisterValueChangedCallback(evt =>
+        {
+            if (evt.newValue)
+                TheatreConfig.DisabledTools.Remove(toolName);
+            else
+                TheatreConfig.DisabledTools.Add(toolName);
+            TheatreServer.SseManager?.NotifyToolsChanged();
+        });
+
+        var nameLabel = new Label(tool.Name);
+        nameLabel.AddToClassList("tool-name");
+
+        var descLabel = new Label(tool.Description ?? string.Empty);
+        descLabel.AddToClassList("tool-desc");
+
+        row.Add(toggle);
+        row.Add(nameLabel);
+        row.Add(descLabel);
+        container.Add(row);
+    }
+
+    return container;
+}
+```
+
+Use `ScrollView` + `foreach` for lists up to ~100 items. Use `ListView` (virtualized) only for larger lists.
+
+---
+
+## ListView (Virtualized)
+
+Use `ListView` only when you have > 100 items or need efficient virtualization.
+
+```csharp
+var list = new ListView();
+list.makeItem = () =>
+{
+    var row = new VisualElement();
+    row.AddToClassList("tool-row");
+    row.Add(new Toggle  { name = "toggle" });
+    row.Add(new Label   { name = "name"   });
+    row.Add(new Label   { name = "desc"   });
+    return row;
+};
+list.bindItem = (element, index) =>
+{
+    var tool = tools[index];
+    element.Q<Toggle>("toggle").value = !disabled.Contains(tool.Name);
+    element.Q<Label>("name").text = tool.Name;
+    element.Q<Label>("desc").text = tool.Description;
+};
+list.itemsSource     = tools;
+list.fixedItemHeight = 22;  // REQUIRED for virtualization
+list.selectionType   = SelectionType.None;
+```
+
+---
 
 ## Scrollable Feed
 
 ```csharp
-var feed = new ScrollView(ScrollViewMode.Vertical);
-feed.style.maxHeight = 160;
-feed.viewDataKey = "theatre-activity-feed";
-// Append: feed.Add(new Label(text)); feed.scrollOffset = new Vector2(0, float.MaxValue);
+_feed = new ScrollView(ScrollViewMode.Vertical);
+_feed.style.maxHeight = 160;   // REQUIRED — without this, grows to fit all content
+_feed.viewDataKey = "theatre-activity-feed";
+
+// Append entry:
+var lbl = new Label(text);
+lbl.AddToClassList("activity-entry");
+lbl.AddToClassList(isError ? "activity-error" : "activity-stage");
+_feed.Add(lbl);
+
+// Scroll to bottom after adding:
+_feed.schedule.Execute(() =>
+    _feed.scrollOffset = new Vector2(0, float.MaxValue));
 ```
 
-`maxHeight` is required — without it, ScrollView grows to fit all content.
+---
 
 ## Status Indicators
 
-Use CSS classes, not inline colors:
 ```csharp
-_dot.RemoveFromClassList("status-running");
-_dot.RemoveFromClassList("status-stopped");
-_dot.AddToClassList(running ? "status-running" : "status-stopped");
+// In CreateGUI:
+_statusDot = new VisualElement();
+_statusDot.AddToClassList("status-dot");
+
+// In RefreshStatus:
+_statusDot.RemoveFromClassList("status-running");
+_statusDot.RemoveFromClassList("status-stopped");
+_statusDot.AddToClassList(isRunning ? "status-running" : "status-stopped");
+
+// NEVER do this — it bypasses USS:
+// _statusDot.style.backgroundColor = running ? Color.green : Color.red;
 ```
 
-```css
-.status-running { background-color: #44FF44; }
-.status-stopped { background-color: #FF4444; }
-```
+---
 
-## Unity Built-in USS Color Variables
+## ViewData Persistence
 
-```css
-color: var(--unity-colors-label-text);              /* #C4C4C4 dark */
-background-color: var(--unity-colors-window-background);  /* #383838 dark */
-background-color: var(--unity-colors-button-background);  /* #585858 dark */
-border-color: var(--unity-colors-default-border);         /* #232323 dark */
-```
+These elements automatically save/restore state when given a `viewDataKey`:
 
-These automatically adapt to dark/light mode.
-
-## ViewData — Persistence Across Domain Reloads
-
-```csharp
-myFoldout.viewDataKey = "theatre-tool-overrides";  // saves open/closed
-myScroll.viewDataKey  = "theatre-activity-scroll"; // saves scroll position
-```
-
-Supported elements: ScrollView, ListView, Foldout, TreeView, MultiColumnListView, TabView.
-Editor-only (not runtime).
-
-## Common Pitfalls
-
-| Problem | Fix |
+| Element | Persisted state |
 |---|---|
-| Toggle label disappears when width set | Don't set width on Toggle; use separate container + bare Toggle + Label |
-| Label text clipped in flex row | Add `min-width: 0; white-space: normal; overflow: visible;` to label |
-| ScrollView doesn't scroll, grows instead | Add `max-height` or `height` to the ScrollView |
-| Foldout content indented too much | Override `.unity-foldout__content { margin-left: 0; }` |
-| Orphan checkboxes in row | BaseField label is left-side; use bare Toggle + separate Label in a row |
-| Inline color won't show hover state | Use USS class + pseudo-class (`:hover`) instead |
-| UXML path not found | Use `Packages/com.company.name/...` not `package://` |
+| `Foldout` | Open/closed |
+| `ScrollView` | Scroll offset |
+| `ListView` | Selection index |
+| `TreeView` | Selection |
+| `TabView` | Selected tab |
+
+```csharp
+myFoldout.viewDataKey = "theatre-overrides-foldout";
+myScroll.viewDataKey  = "theatre-activity-scroll";
+```
+
+Editor-only. viewDataKey must be unique per window instance.
+
+---
+
+## UXML Reference
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <!-- Stylesheets -->
+    <Style src="/Packages/com.theatre.toolkit/Editor/UI/Theatre.uss"/>
+
+    <!-- Named elements wired up in C# with Q<T>("name") -->
+    <ui:VisualElement name="status-bar" class="status-bar">
+        <ui:VisualElement name="status-dot" class="status-dot status-stopped"/>
+        <ui:Label name="status-label" class="status-text"/>
+        <ui:Button name="copy-url-btn" text="Copy URL"/>
+    </ui:VisualElement>
+
+    <ui:Label text="Tool Groups" class="section-header"/>
+    <ui:VisualElement name="tool-groups-container"/>
+
+    <ui:Label text="Agent Activity" class="section-header"/>
+    <ui:ScrollView name="activity-feed" class="activity-feed"
+                   view-data-key="theatre-activity-feed"
+                   style="max-height: 160px;"/>
+</ui:UXML>
+```

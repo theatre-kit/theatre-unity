@@ -1,95 +1,14 @@
-# Unity 6 API Rules for Theatre Editor Extensions
+# Unity 6 API Rules — Threading, Domain Reload, and Test Setup
 
-## Context
+## Table of Contents
 
-This project is a UPM package (`com.theatre.toolkit`) with Runtime and Editor
-assemblies running inside the Unity 6 Editor. The server uses
-`System.Net.HttpListener` which fires callbacks on thread pool threads.
-These are hard-won rules from bugs encountered during development.
-
----
-
-## 1. System.Text.Json Does Not Exist
-
-Unity 6 uses .NET Standard 2.1 but does NOT ship `System.Text.Json`.
-Any code using `JsonSerializer`, `JsonElement`, `Utf8JsonWriter`,
-`JsonPropertyName`, `JsonIgnoreCondition` will fail to compile.
-
-**Use instead:** `Newtonsoft.Json` via the `com.unity.nuget.newtonsoft-json`
-UPM package (ships Newtonsoft.Json 13.0.2).
-
-| Don't use | Use instead |
-|---|---|
-| `System.Text.Json.JsonSerializer` | `Newtonsoft.Json.JsonConvert` |
-| `System.Text.Json.JsonElement` | `Newtonsoft.Json.Linq.JToken` |
-| `System.Text.Json.Utf8JsonWriter` | `Newtonsoft.Json.Linq.JObject` / `JArray` |
-| `[JsonPropertyName("x")]` | `[JsonProperty("x")]` |
-| `[JsonIgnore(Condition = ...)]` | `[JsonProperty(NullValueHandling = NullValueHandling.Ignore)]` |
-| `JsonDocument.Parse(s).RootElement` | `JToken.Parse(s)` |
-
-**Newtonsoft gotcha:** Newtonsoft serializes ALL public properties by default.
-Computed properties like `bool IsRequest => ...` will appear in JSON output
-unless marked `[JsonIgnore]`.
+1. [Threading — The Fundamental Rule](#1-threading--the-fundamental-rule)
+2. [Domain Reload](#2-domain-reload)
+3. [Test Setup for UPM Packages](#3-test-setup-for-upm-packages)
 
 ---
 
-## 2. Assembly Boundary Rules
-
-The UPM package has two assemblies:
-
-| Assembly | Can Reference | Cannot Reference |
-|---|---|---|
-| `com.theatre.toolkit.runtime` | `UnityEngine.*` | `UnityEditor.*` |
-| `com.theatre.toolkit.editor` | `UnityEngine.*`, `UnityEditor.*`, runtime assembly | — |
-
-**Runtime code that needs editor APIs:** Wrap in `#if UNITY_EDITOR`:
-
-```csharp
-#if UNITY_EDITOR
-var stage = UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage();
-#endif
-```
-
----
-
-## 3. Internal / Missing / Deprecated APIs
-
-### `Object.FindObjectFromInstanceID(int)` — DOES NOT EXIST
-
-This is an internal Unity API, not in the public C# API.
-
-**Use instead:**
-```csharp
-#if UNITY_EDITOR
-var obj = UnityEditor.EditorUtility.InstanceIDToObject(instanceId);
-#endif
-```
-
-### `Object.FindObjectsOfType<T>()` — DEPRECATED in Unity 6
-
-```csharp
-// WRONG: Object.FindObjectsOfType<T>()
-// RIGHT:
-Object.FindObjectsByType<T>(FindObjectsSortMode.None);
-```
-
-### `Object.FindObjectOfType<T>()` — DEPRECATED in Unity 6
-
-```csharp
-// WRONG: Object.FindObjectOfType<T>()
-// RIGHT:
-Object.FindFirstObjectByType<T>();
-Object.FindAnyObjectByType<T>(); // faster, no guaranteed order
-```
-
-### `EditorSceneManager.GetSceneManagerSetup()` — Editor only
-
-Cannot be used in Runtime assembly. Use `SceneManager.GetSceneAt(i)` and
-`SceneManager.sceneCount` instead.
-
----
-
-## 4. Threading — The Fundamental Rule
+## 1. Threading — The Fundamental Rule
 
 Unity is **single-threaded**. Every Unity API that touches scene graph,
 asset database, editor state, or engine services throws `UnityException`
@@ -200,7 +119,7 @@ via `ExecuteToolOnMainThread` — their `Execute()` bodies are safe.
 
 ---
 
-## 5. Domain Reload
+## 2. Domain Reload
 
 Unity reloads C# domain on script recompilation. All managed state dies:
 static fields, threads, HttpListener, ManualResetEventSlim.
@@ -230,25 +149,7 @@ catch (System.Threading.ThreadAbortException)
 
 ---
 
-## 6. Serialization Pitfalls
-
-### JsonUtility limitations
-
-Cannot serialize: `Dictionary<K,V>`, top-level arrays, properties, dynamic JSON.
-Use Newtonsoft for anything beyond simple flat `[Serializable]` types.
-
-### SerializedProperty type coverage
-
-Handle ALL types when traversing:
-`Integer`, `Boolean`, `Float`, `String`, `Color`, `Vector2/3/4`,
-`Quaternion`, `Rect`, `Bounds`, `ObjectReference` (path + instance_id),
-`Enum` (string name), `ArraySize` (skip), `Generic` (arrays), `ManagedReference`.
-
-Missing type handlers cause silent data loss.
-
----
-
-## 7. Test Setup for UPM Packages
+## 3. Test Setup for UPM Packages
 
 Tests in UPM packages require specific configuration to appear in Unity's
 Test Runner window.
@@ -300,18 +201,3 @@ Key fields:
 
 No batch mode available (requires Pro license). Run from GUI:
 **Window > General > Test Runner > EditMode > Run All**
-
----
-
-## 8. Checklist for New Code
-
-Before writing any C# in this project:
-
-- [ ] Am I in the Runtime or Editor assembly? Check what I can reference.
-- [ ] Does this code run on the main thread or a background thread?
-- [ ] Am I using any `System.*` namespace? Verify Unity ships it.
-- [ ] Am I using any `UnityEngine.Object` static method? Verify it's public and not deprecated.
-- [ ] Am I serializing with Newtonsoft? Check for leaked properties (`[JsonIgnore]`).
-- [ ] If background thread: am I calling ANY Unity API? (Must cache or dispatch.)
-- [ ] If domain reload: am I catching `ThreadAbortException`?
-- [ ] Have I searched my code for every `UnityEngine.*` and `UnityEditor.*` call?
