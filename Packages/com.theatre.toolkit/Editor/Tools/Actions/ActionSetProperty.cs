@@ -1,6 +1,6 @@
 using Newtonsoft.Json.Linq;
 using Theatre;
-using Theatre.Editor.Tools.Director;
+using Theatre.Editor.Tools.Director.Shared;
 using Theatre.Stage;
 using UnityEngine;
 #if UNITY_EDITOR

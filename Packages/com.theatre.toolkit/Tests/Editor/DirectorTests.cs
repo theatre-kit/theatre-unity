@@ -1,7 +1,9 @@
 using NUnit.Framework;
 using Newtonsoft.Json.Linq;
 using Theatre.Stage;
-using Theatre.Editor.Tools.Director;
+using Theatre.Editor.Tools.Director.Shared;
+using Theatre.Editor.Tools.Director.Scenes;
+using Theatre.Editor.Tools.Director.Prefabs;
 using UnityEngine;
 using UnityEditor;
 

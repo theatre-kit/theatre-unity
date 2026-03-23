@@ -8,7 +8,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 #endif
 
-using Theatre.Editor.Tools.Director;
+using Theatre.Editor.Tools.Director.Input;
+using Theatre.Editor.Tools.Director.Config;
 
 namespace Theatre.Tests.Editor
 {

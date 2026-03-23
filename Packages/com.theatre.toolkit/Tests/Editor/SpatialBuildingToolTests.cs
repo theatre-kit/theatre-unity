@@ -1,6 +1,6 @@
 using NUnit.Framework;
 using Newtonsoft.Json.Linq;
-using Theatre.Editor.Tools.Director;
+using Theatre.Editor.Tools.Director.Spatial;
 using Theatre.Stage;
 using UnityEngine;
 using UnityEngine.Tilemaps;

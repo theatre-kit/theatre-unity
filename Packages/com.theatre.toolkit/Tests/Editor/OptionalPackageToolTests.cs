@@ -5,7 +5,7 @@ using UnityEditor;
 namespace Theatre.Tests.Editor
 {
 #if THEATRE_HAS_URP
-    using Theatre.Editor.Tools.Director;
+    using Theatre.Editor.Tools.Director.Assets;
     using UnityEngine.Rendering.Universal;
 
     [TestFixture]

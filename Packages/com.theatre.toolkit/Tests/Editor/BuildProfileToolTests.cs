@@ -1,6 +1,6 @@
 using NUnit.Framework;
 using Newtonsoft.Json.Linq;
-using Theatre.Editor.Tools.Director;
+using Theatre.Editor.Tools.Director.Config;
 using UnityEditor;
 
 namespace Theatre.Tests.Editor

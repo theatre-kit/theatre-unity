@@ -13,7 +13,14 @@ using Theatre.Editor.Tools.Scene;
 using Theatre.Editor.Tools.Spatial;
 using Theatre.Editor.Tools.Watch;
 using Theatre.Editor.Tools.Recording;
-using Theatre.Editor.Tools.Director;
+using Theatre.Editor.Tools.Director.Shared;
+using Theatre.Editor.Tools.Director.Scenes;
+using Theatre.Editor.Tools.Director.Prefabs;
+using Theatre.Editor.Tools.Director.Assets;
+using Theatre.Editor.Tools.Director.Animation;
+using Theatre.Editor.Tools.Director.Spatial;
+using Theatre.Editor.Tools.Director.Input;
+using Theatre.Editor.Tools.Director.Config;
 using Theatre.Editor.UI;
 #if THEATRE_HAS_ENTITIES
 using Theatre.Editor.Tools.ECS;

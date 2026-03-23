@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 using Newtonsoft.Json.Linq;
-using Theatre.Editor.Tools.Director;
+using Theatre.Editor.Tools.Director.Shared;
 using Theatre.Stage;
 using UnityEngine;
 
