@@ -76,7 +76,7 @@ For Claude Code, Cursor, or any MCP-compatible client, add to `.mcp.json` in you
 {
   "mcpServers": {
     "theatre": {
-      "type": "streamable-http",
+      "type": "http",
       "url": "http://localhost:9078/mcp"
     }
   }

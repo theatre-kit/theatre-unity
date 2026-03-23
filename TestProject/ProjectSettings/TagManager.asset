@@ -70,6 +70,9 @@ TagManager:
   - TheatreTestTag_8ba24791
   - TheatreTestDup_d30c8b7a
   - TheatreTestTag_69305460
+  - TheatreTestTag_e662bd52
+  - TheatreTestDup_bef80327
+  - TheatreTestTag_98c6870f
   layers:
   - Default
   - TransparentFX

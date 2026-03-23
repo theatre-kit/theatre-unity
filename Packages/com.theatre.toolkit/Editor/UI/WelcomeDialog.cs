@@ -35,7 +35,7 @@ namespace Theatre.Editor.UI
             GUILayout.Label("Add this to your agent's .mcp.json:", EditorStyles.miniLabel);
 
             var mcpJson =
-                "{\n  \"mcpServers\": {\n    \"theatre\": {\n      \"type\": \"streamable-http\",\n      \"url\": \"http://localhost:"
+                "{\n  \"mcpServers\": {\n    \"theatre\": {\n      \"type\": \"http\",\n      \"url\": \"http://localhost:"
                 + TheatreConfig.Port
                 + "/mcp\"\n    }\n  }\n}";
 

@@ -316,7 +316,7 @@ Add this to your agent's .mcp.json:
 {
   "mcpServers": {
     "theatre": {
-      "type": "streamable-http",
+      "type": "http",
       "url": "http://localhost:9078/mcp"
     }
   }

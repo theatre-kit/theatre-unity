@@ -155,7 +155,7 @@ Ensure the template is correct and up-to-date:
 {
   "mcpServers": {
     "theatre": {
-      "type": "streamable-http",
+      "type": "http",
       "url": "http://localhost:9078/mcp"
     }
   }

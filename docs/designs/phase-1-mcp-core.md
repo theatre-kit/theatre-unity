@@ -2205,7 +2205,7 @@ curl -s -X POST http://localhost:9078/mcp \
 curl http://localhost:9078/health
 # 4. MCP handshake via curl (see manual verification above)
 # 5. Claude Code connects via .mcp.json:
-#    { "mcpServers": { "theatre": { "type": "streamable-http", "url": "http://localhost:9078/mcp" } } }
+#    { "mcpServers": { "theatre": { "type": "http", "url": "http://localhost:9078/mcp" } } }
 # 6. Claude Code sees theatre_status in tool list
 # 7. Claude Code calls theatre_status and gets a response
 ```

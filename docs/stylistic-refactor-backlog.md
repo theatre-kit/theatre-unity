@@ -1,6 +1,6 @@
 # Stylistic Refactor Backlog
 
-Generated: 2026-03-20
+Generated: 2026-03-22
 Styles: Result Types, LINQ Cold Paths, Static Stateless, Guard Clauses
 
 ---
@@ -9,161 +9,225 @@ Styles: Result Types, LINQ Cold Paths, Static Stateless, Guard Clauses
 
 Low risk, clear improvement in readability or consistency.
 
-### 1. SceneSnapshotTool.FilterByComponents — LINQ simplification
-
-**File:** `Packages/com.theatre.toolkit/Editor/Tools/SceneSnapshotTool.cs:253-279`
+### 1. SceneDeltaTool path filter — `.Any()` instead of manual loop
+**File:** `Editor/Tools/Scene/SceneDeltaTool.cs:138-151`
 **Style:** LINQ Cold Paths
 
-**Current** (15 lines, 4 levels of nesting):
+**Current** (10 lines, temp bool + manual break):
 ```csharp
-private static List<HierarchyEntry> FilterByComponents(
-    List<HierarchyEntry> entries, string[] requiredComponents)
+bool match = false;
+foreach (var p in pathFilter)
 {
-    var filtered = new List<HierarchyEntry>();
-    foreach (var entry in entries)
+    if (path == p || path.StartsWith(p + "/"))
     {
-        if (entry.Components == null) continue;
-        bool hasAll = true;
-        foreach (var required in requiredComponents)
-        {
-            bool found = false;
-            foreach (var comp in entry.Components)
-            {
-                if (string.Equals(comp, required, StringComparison.OrdinalIgnoreCase))
-                { found = true; break; }
-            }
-            if (!found) { hasAll = false; break; }
-        }
-        if (hasAll) filtered.Add(entry);
+        match = true;
+        break;
     }
-    return filtered;
 }
+if (!match) skipObject = true;
 ```
 
 **Proposed:**
 ```csharp
-private static List<HierarchyEntry> FilterByComponents(
-    List<HierarchyEntry> entries, string[] requiredComponents)
-{
-    return entries.Where(entry =>
-        entry.Components != null &&
-        requiredComponents.All(required =>
-            entry.Components.Any(comp =>
-                string.Equals(comp, required, StringComparison.OrdinalIgnoreCase))))
-        .ToList();
-}
+if (!pathFilter.Any(p => path == p || path.StartsWith(p + "/")))
+    skipObject = true;
 ```
 
-**Rationale:** Cold path (scene snapshot generation). 15 → 5 lines. Eliminates 4-level nesting and temp booleans. Also fixes a Guard Clauses violation.
+**Rationale:** 10 → 2 lines. `.Any()` is the idiomatic C# for "does any element match". Cold path (delta tool).
 
 ---
 
-### 2. ActionInvokeMethod.Execute — LINQ for method matching
+### 2. SceneDeltaTool path filter + skipObject — flatten with `continue`
+**File:** `Editor/Tools/Scene/SceneDeltaTool.cs:138-159`
+**Style:** Guard Clauses
 
-**File:** `Packages/com.theatre.toolkit/Editor/Tools/Actions/ActionInvokeMethod.cs:69-89`
-**Style:** LINQ Cold Paths
+Combined with #1, the `skipObject` flag + `if (!skipObject)` wrapping 20+ lines can become a single guard:
 
-**Current** (17 lines):
 ```csharp
-foreach (var method in methods)
-{
-    if (method.Name != methodName) continue;
-    var parameters = method.GetParameters();
-    if (parameters.Length != argCount) continue;
-    bool allAllowed = true;
-    foreach (var p in parameters)
-    {
-        if (!IsAllowedType(p.ParameterType))
-        { allAllowed = false; break; }
-    }
-    if (allAllowed)
-    { targetMethod = method; break; }
-}
+if (pathFilter != null && !pathFilter.Any(p => path == p || path.StartsWith(p + "/")))
+    continue;
 ```
 
-**Proposed:**
-```csharp
-targetMethod = methods.FirstOrDefault(method =>
-    method.Name == methodName &&
-    method.GetParameters().Length == argCount &&
-    method.GetParameters().All(p => IsAllowedType(p.ParameterType)));
-```
-
-**Rationale:** Cold path (action invocation). Classic `.FirstOrDefault()` candidate. 17 → 4 lines.
+**Rationale:** Eliminates one full nesting level from the snapshot block. Classic guard clause inversion.
 
 ---
 
-### 3. ConsoleLogBuffer.GetSummary — LINQ for top-N sorting
-
-**File:** `Packages/com.theatre.toolkit/Editor/Tools/ConsoleLogBuffer.cs:166-170`
+### 3. DirectorHelpers sub-asset name collection — `.Where().Select()`
+**File:** `Editor/Tools/Director/DirectorHelpers.cs:480-485`
 **Style:** LINQ Cold Paths
 
 **Current:**
 ```csharp
-var sorted = new List<(string message, int count, LogType type)>();
-foreach (var kv in messageCounts)
-    sorted.Add((kv.Key, kv.Value.count, kv.Value.type));
-sorted.Sort((a, b) => b.count.CompareTo(a.count));
-if (sorted.Count > topN) sorted.RemoveRange(topN, sorted.Count - topN);
+var names = new List<string>();
+foreach (var asset in allAssets)
+{
+    if (asset != null && !string.IsNullOrEmpty(asset.name))
+        names.Add(asset.name);
+}
 ```
 
 **Proposed:**
 ```csharp
-var sorted = messageCounts
-    .Select(kv => (message: kv.Key, count: kv.Value.count, type: kv.Value.type))
-    .OrderByDescending(x => x.count)
-    .Take(topN)
-    .ToList();
+var names = allAssets
+    .Where(a => a != null && !string.IsNullOrEmpty(a.name))
+    .Select(a => a.name).ToList();
 ```
 
-**Rationale:** Cold path (console summary). `.OrderByDescending().Take()` is idiomatic and eliminates manual truncation.
+**Rationale:** Classic filter+project accumulation. 5 → 3 lines.
 
 ---
 
-### 4. WatchPersistence.Save/Restore — LINQ for transforms
-
-**File:** `Packages/com.theatre.toolkit/Runtime/Stage/GameObject/WatchPersistence.cs:23-25, 52-61`
+### 4. SceneSnapshotTool root collection — `.Select()` in both branches
+**File:** `Editor/Tools/Scene/SceneSnapshotTool.cs:144-151`
 **Style:** LINQ Cold Paths
 
-**Current (Save):**
+**Current:**
 ```csharp
-var defs = new List<WatchDefinition>();
-foreach (var ws in watches)
-    defs.Add(ws.Definition);
+foreach (var go in scene.GetRootGameObjects())
+    roots.Add(go.transform);
+// and
+foreach (var go in ObjectResolver.GetAllRoots())
+    roots.Add(go.transform);
 ```
 
-**Proposed (Save):**
+**Proposed:**
 ```csharp
-var defs = watches.Select(ws => ws.Definition).ToList();
+roots = scene.GetRootGameObjects().Select(go => go.transform).ToList();
+// and
+roots = ObjectResolver.GetAllRoots().Select(go => go.transform).ToList();
 ```
 
-**Current (Restore):**
+**Rationale:** Trivial transform-and-collect. `.Select().ToList()` is idiomatic.
+
+---
+
+### 5. SceneHierarchyTool active root count — `.Count()` + ternary
+**File:** `Editor/Tools/Scene/SceneHierarchyTool.cs:175-184`
+**Style:** LINQ Cold Paths
+
+**Current:**
 ```csharp
-foreach (var def in defs)
+int activeRootCount = 0;
+if (!includeInactive)
 {
-    var state = new WatchState { Definition = def, LastTriggeredAt = 0, TriggerCount = 0 };
-    watches.Add(state);
+    foreach (var root in roots)
+        if (root.activeInHierarchy) activeRootCount++;
+}
+else
+{
+    activeRootCount = roots.Length;
 }
 ```
 
-**Proposed (Restore):**
+**Proposed:**
 ```csharp
-watches.AddRange(defs.Select(def => new WatchState
-{
-    Definition = def, LastTriggeredAt = 0, TriggerCount = 0
-}));
+int activeRootCount = includeInactive
+    ? roots.Length
+    : roots.Count(r => r.activeInHierarchy);
 ```
 
-**Rationale:** Cold path (domain reload persistence). Classic `.Select()` patterns.
+**Rationale:** 8 → 3 lines. `.Count()` with predicate is idiomatic.
 
 ---
 
-### 5. SpatialEntryFilter — LINQ for component matching
+### 6. UnityConsoleTool top-repeated summary — JArray constructor + `.Select()`
+**File:** `Editor/Tools/UnityConsoleTool.cs:142-151`
+**Style:** LINQ Cold Paths
 
-**File:** `Packages/com.theatre.toolkit/Runtime/Stage/Spatial/SpatialEntryFilter.cs:44-60`
+**Current:**
+```csharp
+var top = new JArray();
+foreach (var (message, count, type) in topRepeated)
+{
+    top.Add(new JObject
+    {
+        ["message"] = message,
+        ["count"] = count,
+        ["type"] = type.ToString().ToLowerInvariant()
+    });
+}
+```
+
+**Proposed:**
+```csharp
+var top = new JArray(topRepeated.Select(t => new JObject
+{
+    ["message"] = t.message,
+    ["count"] = t.count,
+    ["type"] = t.type.ToString().ToLowerInvariant()
+}));
+```
+
+**Rationale:** JArray constructor accepts `IEnumerable<JToken>`. Eliminates mutable loop pattern.
+
+---
+
+### 7. SceneOpHandlers tag assignment — validate instead of bare catch
+**File:** `Editor/Tools/Director/SceneOpHandlers.cs:327-328`
+**Style:** Result Types
+
+**Current:**
+```csharp
+try { go.tag = tag; }
+catch { /* Invalid tag — ignore */ }
+```
+
+**Proposed:**
+```csharp
+if (UnityEditorInternal.InternalEditorUtility.tags.Contains(tag))
+    go.tag = tag;
+else
+    compErrors.Add($"Invalid tag '{tag}'");
+```
+
+**Rationale:** Silent bare catch hides errors from the agent. Validating first provides feedback and avoids exception overhead.
+
+---
+
+### 8. SceneSnapshotTool.FilterByComponents — nested foreach to LINQ
+**File:** `Editor/Tools/Scene/SceneSnapshotTool.cs` (FilterByComponents method)
 **Style:** LINQ Cold Paths + Guard Clauses
 
-**Current** (nested foreach with temp bool):
+**Current** (15 lines, 4 levels of nesting, temp booleans):
+```csharp
+var filtered = new List<HierarchyEntry>();
+foreach (var entry in entries)
+{
+    if (entry.Components == null) continue;
+    bool hasAll = true;
+    foreach (var required in requiredComponents)
+    {
+        bool found = false;
+        foreach (var comp in entry.Components)
+        {
+            if (string.Equals(comp, required, StringComparison.OrdinalIgnoreCase))
+            { found = true; break; }
+        }
+        if (!found) { hasAll = false; break; }
+    }
+    if (hasAll) filtered.Add(entry);
+}
+```
+
+**Proposed:**
+```csharp
+return entries.Where(entry =>
+    entry.Components != null &&
+    requiredComponents.All(required =>
+        entry.Components.Any(comp =>
+            string.Equals(comp, required, StringComparison.OrdinalIgnoreCase))))
+    .ToList();
+```
+
+**Rationale:** 15 → 5 lines. Eliminates 4-level nesting and two temp booleans.
+
+---
+
+### 9. SpatialEntryFilter component matching — `.Any()` for inner loop
+**File:** `Runtime/Stage/Spatial/SpatialEntryFilter.cs:44-60`
+**Style:** LINQ Cold Paths + Guard Clauses
+
+**Current:**
 ```csharp
 foreach (var required in includeComponents)
 {
@@ -185,53 +249,17 @@ foreach (var required in includeComponents)
 foreach (var required in includeComponents)
 {
     if (entry.Components == null ||
-        !entry.Components.Any(comp => string.Equals(comp, required, StringComparison.OrdinalIgnoreCase)))
+        !entry.Components.Any(c => string.Equals(c, required, StringComparison.OrdinalIgnoreCase)))
         return false;
 }
 ```
 
-**Rationale:** Cold path (filter predicate built once per query). Eliminates inner foreach + temp bool.
+**Rationale:** Eliminates inner foreach + temp bool. Filter predicate is built once per query (cold path).
 
 ---
 
-### 6. SpatialQueryBounds.Execute — extract helper to flatten nesting
-
-**File:** `Packages/com.theatre.toolkit/Editor/Tools/SpatialQueryBounds.cs:42-71`
-**Style:** Guard Clauses
-
-**Issue:** Collider bounds calculation has 4 levels of nesting (foreach → if → if → assignment).
-
-**Proposed:** Extract `GetColliderBounds(GameObject go)` as a private static method returning `Bounds?`. The caller becomes:
-```csharp
-var bounds = GetColliderBounds(go);
-if (!bounds.HasValue)
-    return ResponseHelpers.ErrorResponse("no_bounds", "...");
-```
-
-**Rationale:** Flattens the deepest nesting in Execute to 2 levels. Helper is reusable.
-
----
-
-### 7. TheatreServer tool execution — result type over exception
-
-**File:** `Packages/com.theatre.toolkit/Editor/TheatreServer.cs:156-157`
-**Style:** Result Types
-
-**Current:**
-```csharp
-if (tool == null)
-    throw new InvalidOperationException($"Tool '{toolName}' not found or not enabled");
-```
-
-**Proposed:** Return an error string (JSON error response) instead of throwing, since "tool not found" is an expected client error, not an exceptional situation. The caller in McpRouter already wraps tool execution in try/catch — but checking the return is cleaner than throwing across the call boundary.
-
-**Rationale:** A client requesting a disabled tool is expected behavior, not an exceptional condition.
-
----
-
-### 8. PropertySerializer.SerializeComponents — LINQ for component filtering
-
-**File:** `Packages/com.theatre.toolkit/Editor/Tools/PropertySerializer.cs:58-72`
+### 10. PropertySerializer component filter — `.Any()`
+**File:** `Editor/Tools/Scene/PropertySerializer.cs:58-72`
 **Style:** LINQ Cold Paths
 
 **Current:**
@@ -255,57 +283,38 @@ if (componentFilter != null &&
     continue;
 ```
 
-**Rationale:** Cold path (property serialization). `.Any()` replaces manual search loop + temp bool.
+**Rationale:** 7 → 2 lines. Same `.Any()` pattern as #1 and #9.
 
 ---
 
-### 9. ObjectResolver.FindComponent — LINQ FirstOrDefault
+### 11. Property name candidate lookup — deduplicate with shared helper
+**Files:** `Editor/Tools/Actions/ActionSetProperty.cs:58-62`, `Editor/Tools/Director/DirectorHelpers.cs:177-181`, `Runtime/Stage/GameObject/WatchConditions.cs:230-244`
+**Style:** LINQ Cold Paths + Static Stateless (deduplication)
 
-**File:** `Packages/com.theatre.toolkit/Runtime/Stage/GameObject/ObjectResolver.cs:279-286`
-**Style:** LINQ Cold Paths
-
-**Current:**
+**Current** (appears 3 times):
 ```csharp
-foreach (var comp in go.GetComponents<Component>())
+SerializedProperty sp = null;
+foreach (var candidate in StringUtils.GetPropertyNameCandidates(propName))
 {
-    if (comp == null) continue;
-    if (string.Equals(comp.GetType().Name, componentName, StringComparison.OrdinalIgnoreCase))
-        return comp;
+    sp = so.FindProperty(candidate);
+    if (sp != null) break;
 }
-return null;
 ```
 
-**Proposed:**
+**Proposed:** Add to `StringUtils` or a new extension:
 ```csharp
-return go.GetComponents<Component>()
-    .FirstOrDefault(comp => comp != null &&
-        string.Equals(comp.GetType().Name, componentName, StringComparison.OrdinalIgnoreCase));
+public static SerializedProperty FindPropertyFuzzy(
+    this SerializedObject so, string name)
+{
+    return StringUtils.GetPropertyNameCandidates(name)
+        .Select(c => so.FindProperty(c))
+        .FirstOrDefault(p => p != null);
+}
 ```
 
-**Rationale:** Cold path (component lookup). Classic `.FirstOrDefault()`.
+Then all three call sites become: `var sp = so.FindPropertyFuzzy(propName);`
 
----
-
-### 10. JsonParamParser.ParseStringArray — LINQ Select
-
-**File:** `Packages/com.theatre.toolkit/Runtime/Stage/JsonParamParser.cs:57-60`
-**Style:** LINQ Cold Paths
-
-**Current:**
-```csharp
-var list = new List<string>();
-foreach (var item in (JArray)token)
-    list.Add(item.Value<string>());
-return list.Count > 0 ? list.ToArray() : null;
-```
-
-**Proposed:**
-```csharp
-var arr = ((JArray)token).Select(item => item.Value<string>()).ToArray();
-return arr.Length > 0 ? arr : null;
-```
-
-**Rationale:** Cold path (parameter parsing). 3 → 2 lines.
+**Rationale:** Eliminates duplication across 3 files. `.Select().FirstOrDefault()` expresses intent.
 
 ---
 
@@ -313,29 +322,58 @@ return arr.Length > 0 ? arr : null;
 
 Valid refactors with moderate impact or moderate effort.
 
-### 11. SpatialEntryFilter tag exclusion — LINQ Any
+### 12. PrefabOpHandlers — three accumulation loops to LINQ
+**File:** `Editor/Tools/Director/PrefabOpHandlers.cs:448-490`
 
-**File:** `Packages/com.theatre.toolkit/Runtime/Stage/Spatial/SpatialEntryFilter.cs:35-40`
+Three consecutive foreach loops (property modifications, added components, added objects) filter and transform into JArrays. Each is a `.Where().Select()` candidate. Moderate win — loops are already readable.
 
-Replace tag-exclusion foreach with `.Any()`. Small improvement (4 → 2 lines), but the existing code is already readable. Marginal gain.
+### 13. InputActionOpTool.ListActions — extract `BuildBindingJObject()`
+**File:** `Editor/Tools/Director/InputActionOpTool.cs:416-470`
+**Style:** Guard Clauses
 
-### 12. SceneSnapshotTool component filtering in response — LINQ Where
+Triple nested foreach (maps → actions → bindings) with conditionals at level 4-5. Extracting `BuildBindingJObject(binding)` would flatten the inner loop body.
 
-**File:** `Packages/com.theatre.toolkit/Editor/Tools/SceneSnapshotTool.cs:225-229`
+### 14. AnimatorControllerOpTool.ListStates — extract `BuildTransitionJObject()`
+**File:** `Editor/Tools/Director/AnimatorControllerOpTool.cs:543-600+`
+**Style:** Guard Clauses
 
-Filter `entry.Components` to exclude "Transform" with `.Where()`. Only saves 2 lines. Current code is clear.
+States → transitions → conditions creates 4 nesting levels. Helper method would flatten.
 
-### 13. ConsoleLogBuffer.Query grep filtering — extract helper
+### 15. RecordingEngine.Tick delta merging — extract `MergeSnapshotDelta()`
+**File:** `Runtime/Stage/Recording/RecordingEngine.cs:248-325`
+**Style:** Guard Clauses
 
-**File:** `Packages/com.theatre.toolkit/Editor/Tools/ConsoleLogBuffer.cs:111-124`
+The if-else with nested property merging hits 6 levels. Extracting a merge helper would flatten the inner block significantly.
 
-The grep matching logic has 3 levels of nesting inside a lock + loop. Extracting a `MatchesGrep()` helper would flatten it, but the code is within a lock block so restructuring needs care.
+### 16. HierarchyWalker.SearchRecursive — extract `MatchesComponentFilter()`
+**File:** `Runtime/Stage/GameObject/HierarchyWalker.cs:287-325`
+**Style:** Guard Clauses
 
-### 14. ResponseHelpers.GetLocalPath duplicate counting
+RequiredComponents check is a nested foreach-with-break. Extracting `MatchesComponentFilter(go, filter)` returning bool would flatten.
 
-**File:** `Packages/com.theatre.toolkit/Runtime/Stage/ResponseHelpers.cs:187-194`
+### 17. ConsoleLogBuffer.GetSummary — `.OrderByDescending().Take()`
+**File:** `Editor/Tools/ConsoleLogBuffer.cs:166-170`
+**Style:** LINQ Cold Paths
 
-Could use `.Count()` and `Array.FindIndex()` instead of manual loop. But the current loop does both operations in a single pass, which is technically more efficient.
+Replace manual sort + `RemoveRange` truncation with `.OrderByDescending(x => x.count).Take(topN)`. Idiomatic but small gain.
+
+### 18. WatchPersistence.Save/Restore — `.Select()` transforms
+**File:** `Runtime/Stage/GameObject/WatchPersistence.cs:23-25, 52-61`
+**Style:** LINQ Cold Paths
+
+Trivial foreach-to-`.Select()` in both Save and Restore. Small win.
+
+### 19. ObjectResolver.FindComponent — `.FirstOrDefault()`
+**File:** `Runtime/Stage/GameObject/ObjectResolver.cs:279-286`
+**Style:** LINQ Cold Paths
+
+Classic `.FirstOrDefault()` candidate for component lookup. Small but consistent.
+
+### 20. SceneOpHandlers.CreateGameObject component loop — extract helper
+**File:** `Editor/Tools/Director/SceneOpHandlers.cs:344-381`
+**Style:** Guard Clauses
+
+Loop body with `#if UNITY_EDITOR` blocks adds visual nesting. Extracting `AddComponentWithProperties()` would flatten.
 
 ---
 
@@ -344,46 +382,50 @@ Could use `.Count()` and `Array.FindIndex()` instead of manual loop. But the cur
 Code that technically violates a style but should NOT be refactored.
 
 ### ToolRegistry constructor — `?? throw new ArgumentNullException`
-
-**File:** `Packages/com.theatre.toolkit/Runtime/Core/ToolRegistry.cs:45,49`
+**File:** `Runtime/Core/ToolRegistry.cs:45,49`
 
 ```csharp
 Name = name ?? throw new ArgumentNullException(nameof(name));
 Handler = handler ?? throw new ArgumentNullException(nameof(handler));
 ```
 
-**Why not:** These are programmer errors (registering a tool with a null name), not recoverable failures from external input. `ArgumentNullException` is the correct C# idiom for catching API misuse at construction time. The Result Types rule says "reserve exceptions for truly unrecoverable situations" — null tool name is exactly that.
+**Why not:** Programmer errors (null tool name at registration), not agent input failures. `ArgumentNullException` is the correct C# idiom for API misuse at construction time. The Result Types rule says "reserve exceptions for truly unrecoverable situations" — this qualifies.
 
-### SpatialIndex / TokenBudget foreach loops
+### DirectorHelpers.ResolveType — catch (ReflectionTypeLoadException) in assembly loop
+**File:** `Editor/Tools/Director/DirectorHelpers.cs:39-68`
 
-**Files:** `Runtime/Stage/Spatial/SpatialIndex.cs`, `Runtime/Stage/Spatial/Clustering.cs`
+Nested foreach with try/catch and duplicate checking. LINQ `.SelectMany()` would require wrapping the catch in a helper, obscuring *why* the catch exists. The current code is explicit about assembly scanning failures.
 
-**Why not:** Hot paths. LINQ Cold Paths rule explicitly excludes spatial index operations. The foreach loops here are performance-correct.
+### TerrainOpTool grid loops — SmoothHeightmap, PaintTexture
+**File:** `Editor/Tools/Director/TerrainOpTool.cs:266-441`
+
+Triple/quadruple nested loops for 2D/3D grid operations (smoothing kernels, texture painting). Nesting is *inherent to the algorithm*. Extracting helpers would move nesting without reducing cognitive load. The loops are tightly coupled to array indices and bounds.
+
+### TilemapOpTool grid loops — BoxFill, GetUsedTiles, Clear
+**File:** `Editor/Tools/Director/TilemapOpTool.cs:234-469`
+
+Same as TerrainOpTool. Grid iteration over `(x, y, z)` bounds is inherently nested. Loop bodies are minimal (1-3 lines). Extracting adds indirection for no readability gain.
 
 ### WatchEngine.ListAll / WatchEngine.Check
+**File:** `Runtime/Stage/GameObject/WatchEngine.cs:136-184`
 
-**File:** `Packages/com.theatre.toolkit/Runtime/Stage/GameObject/WatchEngine.cs:137-155, 164-183`
+Builds JObjects with complex conditional properties (`Label`, `Condition`, `target_alive`). LINQ `.Select()` would produce a dense lambda harder to read than the explicit loop. The lookup loop uses early return — `.FirstOrDefault()` would need a null check + separate build step, adding lines.
 
-**Why not:** Builds JObjects with complex conditional logic and side effects. LINQ would obscure intent and not reduce line count meaningfully.
+### SseStreamManager.PushNotification — try/catch per element
+**File:** `Runtime/Transport/SseStreamManager.cs:77-87`
 
-### SseStreamManager.PushNotification
+Each iteration catches independently. LINQ doesn't model "try per element" cleanly without making the lambda worse than the loop.
 
-**File:** `Packages/com.theatre.toolkit/Runtime/Transport/SseStreamManager.cs:77-87`
+### UnityConsoleTool.ExecuteQuery log entry builder
+**File:** `Editor/Tools/UnityConsoleTool.cs:109-121`
 
-**Why not:** Exception handling inside the loop body. Each iteration catches independently. LINQ doesn't model "try per element" cleanly.
-
-### UnityConsoleTool.ExecuteQuery
-
-**File:** `Packages/com.theatre.toolkit/Editor/Tools/UnityConsoleTool.cs:104-115`
-
-**Why not:** Builds JObjects with conditional field additions. LINQ `.Select()` would need the same conditional logic inside the lambda, gaining nothing.
+Builds JObjects with conditional fields (`RepeatCount`, `StackTrace`). LINQ `.Select()` would need the same conditional logic inside the lambda, gaining nothing.
 
 ### Clustering.DeriveLabel — moderate nesting
+**File:** `Runtime/Stage/Spatial/Clustering.cs:184-251`
 
-**File:** `Packages/com.theatre.toolkit/Runtime/Stage/Spatial/Clustering.cs:184-251`
-
-**Why not:** The method has duplicated cell-processing patterns at 3 levels of nesting, but never reaches 4+. Extracting a helper would add indirection for marginal nesting improvement. The duplication is spatial-algorithm-specific and reads fine in context.
+Has 3 nesting levels but never reaches 4+. Spatial-algorithm-specific and reads fine in context. Extracting a helper adds indirection for marginal gain.
 
 ### Static Stateless — no violations found
 
-All utility classes (`ObjectResolver`, `HierarchyWalker`, `PropertySerializer`, `ResponseHelpers`, `JsonParamParser`, `SpatialEntryFilter`, `SpatialResultBuilder`) are already static. All instance classes (`SpatialIndex`, `WatchEngine`, `TokenBudget`, `PaginationCursor`) have genuine state. No action needed.
+All utility classes (`ObjectResolver`, `HierarchyWalker`, `PropertySerializer`, `ResponseHelpers`, `JsonParamParser`, `SpatialEntryFilter`, `SpatialResultBuilder`, `DirectorHelpers`) are already static. Instance classes (`SpatialIndex`, `WatchEngine`, `TokenBudget`, `RequestRouter`, `SseConnection`) hold genuine state. UI classes (`TheatreOverlay`, `WelcomeDialog`, `TheatreSettingsProvider`) must be instances (Unity framework base classes). No action needed.

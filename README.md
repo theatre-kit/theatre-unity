@@ -77,7 +77,7 @@ Add Theatre to your MCP client config. Create or edit `.mcp.json` in your projec
 {
   "mcpServers": {
     "theatre": {
-      "type": "streamable-http",
+      "type": "http",
       "url": "http://localhost:9078/mcp"
     }
   }
