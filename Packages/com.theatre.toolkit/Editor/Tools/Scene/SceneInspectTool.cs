@@ -113,8 +113,7 @@ namespace Theatre.Editor.Tools.Scene
             ResponseHelpers.AddFrameContext(response);
 
             // Object identity
-            response["path"] = ResponseHelpers.GetHierarchyPath(transform);
-            response["instance_id"] = go.GetInstanceID();
+            ResponseHelpers.AddIdentity(response, go);
 
             // GameObject metadata
             response["tag"] = go.tag;

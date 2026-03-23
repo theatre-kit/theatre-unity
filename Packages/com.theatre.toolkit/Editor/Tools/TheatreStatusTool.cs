@@ -1,4 +1,6 @@
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Theatre.Stage;
 using Theatre.Transport;
 
 namespace Theatre.Editor
@@ -39,19 +41,20 @@ namespace Theatre.Editor
 
         private static string Execute(JToken arguments)
         {
-            // This runs on the main thread — safe to access Unity APIs
             var playMode = UnityEditor.EditorApplication.isPlaying;
             var sceneName = UnityEngine.SceneManagement.SceneManager
                 .GetActiveScene().name;
 
-            return $"{{\"status\":\"ok\""
-                + $",\"version\":\"{TheatreConfig.ServerVersion}\""
-                + $",\"port\":{TheatreConfig.Port}"
-                + $",\"play_mode\":{(playMode ? "true" : "false")}"
-                + $",\"active_scene\":\"{sceneName}\""
-                + $",\"enabled_groups\":\"{TheatreConfig.EnabledGroups}\""
-                + $",\"tool_count\":{TheatreServer.ToolRegistry?.Count ?? 0}"
-                + "}";
+            var response = new JObject();
+            response["status"] = "ok";
+            response["version"] = TheatreConfig.ServerVersion;
+            response["port"] = TheatreConfig.Port;
+            response["play_mode"] = playMode;
+            response["active_scene"] = sceneName;
+            response["enabled_groups"] = TheatreConfig.EnabledGroups.ToString();
+            response["tool_count"] = TheatreServer.ToolRegistry?.Count ?? 0;
+            ResponseHelpers.AddFrameContext(response);
+            return response.ToString(Formatting.None);
         }
     }
 }

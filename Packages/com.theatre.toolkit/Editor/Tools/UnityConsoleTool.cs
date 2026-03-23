@@ -1,4 +1,6 @@
 using Newtonsoft.Json.Linq;
+using Theatre.Editor.Tools;
+using Theatre.Stage;
 using Theatre.Transport;
 
 namespace Theatre.Editor
@@ -61,30 +63,34 @@ namespace Theatre.Editor
             ));
         }
 
-        private static string Execute(JToken arguments)
-        {
-            var operation = arguments?["operation"]?.ToObject<string>() ?? "query";
+        private static string Execute(JToken arguments) =>
+            CompoundToolDispatcher.Execute(
+                "unity_console",
+                arguments,
+                (args, operation) => operation switch
+                {
+                    "query"   => ExecuteQuery(args),
+                    "summary" => ExecuteSummary(),
+                    "clear"   => ExecuteClear(),
+                    "refresh" => ExecuteRefresh(),
+                    _ => ResponseHelpers.ErrorResponse(
+                        "invalid_parameter",
+                        $"Unknown operation '{operation}'",
+                        "Valid operations: query, summary, clear, refresh")
+                },
+                "query, summary, clear, refresh");
 
-            switch (operation)
-            {
-                case "summary": return ExecuteSummary();
-                case "clear":   return ExecuteClear();
-                case "refresh": return ExecuteRefresh();
-                default:        return ExecuteQuery(arguments);
-            }
-        }
-
-        private static string ExecuteQuery(JToken arguments)
+        private static string ExecuteQuery(JObject args)
         {
-            int count = arguments?["count"]?.ToObject<int>() ?? 50;
+            int count = args["count"]?.ToObject<int>() ?? 50;
             if (count > 200) count = 200;
             if (count < 1) count = 1;
 
-            var typeFilter = arguments?["filter"]?.ToObject<string>();
+            var typeFilter = args["filter"]?.ToObject<string>();
             if (typeFilter == "all") typeFilter = null;
 
             // Parse grep — "regex:pattern" for regex, otherwise substring
-            string grep = arguments?["grep"]?.ToObject<string>();
+            string grep = args["grep"]?.ToObject<string>();
             bool isRegex = false;
             if (grep != null && grep.StartsWith("regex:"))
             {
