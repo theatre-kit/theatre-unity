@@ -19,6 +19,7 @@ namespace Theatre.Stage
         /// </summary>
         public static void AddFrameContext(JObject obj)
         {
+            obj["project"] = Application.productName;
             obj["frame"] = Time.frameCount;
             obj["time"] = Math.Round(Time.time, 2);
             obj["play_mode"] = Application.isPlaying;

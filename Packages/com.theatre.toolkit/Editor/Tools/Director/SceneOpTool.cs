@@ -91,7 +91,7 @@ namespace Theatre.Editor.Tools.Director
                     },
                     ""properties"": {
                         ""type"": ""object"",
-                        ""description"": ""Properties to set on the component (snake_case keys).""
+                        ""description"": ""Properties to set on the component (snake_case keys). Supports ObjectReference values as asset paths (e.g. 'Assets/Materials/Foo.mat') or instance_ids.""
                     },
                     ""add_if_missing"": {
                         ""type"": ""boolean"",

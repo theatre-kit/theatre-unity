@@ -54,7 +54,7 @@ namespace Theatre.Editor.Tools.Actions
                         ""description"": ""Property name. Used by set_property.""
                     },
                     ""value"": {
-                        ""description"": ""Value to set. Used by set_property, set_active, set_timescale.""
+                        ""description"": ""Value to set. Used by set_property, set_active, set_timescale. For ObjectReference properties, pass an asset path string (e.g. 'Assets/Materials/Foo.mat').""
                     },
                     ""active"": {
                         ""type"": ""boolean"",

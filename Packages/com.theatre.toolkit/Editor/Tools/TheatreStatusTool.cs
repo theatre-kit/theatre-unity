@@ -47,6 +47,8 @@ namespace Theatre.Editor
 
             var response = new JObject();
             response["status"] = "ok";
+            response["project"] = UnityEngine.Application.productName;
+            response["company"] = UnityEngine.Application.companyName;
             response["version"] = TheatreConfig.ServerVersion;
             response["port"] = TheatreConfig.Port;
             response["play_mode"] = playMode;

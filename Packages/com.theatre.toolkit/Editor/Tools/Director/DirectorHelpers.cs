@@ -376,6 +376,13 @@ namespace Theatre.Editor.Tools.Director
                         return true;
 
                     default:
+                        // Handle arrays of ObjectReference (e.g. m_Materials on MeshRenderer)
+                        if (prop.isArray && prop.arraySize > 0)
+                        {
+                            var elem = prop.GetArrayElementAtIndex(0);
+                            if (elem.propertyType == SerializedPropertyType.ObjectReference)
+                                return SetObjectReferenceArray(prop, value, out error);
+                        }
                         error = $"Unsupported property type: {prop.propertyType}";
                         return false;
                 }
@@ -385,6 +392,50 @@ namespace Theatre.Editor.Tools.Director
                 error = ex.Message;
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Set an array-of-ObjectReference property from a JToken.
+        /// Accepts a single value (sets element 0) or a JArray of values.
+        /// Each element is resolved via ResolveObjectReference.
+        /// </summary>
+        private static bool SetObjectReferenceArray(
+            SerializedProperty arrayProp, JToken value, out string error)
+        {
+            error = null;
+
+            // Single value → set element [0], resize array to 1 if needed
+            if (value.Type != JTokenType.Array)
+            {
+                if (arrayProp.arraySize == 0)
+                    arrayProp.InsertArrayElementAtIndex(0);
+                // Shrink to 1 element for single-value assignment
+                while (arrayProp.arraySize > 1)
+                    arrayProp.DeleteArrayElementAtIndex(arrayProp.arraySize - 1);
+
+                var elem = arrayProp.GetArrayElementAtIndex(0);
+                return SetPropertyValue(elem, value, out error);
+            }
+
+            // JArray → set each element
+            var arr = (JArray)value;
+            // Resize array to match
+            while (arrayProp.arraySize < arr.Count)
+                arrayProp.InsertArrayElementAtIndex(arrayProp.arraySize);
+            while (arrayProp.arraySize > arr.Count)
+                arrayProp.DeleteArrayElementAtIndex(arrayProp.arraySize - 1);
+
+            for (int i = 0; i < arr.Count; i++)
+            {
+                var elem = arrayProp.GetArrayElementAtIndex(i);
+                if (!SetPropertyValue(elem, arr[i], out error))
+                {
+                    error = $"Element [{i}]: {error}";
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

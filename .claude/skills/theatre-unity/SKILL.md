@@ -26,7 +26,7 @@ Streamable HTTP on `localhost:9078/mcp`. No sidecar process.
 {
   "mcpServers": {
     "theatre": {
-      "type": "streamable-http",
+      "type": "http",
       "url": "http://localhost:9078/mcp"
     }
   }
@@ -55,14 +55,14 @@ Server auto-starts when Unity opens. Check with `theatre_status`.
 | `scene_delta` | _(none)_ | Detect changes since last snapshot/delta |
 | `spatial_query` | `nearest`, `radius`, `overlap`, `raycast`, `linecast`, `path_distance`, `bounds` | Spatial queries (transform + physics) |
 | `watch` | `create`, `remove`, `list`, `check` | Property watches with SSE push |
-| `action` | `teleport`, `set_property`, `set_active`, `set_timescale`, `pause`, `step`, `unpause`, `invoke_method` | Runtime mutations and play control |
+| `action` | `teleport`, `set_property`, `set_active`, `set_timescale`, `pause`, `step`, `unpause`, `invoke_method`, `run_menu_item` | Mutations, play control, menu items, static methods |
 | `recording` | `start`, `stop`, `marker`, `list_clips`, `delete_clip`, `query_range`, `diff_frames`, `clip_info`, `analyze` | Frame-by-frame dashcam to SQLite |
 
 ### Director (Mutation)
 
 | Tool | Operations | Purpose |
 |------|-----------|---------|
-| `scene_op` | `create_scene`, `load_scene`, `unload_scene`, `create_gameobject`, `delete_gameobject`, `reparent`, `duplicate`, `set_component`, `remove_component`, `move_to_scene` | Scene & GameObject CRUD |
+| `scene_op` | `create_scene`, `load_scene`, `unload_scene`, `create_gameobject`, `delete_gameobject`, `reparent`, `duplicate`, `set_component`, `remove_component`, `move_to_scene` | Scene & GameObject CRUD. `create_gameobject` supports `primitive_type` (cube/sphere/etc.) |
 | `prefab_op` | `create_prefab`, `instantiate`, `apply_overrides`, `revert_overrides`, `unpack`, `create_variant`, `list_overrides` | Prefab lifecycle |
 | `batch` | _(atomic)_ | Execute 1-50 tool calls as one undo group |
 | `material_op` | `create`, `set_properties`, `set_shader`, `list_properties` | Materials & shaders |
@@ -105,11 +105,20 @@ Server auto-starts when Unity opens. Check with `theatre_status`.
 
 ### Build something
 ```
-1. scene_op {operation: "create_gameobject", name: "Platform", position: [0,1,0], components: [{type: "BoxCollider"}]}
+1. scene_op {operation: "create_gameobject", name: "Platform", primitive_type: "cube", position: [0,1,0]}
 2. material_op {operation: "create", asset_path: "Assets/Materials/Platform.mat", shader: "Standard", properties: {_Color: [0.2,0.4,0.8,1]}}
 3. scene_op {operation: "set_component", path: "/Platform", component: "MeshRenderer", properties: {material: "Assets/Materials/Platform.mat"}}
 4. prefab_op {operation: "create_prefab", source_path: "/Platform", asset_path: "Assets/Prefabs/Platform.prefab"}
 ```
+`primitive_type` creates a visible mesh (cube/sphere/capsule/cylinder/plane/quad) with MeshFilter, MeshRenderer, and Collider.
+ObjectReference properties (materials, meshes, prefab refs) accept asset paths as strings.
+
+### Run editor menu items & static methods
+```
+1. action {operation: "run_menu_item", menu_path: "GameObject/3D Object/Cube"}
+2. action {operation: "invoke_method", type: "MyEditorSetup", method: "Initialize"}
+```
+`run_menu_item` works in Edit Mode. `invoke_method` with `type` (instead of `component`) calls static methods without Play Mode.
 
 ### Batch (atomic, one undo)
 ```json
@@ -151,10 +160,12 @@ Max 20 concurrent watches. Throttle with `throttle_ms` (default 500).
 
 ### Play mode requirements
 Only these operations require play mode:
-- `action`: `pause`, `step`, `unpause`, `set_timescale`, `invoke_method`
+- `action`: `pause`, `step`, `unpause`, `set_timescale`, `invoke_method` (instance methods only)
 - `recording`: `start`
 
-Everything else (including spatial queries like `raycast`, `overlap`) works in **both** edit and play mode.
+These work in Edit Mode:
+- `action`: `invoke_method` with `type` param (static methods), `run_menu_item`, `teleport`, `set_property`, `set_active`
+- All Director operations, all Stage read operations, spatial queries
 
 ### Token budget
 Most read tools accept a `budget` parameter (default 1500, max 4000). This controls response size in estimated tokens. If a response is truncated, the `budget` object in the response tells you:

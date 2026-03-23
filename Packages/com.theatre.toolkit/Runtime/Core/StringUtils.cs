@@ -29,12 +29,15 @@ namespace Theatre
         public static string[] GetPropertyNameCandidates(string snakeCaseName)
         {
             var pascal = ToPascalCase(snakeCaseName);
+            var pluralPascal = pascal + "s";
             return new[]
             {
                 snakeCaseName,           // exact match
                 "m_" + pascal,           // Unity internal (m_IsKinematic)
                 pascal,                  // PascalCase (IsKinematic)
-                "m_" + snakeCaseName     // m_ + original (m_mass)
+                "m_" + snakeCaseName,    // m_ + original (m_mass)
+                "m_" + pluralPascal,     // Unity plural (m_Materials from "material")
+                pluralPascal,            // PascalCase plural (Materials)
             };
         }
     }
