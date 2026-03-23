@@ -222,7 +222,7 @@ namespace Theatre.Editor.Tools.Watch
             if (!engine.Remove(watchId))
             {
                 return ResponseHelpers.ErrorResponse(
-                    "gameobject_not_found",
+                    "watch_not_found",
                     $"No watch found with watch_id '{watchId}'",
                     "Use watch:list to see active watches");
             }
@@ -260,7 +260,7 @@ namespace Theatre.Editor.Tools.Watch
             if (result == null)
             {
                 return ResponseHelpers.ErrorResponse(
-                    "gameobject_not_found",
+                    "watch_not_found",
                     $"No watch found with watch_id '{watchId}'",
                     "Use watch:list to see active watches");
             }

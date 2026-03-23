@@ -250,7 +250,7 @@ namespace Theatre.Editor.Tools.Director
                 return ResponseHelpers.ErrorResponse(
                     "group_not_found",
                     $"Group '{groupName}' not found in mixer",
-                    "Check the group name. Use FindMatchingGroups naming convention.");
+                    "Group names are case-sensitive and use '/' separators for nested groups (e.g., 'Master/Music'). The root group is always 'Master'.");
 
             // Try setting via exposed parameter name convention
             bool volumeSet = false;

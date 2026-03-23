@@ -147,7 +147,7 @@ namespace Theatre.Editor.Tools.Director
                 return ResponseHelpers.ErrorResponse(
                     "scene_not_found",
                     $"Could not open scene at '{path}'",
-                    "Verify the path exists and is a valid .unity file");
+                    "Verify the .unity asset path (e.g., 'Assets/Scenes/Main.unity'). Use scene_hierarchy with operation='list' to see currently loaded scenes.");
 
             var response = new JObject();
             response["result"] = "ok";
@@ -367,7 +367,7 @@ namespace Theatre.Editor.Tools.Director
 #endif
                     if (comp == null)
                     {
-                        compErrors.Add($"Failed to add component '{typeName}'");
+                        compErrors.Add($"Failed to add component '{typeName}': Check that the component type exists, isn't already present, and doesn't require a dependency component. Use scene_inspect to verify current components.");
                         continue;
                     }
 

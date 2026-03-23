@@ -68,7 +68,7 @@ namespace Theatre.Editor.Tools.Director
                 return ResponseHelpers.ErrorResponse(
                     "create_prefab_failed",
                     $"Failed to save '{sourcePath}' as prefab at '{assetPath}'",
-                    "Check the asset path and ensure the directory exists");
+                    "Verify the source GameObject exists and the asset path is valid (under Assets/, ending in .prefab). Directories are created automatically.");
 
             var response = new JObject();
             response["result"] = "ok";

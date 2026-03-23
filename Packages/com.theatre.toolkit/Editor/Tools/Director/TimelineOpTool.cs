@@ -224,9 +224,9 @@ namespace Theatre.Editor.Tools.Director
             var track = FindTrackByName(asset, trackName);
             if (track == null)
                 return ResponseHelpers.ErrorResponse(
-                    "not_found",
+                    "track_not_found",
                     $"Track '{trackName}' not found in timeline",
-                    "Add the track first with timeline_op:add_track, or check the name");
+                    $"Available tracks: {BuildTrackList(asset)}. Use timeline_op with add_track to create a new one.");
 
             var start = args["start"].Value<double>();
             var duration = args["duration"].Value<double>();
@@ -281,9 +281,9 @@ namespace Theatre.Editor.Tools.Director
             var track = FindTrackByName(asset, trackName);
             if (track == null)
                 return ResponseHelpers.ErrorResponse(
-                    "not_found",
+                    "track_not_found",
                     $"Track '{trackName}' not found in timeline",
-                    "Check the track name");
+                    $"Available tracks: {BuildTrackList(asset)}. Use timeline_op with add_track to create a new one.");
 
             var clipIndex = args["clip_index"].Value<int>();
             var clips = new List<TimelineClip>(track.GetClips());
@@ -385,9 +385,9 @@ namespace Theatre.Editor.Tools.Director
             var track = FindTrackByName(asset, trackName);
             if (track == null)
                 return ResponseHelpers.ErrorResponse(
-                    "not_found",
+                    "track_not_found",
                     $"Track '{trackName}' not found in timeline",
-                    "Check the track name");
+                    $"Available tracks: {BuildTrackList(asset)}. Use timeline_op with add_track to create a new one.");
 
             // Resolve the scene object
             var resolveResult = ObjectResolver.Resolve(objectPath, null);
@@ -479,6 +479,14 @@ namespace Theatre.Editor.Tools.Director
                     return track;
             }
             return null;
+        }
+
+        private static string BuildTrackList(TimelineAsset asset)
+        {
+            var names = new List<string>();
+            foreach (var track in asset.GetOutputTracks())
+                names.Add(track.name);
+            return names.Count > 0 ? string.Join(", ", names) : "(none)";
         }
 
         private static Type ParseTrackType(string trackTypeStr)

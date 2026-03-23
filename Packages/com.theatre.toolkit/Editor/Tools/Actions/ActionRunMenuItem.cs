@@ -47,7 +47,7 @@ namespace Theatre.Editor.Tools.Actions
                     return ResponseHelpers.ErrorResponse(
                         "operation_not_supported",
                         $"Menu path '{menuPath}' is blocked for safety",
-                        "This menu item could disrupt the editor session");
+                        "This menu item is blocked to protect the editor session. Use Theatre's dedicated tools instead (scene_op, prefab_op, action, etc.).");
             }
             foreach (var exact in BlockedExact)
             {
@@ -55,7 +55,7 @@ namespace Theatre.Editor.Tools.Actions
                     return ResponseHelpers.ErrorResponse(
                         "operation_not_supported",
                         $"Menu path '{menuPath}' is blocked for safety",
-                        "This menu item could disrupt the editor session");
+                        "This menu item is blocked to protect the editor session. Use Theatre's dedicated tools instead (scene_op, prefab_op, action, etc.).");
             }
 
 #if UNITY_EDITOR
@@ -73,7 +73,7 @@ namespace Theatre.Editor.Tools.Actions
                 return ResponseHelpers.ErrorResponse(
                     "invalid_parameter",
                     $"Menu item '{menuPath}' not found or could not be executed",
-                    "Check the menu path is correct. Use Unity's menu bar to verify the exact path.");
+                    "Menu paths use forward slashes and exact names from Unity's menu bar (e.g. 'GameObject/3D Object/Cube', 'Window/General/Console'). Check spelling and capitalization.");
             }
 
             ResponseHelpers.AddFrameContext(response);

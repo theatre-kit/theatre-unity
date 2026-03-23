@@ -471,9 +471,9 @@ namespace Theatre.Editor.Tools.Director
 
                 if (agentProp == null)
                     return ResponseHelpers.ErrorResponse(
-                        "not_found",
+                        "agent_type_not_found",
                         $"Agent type with ID {agentTypeId} not found in NavMesh settings",
-                        "Use agent_type_id 0 for Humanoid (the default agent)");
+                        "Use agent_type_id 0 for the default Humanoid agent. Custom agent types are defined in Navigation settings (Window > AI > Navigation).");
 
                 void TrySetFloat(string propName, JToken token)
                 {

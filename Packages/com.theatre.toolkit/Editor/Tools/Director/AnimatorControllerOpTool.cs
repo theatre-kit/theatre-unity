@@ -251,7 +251,7 @@ namespace Theatre.Editor.Tools.Director
                 return ResponseHelpers.ErrorResponse(
                     "invalid_parameter",
                     $"Layer index {layerIndex} is out of range (controller has {layers.Length} layers)",
-                    "Use a valid layer index");
+                    $"Use a layer index between 0 and {layers.Length - 1}.");
 
             Vector3 position = Vector3.zero;
             if (args["position"] is JArray posArr && posArr.Count >= 2)
@@ -552,7 +552,7 @@ namespace Theatre.Editor.Tools.Director
                 return ResponseHelpers.ErrorResponse(
                     "invalid_parameter",
                     $"Layer index {layerIndex} is out of range (controller has {layers.Length} layers)",
-                    "Use a valid layer index");
+                    $"Use a layer index between 0 and {layers.Length - 1}.");
 
             var stateMachine = layers[layerIndex].stateMachine;
             var defaultState = stateMachine.defaultState;
@@ -632,7 +632,7 @@ namespace Theatre.Editor.Tools.Director
                 error = ResponseHelpers.ErrorResponse(
                     "invalid_parameter",
                     $"Layer index {layerIndex} is out of range (controller has {layers.Length} layers)",
-                    "Use a valid layer index");
+                    $"Use a layer index between 0 and {layers.Length - 1}.");
                 return null;
             }
 
@@ -643,10 +643,15 @@ namespace Theatre.Editor.Tools.Director
                     return childState.state;
             }
 
+            var allNames = new List<string>();
+            foreach (var childState in stateMachine.states)
+                allNames.Add(childState.state.name);
+            var maxShow = allNames.Count > 10 ? 10 : allNames.Count;
+            var stateNames = string.Join(", ", allNames.GetRange(0, maxShow));
             error = ResponseHelpers.ErrorResponse(
-                "not_found",
+                "state_not_found",
                 $"State '{stateName}' not found in layer {layerIndex}",
-                "Add the state first with add_state, or check the spelling");
+                $"Available states: {stateNames}. Use animator_controller_op with add_state to create a new one.");
             return null;
         }
 

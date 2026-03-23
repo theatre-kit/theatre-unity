@@ -85,10 +85,9 @@ namespace Theatre.Editor.Tools.Actions
 
             if (targetMethod == null)
                 return ResponseHelpers.ErrorResponse(
-                    "property_not_found",
+                    "method_not_found",
                     $"No public method '{methodName}' with {argCount} simple-type parameters found on '{componentName}'",
-                    "invoke_method only supports string, int, float, bool parameters. "
-                    + "Use scene_inspect to check available methods.");
+                    "invoke_method only supports public methods with simple-type parameters (string, int, float, bool). Verify the method name, parameter count, and that it is public. scene_inspect shows properties, not methods.");
 
             var convertedArgs = ConvertArguments(targetMethod, methodArgs, out var convError);
             if (convError != null) return convError;
@@ -114,9 +113,9 @@ namespace Theatre.Editor.Tools.Actions
 
             if (targetMethod == null)
                 return ResponseHelpers.ErrorResponse(
-                    "property_not_found",
+                    "method_not_found",
                     $"No public static method '{methodName}' with {argCount} simple-type parameters found on '{typeName}'",
-                    "invoke_method only supports string, int, float, bool parameters.");
+                    "invoke_method only supports public methods with simple-type parameters (string, int, float, bool). Verify the method name, parameter count, and that it is public. scene_inspect shows properties, not methods.");
 
             var convertedArgs = ConvertArguments(targetMethod, methodArgs, out var convError);
             if (convError != null) return convError;

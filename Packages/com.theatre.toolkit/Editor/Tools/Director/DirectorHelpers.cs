@@ -72,7 +72,7 @@ namespace Theatre.Editor.Tools.Director
                 error = ResponseHelpers.ErrorResponse(
                     "type_not_found",
                     $"{label} type '{typeName}' not found in any loaded assembly",
-                    "Check the type name is correct. Use fully-qualified name to disambiguate.");
+                    $"Use the fully-qualified name (e.g., 'UnityEngine.BoxCollider'). Use scene_inspect on a GameObject with this component to verify the type name.");
                 return null;
             }
 
@@ -698,8 +698,7 @@ namespace Theatre.Editor.Tools.Director
                 return ResponseHelpers.ErrorResponse(
                     "asset_not_found",
                     $"{typeof(T).Name} not found at '{assetPath}'",
-                    $"Check the asset path is correct"
-                    + (requiredExtension != null ? $" and ends with '{requiredExtension}'" : ""));
+                    $"Verify the path points to a {typeof(T).Name} under Assets/ or Packages/. Paths are case-sensitive and must include the file extension.");
 
             return null;
         }

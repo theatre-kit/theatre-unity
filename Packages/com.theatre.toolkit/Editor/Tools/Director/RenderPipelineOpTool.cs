@@ -248,7 +248,7 @@ namespace Theatre.Editor.Tools.Director
                 return ResponseHelpers.ErrorResponse(
                     "invalid_parameter",
                     "Missing required 'feature_type' parameter",
-                    "Provide the fully-qualified type name of a ScriptableRendererFeature");
+                    "Provide the type name of a ScriptableRendererFeature (e.g., 'ScreenSpaceAmbientOcclusion', 'DecalRendererFeature'). Check URP documentation for available feature types.");
 
             // Resolve the feature type from all loaded assemblies
             Type featureType = null;

@@ -242,8 +242,8 @@ namespace Theatre.Editor.Tools.Director
             {
                 return ResponseHelpers.ErrorResponse(
                     "asset_type_mismatch",
-                    $"Asset at '{assetPath}' is not a PhysicMaterial or PhysicsMaterial2D",
-                    "Use the correct asset path for a physics material");
+                    $"Asset at '{assetPath}' is a {AssetDatabase.GetMainAssetTypeAtPath(assetPath)?.Name ?? "unknown"}, not a PhysicMaterial or PhysicsMaterial2D",
+                    "Check the path points to a .physicMaterial or .physicsMaterial2D asset.");
             }
         }
 

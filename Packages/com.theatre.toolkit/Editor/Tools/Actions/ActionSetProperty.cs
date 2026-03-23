@@ -78,7 +78,7 @@ namespace Theatre.Editor.Tools.Actions
                 return ResponseHelpers.ErrorResponse(
                     "invalid_parameter",
                     $"Cannot set '{propertyName}': {setError}",
-                    "Check the property type and provide a compatible value");
+                    $"Property type is {prop.propertyType}. Provide a compatible value (e.g., number for Float, [x,y,z] for Vector3, asset path string for ObjectReference).");
 
             so.ApplyModifiedProperties();
 #endif
