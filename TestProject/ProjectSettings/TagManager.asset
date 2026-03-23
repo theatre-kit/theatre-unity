@@ -22,6 +22,54 @@ TagManager:
   - TheatreTestTag_b73e7ca8
   - TheatreTestTag_18848ad4
   - TheatreTestTag_578323a8
+  - TheatreTestTag_79387fd5
+  - TheatreTestDup_b0bf14df
+  - TheatreTestTag_6687ac83
+  - TheatreTestTag_8d1e2626
+  - TheatreTestDup_4888631d
+  - TheatreTestTag_595ada5c
+  - TheatreTestTag_f5d757d0
+  - TheatreTestDup_6d071689
+  - TheatreTestTag_bdbdd7a3
+  - TheatreTestTag_3a6e7f1f
+  - TheatreTestDup_a44fcd11
+  - TheatreTestTag_ac4dc63d
+  - TheatreTestTag_879f15c9
+  - TheatreTestDup_796945a3
+  - TheatreTestTag_dcabdcf5
+  - TheatreTestTag_9e246223
+  - TheatreTestDup_cd5281e6
+  - TheatreTestTag_fdb82635
+  - TheatreTestTag_16c036b5
+  - TheatreTestDup_7c6d2ebe
+  - TheatreTestTag_a3b19825
+  - TheatreTestTag_09c4a8b5
+  - TheatreTestDup_1a319ba8
+  - TheatreTestTag_63d8c3ae
+  - TheatreTestTag_d7de8c27
+  - TheatreTestDup_06c30b56
+  - TheatreTestTag_8c31bf86
+  - TheatreTestTag_a201d906
+  - TheatreTestDup_461edff4
+  - TheatreTestTag_b79fc1d9
+  - TheatreTestTag_34cde40f
+  - TheatreTestDup_d98474a3
+  - TheatreTestTag_d999526f
+  - TheatreTestTag_90905d18
+  - TheatreTestDup_e3e340db
+  - TheatreTestTag_1945c08f
+  - TheatreTestTag_1d307992
+  - TheatreTestDup_3bcb2fa8
+  - TheatreTestTag_63b647e5
+  - TheatreTestTag_5af04317
+  - TheatreTestDup_85b2f8de
+  - TheatreTestTag_4f6f9d57
+  - TheatreTestTag_d36fe18d
+  - TheatreTestDup_c7d4db5d
+  - TheatreTestTag_5680be0c
+  - TheatreTestTag_8ba24791
+  - TheatreTestDup_d30c8b7a
+  - TheatreTestTag_69305460
   layers:
   - Default
   - TransparentFX
@@ -53,8 +101,8 @@ TagManager:
   - 
   - 
   - 
-  - 
-  - 
+  - TestRepeat
+  - TheatreTestLayer
   m_SortingLayers:
   - name: Default
     uniqueID: 0
