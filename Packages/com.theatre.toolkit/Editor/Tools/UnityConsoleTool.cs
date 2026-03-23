@@ -78,7 +78,8 @@ namespace Theatre.Editor
                         $"Unknown operation '{operation}'",
                         "Valid operations: query, summary, clear, refresh")
                 },
-                "query, summary, clear, refresh");
+                "query, summary, clear, refresh",
+                defaultOperation: "query");
 
         private static string ExecuteQuery(JObject args)
         {

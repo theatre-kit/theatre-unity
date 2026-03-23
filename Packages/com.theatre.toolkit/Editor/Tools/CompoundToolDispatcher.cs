@@ -29,12 +29,17 @@ namespace Theatre.Editor.Tools
         /// A human-readable list of valid operations for error messages
         /// (e.g. "create, delete, list"). Used only in validation error messages.
         /// </param>
+        /// <param name="defaultOperation">
+        /// If non-null, use this operation when the caller omits the "operation" field.
+        /// If null, a missing operation returns an error.
+        /// </param>
         /// <returns>A JSON string, always a valid MCP response.</returns>
         public static string Execute(
             string toolName,
             JToken arguments,
             Func<JObject, string, string> handler,
-            string validOperations)
+            string validOperations,
+            string defaultOperation = null)
         {
             if (arguments == null || arguments.Type != JTokenType.Object)
             {
@@ -45,7 +50,7 @@ namespace Theatre.Editor.Tools
             }
 
             var args = (JObject)arguments;
-            var operation = args["operation"]?.Value<string>();
+            var operation = args["operation"]?.Value<string>() ?? defaultOperation;
 
             if (string.IsNullOrEmpty(operation))
             {
