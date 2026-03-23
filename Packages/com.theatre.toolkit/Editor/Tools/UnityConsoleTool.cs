@@ -4,7 +4,7 @@ using Theatre.Editor.Tools;
 using Theatre.Stage;
 using Theatre.Transport;
 
-namespace Theatre.Editor
+namespace Theatre.Editor.Tools
 {
     /// <summary>
     /// MCP tool to read Unity Console log entries with filtering,

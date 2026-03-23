@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using Theatre.Transport;
 using Theatre.Stage;
+using Theatre.Editor.Tools;
 using Theatre.Editor.Tools.Actions;
 using Theatre.Editor.Tools.Scene;
 using Theatre.Editor.Tools.Spatial;

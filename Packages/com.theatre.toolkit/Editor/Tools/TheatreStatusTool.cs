@@ -2,8 +2,9 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Theatre.Stage;
 using Theatre.Transport;
+using Theatre.Editor;
 
-namespace Theatre.Editor
+namespace Theatre.Editor.Tools
 {
     /// <summary>
     /// Built-in dummy tool for Phase 1 validation.

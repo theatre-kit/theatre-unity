@@ -2,7 +2,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
-namespace Theatre.Editor
+namespace Theatre.Editor.Tools
 {
     public static class TestSceneCreator
     {

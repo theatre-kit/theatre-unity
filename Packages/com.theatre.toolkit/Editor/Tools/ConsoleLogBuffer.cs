@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
-namespace Theatre.Editor
+namespace Theatre.Editor.Tools
 {
     /// <summary>
     /// Captures Unity Console log entries in a ring buffer.

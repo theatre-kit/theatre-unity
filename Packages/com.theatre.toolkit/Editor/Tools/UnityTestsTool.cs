@@ -4,7 +4,7 @@ using UnityEditor.TestTools.TestRunner.Api;
 using Theatre.Stage;
 using Theatre.Transport;
 
-namespace Theatre.Editor
+namespace Theatre.Editor.Tools
 {
     /// <summary>
     /// MCP tool to run Unity tests (EditMode, PlayMode, or both)
