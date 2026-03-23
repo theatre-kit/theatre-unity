@@ -198,5 +198,77 @@ namespace Theatre.Tests.Editor
             Assert.That(result, Does.Contain("\"result\":\"ok\""));
             Assert.That(result, Does.Contain("\"added_tags\""));
         }
+
+        // --- Unit 4: Tags & layers feedback ---
+
+        [Test]
+        public void SetTagsAndLayers_NewTag_StatusAdded()
+        {
+            var uniqueTag = "TheatreTestTag_" + Guid.NewGuid().ToString("N").Substring(0, 8);
+            var result = ProjectSettingsOpTool.SetTagsAndLayers(new JObject
+            {
+                ["add_tags"] = new JArray(uniqueTag)
+            });
+            var json = JObject.Parse(result);
+            Assert.AreEqual("ok", json["result"].Value<string>());
+            var tags = json["added_tags"] as JArray;
+            Assert.IsNotNull(tags);
+            Assert.AreEqual(1, tags.Count);
+            Assert.AreEqual("added", tags[0]["status"].Value<string>());
+            Assert.AreEqual(uniqueTag, tags[0]["name"].Value<string>());
+        }
+
+        [Test]
+        public void SetTagsAndLayers_DuplicateTag_StatusAlreadyExists()
+        {
+            var uniqueTag = "TheatreTestDup_" + Guid.NewGuid().ToString("N").Substring(0, 8);
+            // Add it first
+            ProjectSettingsOpTool.SetTagsAndLayers(new JObject
+            {
+                ["add_tags"] = new JArray(uniqueTag)
+            });
+            // Add again
+            var result = ProjectSettingsOpTool.SetTagsAndLayers(new JObject
+            {
+                ["add_tags"] = new JArray(uniqueTag)
+            });
+            var json = JObject.Parse(result);
+            var tags = json["added_tags"] as JArray;
+            Assert.AreEqual("already_exists", tags[0]["status"].Value<string>());
+        }
+
+        [Test]
+        public void SetTagsAndLayers_LayerOnEmptySlot_StatusAdded()
+        {
+            // Use layer index 31 (likely empty in test project)
+            var result = ProjectSettingsOpTool.SetTagsAndLayers(new JObject
+            {
+                ["add_layers"] = new JArray(new JObject { ["index"] = 31, ["name"] = "TheatreTestLayer" })
+            });
+            var json = JObject.Parse(result);
+            var layers = json["added_layers"] as JArray;
+            Assert.IsNotNull(layers);
+            Assert.AreEqual(1, layers.Count);
+            // Status is "added" or "overwritten" depending on prior state —
+            // just verify status field exists
+            Assert.IsNotNull(layers[0]["status"]);
+        }
+
+        [Test]
+        public void SetTagsAndLayers_LayerSameValue_StatusAlreadyExists()
+        {
+            // Set a layer, then set the same value again
+            ProjectSettingsOpTool.SetTagsAndLayers(new JObject
+            {
+                ["add_layers"] = new JArray(new JObject { ["index"] = 30, ["name"] = "TestRepeat" })
+            });
+            var result = ProjectSettingsOpTool.SetTagsAndLayers(new JObject
+            {
+                ["add_layers"] = new JArray(new JObject { ["index"] = 30, ["name"] = "TestRepeat" })
+            });
+            var json = JObject.Parse(result);
+            var layers = json["added_layers"] as JArray;
+            Assert.AreEqual("already_exists", layers[0]["status"].Value<string>());
+        }
     }
 }

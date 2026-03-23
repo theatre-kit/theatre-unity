@@ -764,5 +764,160 @@ namespace Theatre.Tests.Editor
             Assert.IsNotNull(error["message"], "Error must have 'message'");
             Assert.IsNotNull(error["suggestion"], "Error must have 'suggestion'");
         }
+
+        // --- Unit 2: ObjectReference writes ---
+
+        [Test]
+        public void SetComponent_ObjectReference_AssignsAssetByPath()
+        {
+            // Create a test material and assign it to MeshRenderer via m_Materials
+            // MeshRenderer serializes materials as m_Materials array; use a cube primitive
+            // so the renderer already has a slot, then assign via DirectorHelpers directly
+            var mat = new Material(Shader.Find("Standard"));
+            AssetDatabase.CreateAsset(mat, "Assets/TheatreTestMaterialObjRef.mat");
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = "ObjRefTest";
+            try
+            {
+                // Use DirectorHelpers.SetPropertyValue directly to test ObjectReference path
+                var renderer = go.GetComponent<MeshRenderer>();
+                var so = new SerializedObject(renderer);
+                // m_Materials is an array; get element 0
+                var matsProp = so.FindProperty("m_Materials");
+                Assert.IsNotNull(matsProp, "m_Materials property not found");
+                var elem = matsProp.GetArrayElementAtIndex(0);
+                bool success = DirectorHelpers.SetPropertyValue(
+                    elem,
+                    "Assets/TheatreTestMaterialObjRef.mat",
+                    out var err);
+                so.ApplyModifiedProperties();
+                Assert.IsTrue(success, $"SetPropertyValue failed: {err}");
+                Assert.IsNotNull(renderer.sharedMaterial);
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+                AssetDatabase.DeleteAsset("Assets/TheatreTestMaterialObjRef.mat");
+            }
+        }
+
+        [Test]
+        public void SetComponent_ObjectReference_NullClearsRef()
+        {
+            // Create a cube, clear its mesh to null via DirectorHelpers
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = "ClearRefTest";
+            try
+            {
+                var filter = go.GetComponent<MeshFilter>();
+                Assert.IsNotNull(filter.sharedMesh, "Cube should start with a mesh");
+                var so = new SerializedObject(filter);
+                var meshProp = so.FindProperty("m_Mesh");
+                Assert.IsNotNull(meshProp, "m_Mesh property not found");
+                bool success = DirectorHelpers.SetPropertyValue(meshProp, null, out var err);
+                so.ApplyModifiedProperties();
+                Assert.IsTrue(success, $"SetPropertyValue failed: {err}");
+                Assert.IsNull(filter.sharedMesh);
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void SetComponent_ObjectReference_BadPath_ReturnsError()
+        {
+            // Verify that a bad asset path returns an error
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = "BadPathTest";
+            try
+            {
+                var filter = go.GetComponent<MeshFilter>();
+                var so = new SerializedObject(filter);
+                var meshProp = so.FindProperty("m_Mesh");
+                bool success = DirectorHelpers.SetPropertyValue(
+                    meshProp,
+                    "Assets/NoSuchMesh.mesh",
+                    out var err);
+                Assert.IsFalse(success);
+                Assert.That(err, Does.Contain("No asset found"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+        }
+
+        // --- Unit 3: Primitive GameObjects ---
+
+        [Test]
+        public void CreateGameObject_PrimitiveType_Cube_HasMeshRenderer()
+        {
+            var result = SceneOpHandlers.CreateGameObject(new JObject
+            {
+                ["name"] = "TestCube",
+                ["primitive_type"] = "cube"
+            });
+            Assert.That(result, Does.Contain("\"result\":\"ok\""));
+            Assert.That(result, Does.Contain("\"primitive_type\":\"cube\""));
+            var go = GameObject.Find("TestCube");
+            Assert.IsNotNull(go);
+            Assert.IsNotNull(go.GetComponent<MeshFilter>());
+            Assert.IsNotNull(go.GetComponent<MeshRenderer>());
+            Assert.IsNotNull(go.GetComponent<BoxCollider>());
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void CreateGameObject_InvalidPrimitiveType_ReturnsError()
+        {
+            var result = SceneOpHandlers.CreateGameObject(new JObject
+            {
+                ["name"] = "BadPrimitive",
+                ["primitive_type"] = "triangle"
+            });
+            Assert.That(result, Does.Contain("\"error\""));
+            Assert.That(result, Does.Contain("Unknown primitive_type"));
+        }
+
+        [Test]
+        public void CreateGameObject_PrimitiveType_WithParentAndPosition()
+        {
+            var parent = new GameObject("PrimitiveParent");
+            try
+            {
+                var result = SceneOpHandlers.CreateGameObject(new JObject
+                {
+                    ["name"] = "ChildSphere",
+                    ["primitive_type"] = "sphere",
+                    ["parent"] = "/" + parent.name,
+                    ["position"] = new JArray(1f, 2f, 3f)
+                });
+                Assert.That(result, Does.Contain("\"result\":\"ok\""));
+                var child = parent.transform.Find("ChildSphere");
+                Assert.IsNotNull(child);
+                Assert.AreEqual(1f, child.localPosition.x, 0.01f);
+            }
+            finally
+            {
+                Object.DestroyImmediate(parent);
+            }
+        }
+
+        [Test]
+        public void CreateGameObject_NoPrimitiveType_CreatesEmptyGO()
+        {
+            var result = SceneOpHandlers.CreateGameObject(new JObject
+            {
+                ["name"] = "EmptyObj"
+            });
+            Assert.That(result, Does.Contain("\"result\":\"ok\""));
+            Assert.That(result, Does.Not.Contain("\"primitive_type\""));
+            var go = GameObject.Find("EmptyObj");
+            Assert.IsNotNull(go);
+            Assert.IsNull(go.GetComponent<MeshFilter>());
+            Object.DestroyImmediate(go);
+        }
     }
 }

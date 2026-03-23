@@ -5,6 +5,7 @@ using NUnit.Framework;
 using Theatre.Stage;
 using Theatre.Editor;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace Theatre.Tests.Editor
 {
@@ -432,6 +433,89 @@ namespace Theatre.Tests.Editor
             {
                 Object.DestroyImmediate(go);
             }
+        }
+
+        // --- Unit 5: Edit Mode static invoke ---
+
+        [Test]
+        public void ActionTool_InvokeMethod_StaticInEditMode_Succeeds()
+        {
+            // UnityEngine.Mathf.Abs is a static method unambiguous in Unity assemblies
+            var result = CallAction(new JObject
+            {
+                ["operation"] = "invoke_method",
+                ["type"] = "UnityEngine.Mathf",
+                ["method"] = "Abs",
+                ["arguments"] = new JArray(-5.0f)
+            });
+            Assert.That(result, Does.Contain("\"result\":\"ok\""));
+            Assert.That(result, Does.Contain("\"static\":true"));
+            Assert.That(result, Does.Contain("\"return_value\""));
+        }
+
+        [Test]
+        public void ActionTool_InvokeMethod_InstanceStillRequiresPlayMode()
+        {
+            var result = CallAction(new JObject
+            {
+                ["operation"] = "invoke_method",
+                ["component"] = "Transform",
+                ["method"] = "DetachChildren",
+                ["path"] = "/NonExistent"
+            });
+            Assert.That(result, Does.Contain("requires_play_mode"));
+        }
+
+        [Test]
+        public void ActionTool_InvokeMethod_MissingComponentAndType_ReturnsError()
+        {
+            var result = CallAction(new JObject
+            {
+                ["operation"] = "invoke_method",
+                ["method"] = "SomeMethod"
+            });
+            Assert.That(result, Does.Contain("\"error\""));
+            Assert.That(result, Does.Contain("component").Or.Contain("type"));
+        }
+
+        // --- Unit 6: Run menu item ---
+
+        [Test]
+        public void ActionTool_RunMenuItem_BlockedPath_ReturnsError()
+        {
+            var result = CallAction(new JObject
+            {
+                ["operation"] = "run_menu_item",
+                ["menu_path"] = "File/Quit"
+            });
+            Assert.That(result, Does.Contain("\"error\""));
+            Assert.That(result, Does.Contain("operation_not_supported"));
+        }
+
+        [Test]
+        public void ActionTool_RunMenuItem_MissingPath_ReturnsError()
+        {
+            var result = CallAction(new JObject
+            {
+                ["operation"] = "run_menu_item"
+            });
+            Assert.That(result, Does.Contain("\"error\""));
+            Assert.That(result, Does.Contain("invalid_parameter"));
+        }
+
+        [Test]
+        public void ActionTool_RunMenuItem_NonexistentPath_ReturnsError()
+        {
+            // Unity logs an error when ExecuteMenuItem fails — suppress it
+            LogAssert.Expect(LogType.Error,
+                new System.Text.RegularExpressions.Regex("ExecuteMenuItem failed"));
+            var result = CallAction(new JObject
+            {
+                ["operation"] = "run_menu_item",
+                ["menu_path"] = "Fake/Menu/Path/That/DoesNotExist"
+            });
+            Assert.That(result, Does.Contain("\"error\""));
+            Assert.That(result, Does.Contain("not found"));
         }
     }
 

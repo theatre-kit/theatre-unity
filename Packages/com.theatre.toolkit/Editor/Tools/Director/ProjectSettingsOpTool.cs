@@ -214,7 +214,6 @@ namespace Theatre.Editor.Tools.Director
                     var tagName = tagToken.Value<string>();
                     if (string.IsNullOrEmpty(tagName)) continue;
 
-                    // Check if tag already exists
                     bool exists = false;
                     for (int i = 0; i < tagsProp.arraySize; i++)
                     {
@@ -225,11 +224,23 @@ namespace Theatre.Editor.Tools.Director
                         }
                     }
 
-                    if (!exists)
+                    if (exists)
+                    {
+                        addedTags.Add(new JObject
+                        {
+                            ["name"] = tagName,
+                            ["status"] = "already_exists"
+                        });
+                    }
+                    else
                     {
                         tagsProp.InsertArrayElementAtIndex(tagsProp.arraySize);
                         tagsProp.GetArrayElementAtIndex(tagsProp.arraySize - 1).stringValue = tagName;
-                        addedTags.Add(tagName);
+                        addedTags.Add(new JObject
+                        {
+                            ["name"] = tagName,
+                            ["status"] = "added"
+                        });
                     }
                 }
             }
@@ -249,8 +260,38 @@ namespace Theatre.Editor.Tools.Director
                     if (index < 0 || index >= layersProp.arraySize || string.IsNullOrEmpty(layerName))
                         continue;
 
-                    layersProp.GetArrayElementAtIndex(index).stringValue = layerName;
-                    addedLayers.Add(new JObject { ["index"] = index, ["name"] = layerName });
+                    var currentValue = layersProp.GetArrayElementAtIndex(index).stringValue;
+
+                    if (currentValue == layerName)
+                    {
+                        addedLayers.Add(new JObject
+                        {
+                            ["index"] = index,
+                            ["name"] = layerName,
+                            ["status"] = "already_exists"
+                        });
+                    }
+                    else
+                    {
+                        var layerResult = new JObject
+                        {
+                            ["index"] = index,
+                            ["name"] = layerName,
+                        };
+
+                        if (!string.IsNullOrEmpty(currentValue))
+                        {
+                            layerResult["status"] = "overwritten";
+                            layerResult["previous_name"] = currentValue;
+                        }
+                        else
+                        {
+                            layerResult["status"] = "added";
+                        }
+
+                        layersProp.GetArrayElementAtIndex(index).stringValue = layerName;
+                        addedLayers.Add(layerResult);
+                    }
                 }
             }
 
@@ -261,7 +302,6 @@ namespace Theatre.Editor.Tools.Director
                 var sortingLayersProp = tagManager.FindProperty("m_SortingLayers");
                 if (sortingLayersProp != null)
                 {
-                    // Collect existing names to avoid duplicates
                     var existingNames = new HashSet<string>(StringComparer.Ordinal);
                     for (int i = 0; i < sortingLayersProp.arraySize; i++)
                     {
@@ -274,16 +314,32 @@ namespace Theatre.Editor.Tools.Director
                     foreach (var slToken in addSortingLayersToken)
                     {
                         var slName = slToken.Value<string>();
-                        if (string.IsNullOrEmpty(slName) || existingNames.Contains(slName)) continue;
+                        if (string.IsNullOrEmpty(slName)) continue;
 
-                        sortingLayersProp.InsertArrayElementAtIndex(sortingLayersProp.arraySize);
-                        var newElem = sortingLayersProp.GetArrayElementAtIndex(sortingLayersProp.arraySize - 1);
-                        var nameProp = newElem.FindPropertyRelative("name");
-                        if (nameProp != null)
+                        if (existingNames.Contains(slName))
                         {
-                            nameProp.stringValue = slName;
-                            existingNames.Add(slName);
-                            addedSortingLayers.Add(slName);
+                            addedSortingLayers.Add(new JObject
+                            {
+                                ["name"] = slName,
+                                ["status"] = "already_exists"
+                            });
+                        }
+                        else
+                        {
+                            sortingLayersProp.InsertArrayElementAtIndex(sortingLayersProp.arraySize);
+                            var newElem = sortingLayersProp.GetArrayElementAtIndex(
+                                sortingLayersProp.arraySize - 1);
+                            var nameProp = newElem.FindPropertyRelative("name");
+                            if (nameProp != null)
+                            {
+                                nameProp.stringValue = slName;
+                                existingNames.Add(slName);
+                                addedSortingLayers.Add(new JObject
+                                {
+                                    ["name"] = slName,
+                                    ["status"] = "added"
+                                });
+                            }
                         }
                     }
                 }

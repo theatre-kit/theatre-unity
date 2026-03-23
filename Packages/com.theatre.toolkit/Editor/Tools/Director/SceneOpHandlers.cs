@@ -18,6 +18,22 @@ namespace Theatre.Editor.Tools.Director
     /// </summary>
     internal static class SceneOpHandlers
     {
+        private static readonly Dictionary<string, PrimitiveType> PrimitiveTypeMap =
+            new Dictionary<string, PrimitiveType>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["cube"]     = PrimitiveType.Cube,
+                ["sphere"]   = PrimitiveType.Sphere,
+                ["capsule"]  = PrimitiveType.Capsule,
+                ["cylinder"] = PrimitiveType.Cylinder,
+                ["plane"]    = PrimitiveType.Plane,
+                ["quad"]     = PrimitiveType.Quad,
+            };
+
+        private static PrimitiveType? ResolvePrimitiveType(string name)
+        {
+            return PrimitiveTypeMap.TryGetValue(name, out var pt) ? pt : (PrimitiveType?)null;
+        }
+
         // -----------------------------------------------------------------------
         // create_scene
         // -----------------------------------------------------------------------
@@ -215,6 +231,18 @@ namespace Theatre.Editor.Tools.Director
                     "Missing required 'name' parameter",
                     "Provide a name for the new GameObject");
 
+            var primitiveTypeStr = args["primitive_type"]?.Value<string>();
+            PrimitiveType? primitiveType = null;
+            if (!string.IsNullOrEmpty(primitiveTypeStr))
+            {
+                primitiveType = ResolvePrimitiveType(primitiveTypeStr);
+                if (primitiveType == null)
+                    return ResponseHelpers.ErrorResponse(
+                        "invalid_parameter",
+                        $"Unknown primitive_type '{primitiveTypeStr}'",
+                        "Valid values: cube, sphere, capsule, cylinder, plane, quad");
+            }
+
             // Dry run
             var dryRun = DirectorHelpers.CheckDryRun(args, () =>
             {
@@ -226,6 +254,9 @@ namespace Theatre.Editor.Tools.Director
                     if (!pr.Success)
                         errors.Add($"Parent '{parentPath}' not found");
                 }
+                if (!string.IsNullOrEmpty(primitiveTypeStr)
+                    && ResolvePrimitiveType(primitiveTypeStr) == null)
+                    errors.Add($"Unknown primitive_type '{primitiveTypeStr}'");
                 var components = args["components"] as JArray;
                 if (components != null)
                 {
@@ -245,7 +276,16 @@ namespace Theatre.Editor.Tools.Director
             if (dryRun != null) return dryRun;
 
             // Create the object
-            var go = new GameObject(name);
+            GameObject go;
+            if (primitiveType.HasValue)
+            {
+                go = GameObject.CreatePrimitive(primitiveType.Value);
+                go.name = name;
+            }
+            else
+            {
+                go = new GameObject(name);
+            }
 #if UNITY_EDITOR
             Undo.RegisterCreatedObjectUndo(go, "Theatre CreateGameObject");
 #endif
@@ -344,6 +384,8 @@ namespace Theatre.Editor.Tools.Director
             var response = new JObject();
             response["result"] = "ok";
             response["operation"] = "create_gameobject";
+            if (primitiveType.HasValue)
+                response["primitive_type"] = primitiveTypeStr;
             ResponseHelpers.AddIdentity(response, go);
             if (compErrors.Count > 0)
             {

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 using Newtonsoft.Json.Linq;
+using Theatre.Editor.Tools.Director;
 using Theatre.Stage;
 using UnityEngine;
 
@@ -9,6 +10,7 @@ namespace Theatre.Editor.Tools.Actions
 {
     /// <summary>
     /// action:invoke_method — call a public method on a component via reflection.
+    /// Supports instance methods (Play Mode required) and static methods (Edit Mode).
     /// Limited to methods with 0-3 parameters of simple types.
     /// </summary>
     internal static class ActionInvokeMethod
@@ -23,18 +25,10 @@ namespace Theatre.Editor.Tools.Actions
 
         public static string Execute(JObject args)
         {
-            var error = ResponseHelpers.RequirePlayMode("invoke_method");
-            if (error != null) return error;
-
             var componentName = args["component"]?.Value<string>();
+            var typeName = args["type"]?.Value<string>();
             var methodName = args["method"]?.Value<string>();
             var methodArgs = args["arguments"] as JArray;
-
-            if (string.IsNullOrEmpty(componentName))
-                return ResponseHelpers.ErrorResponse(
-                    "invalid_parameter",
-                    "Missing required 'component' parameter",
-                    "Provide the component type name");
 
             if (string.IsNullOrEmpty(methodName))
                 return ResponseHelpers.ErrorResponse(
@@ -48,26 +42,43 @@ namespace Theatre.Editor.Tools.Actions
                     $"invoke_method supports at most {MaxArgs} arguments, got {methodArgs.Count}",
                     "Simplify the call or invoke a wrapper method");
 
+            // Static method invocation: type + method, no component/path
+            if (!string.IsNullOrEmpty(typeName))
+                return ExecuteStatic(typeName, methodName, methodArgs);
+
+            // Instance method invocation: requires component + path + Play Mode
+            if (string.IsNullOrEmpty(componentName))
+                return ResponseHelpers.ErrorResponse(
+                    "invalid_parameter",
+                    "Missing 'component' or 'type' parameter",
+                    "Provide 'component' for instance methods (Play Mode) "
+                    + "or 'type' for static methods (Edit Mode)");
+
+            return ExecuteInstance(args, componentName, methodName, methodArgs);
+        }
+
+        private static string ExecuteInstance(
+            JObject args, string componentName, string methodName, JArray methodArgs)
+        {
+            // Existing behavior: Play Mode required for instance calls
+            var error = ResponseHelpers.RequirePlayMode("invoke_method");
+            if (error != null) return error;
+
             var resolveError = ObjectResolver.ResolveFromArgs(args, out var go);
             if (resolveError != null) return resolveError;
 
-            // Find the component
             var component = ObjectResolver.FindComponent(go, componentName);
-
             if (component == null)
                 return ResponseHelpers.ErrorResponse(
                     "component_not_found",
                     $"Component '{componentName}' not found on '{go.name}'",
                     "Use scene_inspect to list all components on this GameObject");
 
-            // Find the method
             var type = component.GetType();
             var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
-
-            MethodInfo targetMethod = null;
             int argCount = methodArgs?.Count ?? 0;
 
-            targetMethod = methods.FirstOrDefault(method =>
+            var targetMethod = methods.FirstOrDefault(method =>
                 method.Name == methodName &&
                 method.GetParameters().Length == argCount &&
                 method.GetParameters().All(p => IsAllowedType(p.ParameterType)));
@@ -79,29 +90,99 @@ namespace Theatre.Editor.Tools.Actions
                     "invoke_method only supports string, int, float, bool parameters. "
                     + "Use scene_inspect to check available methods.");
 
-            // Convert arguments
-            object[] convertedArgs = null;
-            if (argCount > 0)
+            var convertedArgs = ConvertArguments(targetMethod, methodArgs, out var convError);
+            if (convError != null) return convError;
+
+            return InvokeAndBuildResponse(targetMethod, component, convertedArgs, go, componentName, methodName);
+        }
+
+        private static string ExecuteStatic(
+            string typeName, string methodName, JArray methodArgs)
+        {
+            // Resolve the type from all loaded assemblies
+            var type = DirectorHelpers.ResolveType(
+                typeName, typeof(object), "Type", out var typeError);
+            if (type == null) return typeError;
+
+            int argCount = methodArgs?.Count ?? 0;
+
+            var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static);
+            var targetMethod = methods.FirstOrDefault(method =>
+                method.Name == methodName &&
+                method.GetParameters().Length == argCount &&
+                method.GetParameters().All(p => IsAllowedType(p.ParameterType)));
+
+            if (targetMethod == null)
+                return ResponseHelpers.ErrorResponse(
+                    "property_not_found",
+                    $"No public static method '{methodName}' with {argCount} simple-type parameters found on '{typeName}'",
+                    "invoke_method only supports string, int, float, bool parameters.");
+
+            var convertedArgs = ConvertArguments(targetMethod, methodArgs, out var convError);
+            if (convError != null) return convError;
+
+            // Invoke static — no target object
+            object returnValue;
+            try
             {
-                convertedArgs = new object[argCount];
-                var parameters = targetMethod.GetParameters();
-                for (int i = 0; i < argCount; i++)
-                {
-                    try
-                    {
-                        convertedArgs[i] = methodArgs[i].ToObject(parameters[i].ParameterType);
-                    }
-                    catch (Exception ex)
-                    {
-                        return ResponseHelpers.ErrorResponse(
-                            "invalid_parameter",
-                            $"Cannot convert argument {i} to {parameters[i].ParameterType.Name}: {ex.Message}",
-                            $"Parameter '{parameters[i].Name}' expects {parameters[i].ParameterType.Name}");
-                    }
-                }
+                returnValue = targetMethod.Invoke(null, convertedArgs);
+            }
+            catch (TargetInvocationException ex)
+            {
+                return ResponseHelpers.ErrorResponse(
+                    "internal_error",
+                    $"Static method '{typeName}.{methodName}' threw: {ex.InnerException?.Message ?? ex.Message}",
+                    "Check the Unity Console for the full stack trace");
             }
 
-            // Invoke
+            var response = new JObject();
+            response["result"] = "ok";
+            response["type"] = typeName;
+            response["method"] = methodName;
+            response["static"] = true;
+
+            if (targetMethod.ReturnType != typeof(void) && returnValue != null)
+            {
+                try { response["return_value"] = JToken.FromObject(returnValue); }
+                catch { response["return_value"] = returnValue.ToString(); }
+            }
+
+            ResponseHelpers.AddFrameContext(response);
+            return response.ToString(Newtonsoft.Json.Formatting.None);
+        }
+
+        private static object[] ConvertArguments(
+            MethodInfo method, JArray methodArgs, out string error)
+        {
+            error = null;
+            int argCount = methodArgs?.Count ?? 0;
+            if (argCount == 0) return null;
+
+            var converted = new object[argCount];
+            var parameters = method.GetParameters();
+            for (int i = 0; i < argCount; i++)
+            {
+                try
+                {
+                    converted[i] = methodArgs[i].ToObject(parameters[i].ParameterType);
+                }
+                catch (Exception ex)
+                {
+                    error = ResponseHelpers.ErrorResponse(
+                        "invalid_parameter",
+                        $"Cannot convert argument {i} to {parameters[i].ParameterType.Name}: {ex.Message}",
+                        $"Parameter '{parameters[i].Name}' expects {parameters[i].ParameterType.Name}");
+                    return null;
+                }
+            }
+            return converted;
+        }
+
+        private static string InvokeAndBuildResponse(
+            MethodInfo targetMethod, Component component,
+            object[] convertedArgs, GameObject go,
+            string componentName, string methodName)
+        {
             object returnValue;
             try
             {
@@ -115,7 +196,6 @@ namespace Theatre.Editor.Tools.Actions
                     "Check the Unity Console for the full stack trace");
             }
 
-            // Build response
             var response = new JObject();
             response["result"] = "ok";
             ResponseHelpers.AddIdentity(response, go);
@@ -124,14 +204,8 @@ namespace Theatre.Editor.Tools.Actions
 
             if (targetMethod.ReturnType != typeof(void) && returnValue != null)
             {
-                try
-                {
-                    response["return_value"] = JToken.FromObject(returnValue);
-                }
-                catch
-                {
-                    response["return_value"] = returnValue.ToString();
-                }
+                try { response["return_value"] = JToken.FromObject(returnValue); }
+                catch { response["return_value"] = returnValue.ToString(); }
             }
 
             ResponseHelpers.AddFrameContext(response);

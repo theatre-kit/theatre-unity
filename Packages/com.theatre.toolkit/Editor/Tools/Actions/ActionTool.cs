@@ -24,7 +24,7 @@ namespace Theatre.Editor.Tools.Actions
                         ""type"": ""string"",
                         ""enum"": [""teleport"", ""set_property"", ""set_active"",
                                    ""set_timescale"", ""pause"", ""step"",
-                                   ""unpause"", ""invoke_method""],
+                                   ""unpause"", ""invoke_method"", ""run_menu_item""],
                         ""description"": ""The action to perform.""
                     },
                     ""path"": {
@@ -71,6 +71,14 @@ namespace Theatre.Editor.Tools.Actions
                     ""arguments"": {
                         ""type"": ""array"",
                         ""description"": ""Method arguments [arg1, arg2, ...]. Used by invoke_method. Max 3 args, simple types only.""
+                    },
+                    ""type"": {
+                        ""type"": ""string"",
+                        ""description"": ""Type name for static method invocation. Used by invoke_method in Edit Mode. Alternative to component+path.""
+                    },
+                    ""menu_path"": {
+                        ""type"": ""string"",
+                        ""description"": ""Menu item path to execute. Used by run_menu_item. E.g. 'GameObject/3D Object/Cube'.""
                     }
                 },
                 ""required"": [""operation""]
@@ -84,9 +92,11 @@ namespace Theatre.Editor.Tools.Actions
                 name: "action",
                 description: "Manipulate game state for debugging. Teleport "
                     + "objects, set component properties, enable/disable "
-                    + "GameObjects, control time and play mode, call methods. "
+                    + "GameObjects, control time and play mode, call methods, "
+                    + "run Editor menu items. "
                     + "pause/step/unpause/set_timescale require Play Mode. "
-                    + "teleport/set_property/set_active work in both modes.",
+                    + "invoke_method with 'type' for static methods works in Edit Mode. "
+                    + "teleport/set_property/set_active/run_menu_item work in both modes.",
                 inputSchema: s_inputSchema,
                 group: ToolGroup.StageAction,
                 handler: Execute,
@@ -111,12 +121,13 @@ namespace Theatre.Editor.Tools.Actions
                     "step"           => ActionPlayControl.ExecuteStep(args),
                     "unpause"        => ActionPlayControl.ExecuteUnpause(args),
                     "invoke_method"  => ActionInvokeMethod.Execute(args),
+                    "run_menu_item"  => ActionRunMenuItem.Execute(args),
                     _ => ResponseHelpers.ErrorResponse(
                         "invalid_parameter",
                         $"Unknown operation '{operation}'",
                         "Valid operations: teleport, set_property, set_active, "
-                        + "set_timescale, pause, step, unpause, invoke_method")
+                        + "set_timescale, pause, step, unpause, invoke_method, run_menu_item")
                 },
-                "teleport, set_property, set_active, set_timescale, pause, step, unpause, invoke_method");
+                "teleport, set_property, set_active, set_timescale, pause, step, unpause, invoke_method, run_menu_item");
     }
 }

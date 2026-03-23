@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Newtonsoft.Json.Linq;
 using Theatre;
 using Theatre.Stage;
@@ -43,7 +44,8 @@ namespace Theatre.Editor.Tools.Director
                 var exact = assembly.GetType(typeName);
                 if (exact != null && baseType.IsAssignableFrom(exact))
                 {
-                    matches.Add(exact);
+                    if (!matches.Contains(exact))
+                        matches.Add(exact);
                     continue;
                 }
 
@@ -209,7 +211,44 @@ namespace Theatre.Editor.Tools.Director
             return SetFields(component, properties);
         }
 
-        private static bool SetPropertyValue(
+        /// <summary>
+        /// Read the current value of a SerializedProperty as a JToken.
+        /// Used to report previous_value in set_property responses.
+        /// </summary>
+        internal static JToken ReadPropertyValue(SerializedProperty prop)
+        {
+            switch (prop.propertyType)
+            {
+                case SerializedPropertyType.Integer: return prop.intValue;
+                case SerializedPropertyType.Float: return Math.Round(prop.floatValue, 4);
+                case SerializedPropertyType.Boolean: return prop.boolValue;
+                case SerializedPropertyType.String: return prop.stringValue;
+                case SerializedPropertyType.Vector2:
+                    return ResponseHelpers.ToJArray(prop.vector2Value);
+                case SerializedPropertyType.Vector3:
+                    return ResponseHelpers.ToJArray(prop.vector3Value);
+                case SerializedPropertyType.Color:
+                    return ResponseHelpers.ToJArray(prop.colorValue);
+                case SerializedPropertyType.Enum:
+                    return prop.enumDisplayNames.Length > prop.enumValueIndex
+                        ? prop.enumDisplayNames[prop.enumValueIndex]
+                        : prop.enumValueIndex.ToString();
+                case SerializedPropertyType.ObjectReference:
+                    var obj = prop.objectReferenceValue;
+                    if (obj == null) return JValue.CreateNull();
+                    var assetPath = AssetDatabase.GetAssetPath(obj);
+                    return !string.IsNullOrEmpty(assetPath) ? assetPath : obj.name;
+                default: return prop.propertyType.ToString();
+            }
+        }
+
+        /// <summary>
+        /// Set a single SerializedProperty value from a JToken.
+        /// Supports Integer, Float, Boolean, String, Vector2/3/4, Color,
+        /// Quaternion, Enum, and ObjectReference.
+        /// Returns true on success; on failure, sets error and returns false.
+        /// </summary>
+        internal static bool SetPropertyValue(
             SerializedProperty prop, JToken value, out string error)
         {
             error = null;
@@ -305,6 +344,27 @@ namespace Theatre.Editor.Tools.Director
                               + $"Valid: {string.Join(", ", prop.enumDisplayNames)}";
                         return false;
 
+                    case SerializedPropertyType.ObjectReference:
+                        var resolved = ResolveObjectReference(value, prop, out var refError);
+                        if (refError != null)
+                        {
+                            error = refError;
+                            return false;
+                        }
+                        // Type validation: check the resolved object is assignable
+                        if (resolved != null)
+                        {
+                            var fieldInfo = GetFieldType(prop);
+                            if (fieldInfo != null && !fieldInfo.IsInstanceOfType(resolved))
+                            {
+                                error = $"Asset '{resolved.name}' is {resolved.GetType().Name}, "
+                                      + $"expected {fieldInfo.Name}";
+                                return false;
+                            }
+                        }
+                        prop.objectReferenceValue = resolved;
+                        return true;
+
                     default:
                         error = $"Unsupported property type: {prop.propertyType}";
                         return false;
@@ -315,6 +375,157 @@ namespace Theatre.Editor.Tools.Director
                 error = ex.Message;
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Resolve a Unity Object from a JToken value for ObjectReference assignment.
+        /// Accepts:
+        ///   - string: asset path ("Assets/Materials/Foo.mat") or
+        ///             sub-asset path ("Assets/Models/Cube.fbx::MeshName") or
+        ///             GUID ("a1b2c3d4e5f6...")
+        ///   - int: instance_id
+        ///   - null: clears the reference
+        /// Returns the resolved Object, or null if the value is JSON null.
+        /// Sets error on failure.
+        /// </summary>
+        internal static UnityEngine.Object ResolveObjectReference(
+            JToken value, SerializedProperty prop, out string error)
+        {
+            error = null;
+
+            // null clears the reference
+            if (value == null || value.Type == JTokenType.Null)
+                return null;
+
+            // int → instance_id
+            if (value.Type == JTokenType.Integer)
+            {
+                var instanceId = value.Value<int>();
+                var obj = EditorUtility.InstanceIDToObject(instanceId);
+                if (obj == null)
+                {
+                    error = $"No object found with instance_id {instanceId}";
+                    return null;
+                }
+                return obj;
+            }
+
+            // string → asset path, sub-asset path, or GUID
+            if (value.Type == JTokenType.String)
+            {
+                var str = value.Value<string>();
+                if (string.IsNullOrEmpty(str))
+                {
+                    error = "Asset path must not be empty";
+                    return null;
+                }
+
+                // Check for sub-asset syntax: "Assets/Models/Cube.fbx::MeshName"
+                var separatorIndex = str.IndexOf("::", StringComparison.Ordinal);
+                if (separatorIndex >= 0)
+                {
+                    var mainPath = str.Substring(0, separatorIndex);
+                    var subAssetName = str.Substring(separatorIndex + 2);
+                    return ResolveSubAsset(mainPath, subAssetName, out error);
+                }
+
+                // Try as asset path first
+                if (str.StartsWith("Assets/") || str.StartsWith("Packages/"))
+                {
+                    var obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(str);
+                    if (obj == null)
+                    {
+                        error = $"No asset found at path '{str}'";
+                        return null;
+                    }
+                    return obj;
+                }
+
+                // Try as GUID
+                var guidPath = AssetDatabase.GUIDToAssetPath(str);
+                if (!string.IsNullOrEmpty(guidPath))
+                {
+                    var obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(guidPath);
+                    if (obj != null) return obj;
+                }
+
+                error = $"Cannot resolve '{str}' as an asset path (must start with "
+                      + "'Assets/' or 'Packages/') or as a GUID";
+                return null;
+            }
+
+            error = $"ObjectReference value must be a string (asset path/GUID), "
+                  + $"integer (instance_id), or null. Got {value.Type}";
+            return null;
+        }
+
+        private static UnityEngine.Object ResolveSubAsset(
+            string mainPath, string subAssetName, out string error)
+        {
+            error = null;
+            var allAssets = AssetDatabase.LoadAllAssetsAtPath(mainPath);
+            if (allAssets == null || allAssets.Length == 0)
+            {
+                error = $"No asset found at path '{mainPath}'";
+                return null;
+            }
+
+            foreach (var asset in allAssets)
+            {
+                if (asset != null && asset.name == subAssetName)
+                    return asset;
+            }
+
+            // Build suggestion with available sub-asset names
+            var names = new List<string>();
+            foreach (var asset in allAssets)
+            {
+                if (asset != null && !string.IsNullOrEmpty(asset.name))
+                    names.Add(asset.name);
+            }
+
+            error = $"Sub-asset '{subAssetName}' not found in '{mainPath}'. "
+                  + $"Available: {string.Join(", ", names)}";
+            return null;
+        }
+
+        /// <summary>
+        /// Get the expected System.Type for an ObjectReference SerializedProperty.
+        /// Uses reflection on the target object's field declaration.
+        /// Returns null if the type cannot be determined (fallback: no type check).
+        /// </summary>
+        private static Type GetFieldType(SerializedProperty prop)
+        {
+            var targetType = prop.serializedObject.targetObject.GetType();
+            var fieldName = prop.propertyPath;
+
+            // Handle array elements: strip [N] and get element type
+            if (fieldName.Contains(".Array.data["))
+            {
+                var dotIndex = fieldName.IndexOf(".Array.data[");
+                fieldName = fieldName.Substring(0, dotIndex);
+            }
+
+            // Walk the field path (handles nested structs via dots)
+            Type currentType = targetType;
+            foreach (var part in fieldName.Split('.'))
+            {
+                var field = currentType.GetField(part,
+                    BindingFlags.Instance
+                    | BindingFlags.Public
+                    | BindingFlags.NonPublic);
+                if (field == null) return null;
+                currentType = field.FieldType;
+            }
+
+            // Unwrap arrays/lists to element type
+            if (currentType.IsArray)
+                return currentType.GetElementType();
+            if (currentType.IsGenericType
+                && currentType.GetGenericTypeDefinition() == typeof(List<>))
+                return currentType.GetGenericArguments()[0];
+
+            return currentType;
         }
 
         /// <summary>

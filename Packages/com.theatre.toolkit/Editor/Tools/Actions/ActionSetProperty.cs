@@ -1,6 +1,6 @@
-using System;
 using Newtonsoft.Json.Linq;
 using Theatre;
+using Theatre.Editor.Tools.Director;
 using Theatre.Stage;
 using UnityEngine;
 #if UNITY_EDITOR
@@ -68,10 +68,10 @@ namespace Theatre.Editor.Tools.Actions
                     "Use scene_inspect with component filter to see available properties");
 
             // Read previous value
-            var previousValue = ReadCurrentValue(prop);
+            var previousValue = DirectorHelpers.ReadPropertyValue(prop);
 
             // Set the value
-            if (!SetPropertyValue(prop, value, out var setError))
+            if (!DirectorHelpers.SetPropertyValue(prop, value, out var setError))
                 return ResponseHelpers.ErrorResponse(
                     "invalid_parameter",
                     $"Cannot set '{propertyName}': {setError}",
@@ -93,138 +93,6 @@ namespace Theatre.Editor.Tools.Actions
 
             return response.ToString(Newtonsoft.Json.Formatting.None);
         }
-
-#if UNITY_EDITOR
-        private static JToken ReadCurrentValue(SerializedProperty prop)
-        {
-            switch (prop.propertyType)
-            {
-                case SerializedPropertyType.Integer: return prop.intValue;
-                case SerializedPropertyType.Float: return Math.Round(prop.floatValue, 4);
-                case SerializedPropertyType.Boolean: return prop.boolValue;
-                case SerializedPropertyType.String: return prop.stringValue;
-                case SerializedPropertyType.Vector2:
-                    return ResponseHelpers.ToJArray(prop.vector2Value);
-                case SerializedPropertyType.Vector3:
-                    return ResponseHelpers.ToJArray(prop.vector3Value);
-                case SerializedPropertyType.Color:
-                    return ResponseHelpers.ToJArray(prop.colorValue);
-                case SerializedPropertyType.Enum:
-                    return prop.enumDisplayNames.Length > prop.enumValueIndex
-                        ? prop.enumDisplayNames[prop.enumValueIndex]
-                        : prop.enumValueIndex.ToString();
-                default: return prop.propertyType.ToString();
-            }
-        }
-
-        private static bool SetPropertyValue(
-            SerializedProperty prop, JToken value, out string error)
-        {
-            error = null;
-            try
-            {
-                switch (prop.propertyType)
-                {
-                    case SerializedPropertyType.Integer:
-                        prop.intValue = value.ToObject<int>();
-                        return true;
-
-                    case SerializedPropertyType.Float:
-                        prop.floatValue = value.ToObject<float>();
-                        return true;
-
-                    case SerializedPropertyType.Boolean:
-                        prop.boolValue = value.ToObject<bool>();
-                        return true;
-
-                    case SerializedPropertyType.String:
-                        prop.stringValue = value.ToObject<string>();
-                        return true;
-
-                    case SerializedPropertyType.Vector2:
-                        if (value is JArray v2 && v2.Count >= 2)
-                        {
-                            prop.vector2Value = new Vector2(
-                                v2[0].Value<float>(), v2[1].Value<float>());
-                            return true;
-                        }
-                        error = "Vector2 requires [x, y] array";
-                        return false;
-
-                    case SerializedPropertyType.Vector3:
-                        if (value is JArray v3 && v3.Count >= 3)
-                        {
-                            prop.vector3Value = new Vector3(
-                                v3[0].Value<float>(),
-                                v3[1].Value<float>(),
-                                v3[2].Value<float>());
-                            return true;
-                        }
-                        error = "Vector3 requires [x, y, z] array";
-                        return false;
-
-                    case SerializedPropertyType.Vector4:
-                        if (value is JArray v4 && v4.Count >= 4)
-                        {
-                            prop.vector4Value = new Vector4(
-                                v4[0].Value<float>(),
-                                v4[1].Value<float>(),
-                                v4[2].Value<float>(),
-                                v4[3].Value<float>());
-                            return true;
-                        }
-                        error = "Vector4 requires [x, y, z, w] array";
-                        return false;
-
-                    case SerializedPropertyType.Color:
-                        if (value is JArray c && c.Count >= 4)
-                        {
-                            prop.colorValue = new Color(
-                                c[0].Value<float>(), c[1].Value<float>(),
-                                c[2].Value<float>(), c[3].Value<float>());
-                            return true;
-                        }
-                        error = "Color requires [r, g, b, a] array";
-                        return false;
-
-                    case SerializedPropertyType.Quaternion:
-                        if (value is JArray q && q.Count >= 4)
-                        {
-                            prop.quaternionValue = new Quaternion(
-                                q[0].Value<float>(), q[1].Value<float>(),
-                                q[2].Value<float>(), q[3].Value<float>());
-                            return true;
-                        }
-                        error = "Quaternion requires [x, y, z, w] array";
-                        return false;
-
-                    case SerializedPropertyType.Enum:
-                        var enumStr = value.ToObject<string>();
-                        for (int i = 0; i < prop.enumDisplayNames.Length; i++)
-                        {
-                            if (string.Equals(prop.enumDisplayNames[i],
-                                enumStr, StringComparison.OrdinalIgnoreCase))
-                            {
-                                prop.enumValueIndex = i;
-                                return true;
-                            }
-                        }
-                        error = $"Unknown enum value '{enumStr}'. "
-                              + $"Valid: {string.Join(", ", prop.enumDisplayNames)}";
-                        return false;
-
-                    default:
-                        error = $"Unsupported property type: {prop.propertyType}";
-                        return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                error = ex.Message;
-                return false;
-            }
-        }
-#endif
 
     }
 }

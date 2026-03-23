@@ -42,6 +42,11 @@ namespace Theatre.Editor.Tools.Director
                         ""type"": ""string"",
                         ""description"": ""GameObject name for create_gameobject; new name for duplicate.""
                     },
+                    ""primitive_type"": {
+                        ""type"": ""string"",
+                        ""enum"": [""cube"", ""sphere"", ""capsule"", ""cylinder"", ""plane"", ""quad""],
+                        ""description"": ""Create a primitive mesh object instead of an empty GameObject. Includes MeshFilter, MeshRenderer, and default Collider.""
+                    },
                     ""parent"": {
                         ""type"": ""string"",
                         ""description"": ""Parent GameObject path for create_gameobject.""
