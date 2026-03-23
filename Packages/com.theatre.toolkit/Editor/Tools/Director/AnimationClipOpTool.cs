@@ -169,7 +169,7 @@ namespace Theatre.Editor.Tools.Director
             var legacy = args["legacy"]?.Value<bool>() ?? false;
             clip.legacy = legacy;
 
-            EnsureParentDirectory(assetPath);
+            DirectorHelpers.EnsureParentDirectory(assetPath);
             AssetDatabase.CreateAsset(clip, assetPath);
 
             var response = new JObject();
@@ -184,9 +184,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Add or replace an animation curve on a clip.</summary>
         internal static string AddCurve(JObject args)
         {
-            var clipPath = args["clip_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(clipPath, ".anim");
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<AnimationClip>(
+                args, out var clip, out var clipPath, ".anim", pathParam: "clip_path");
+            if (loadError != null) return loadError;
 
             var propertyName = args["property_name"]?.Value<string>();
             if (string.IsNullOrEmpty(propertyName))
@@ -205,13 +205,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing or empty 'keyframes' array",
                     "Provide at least one keyframe: [{\"time\": 0, \"value\": 0}]");
-
-            var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
-            if (clip == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"AnimationClip not found at '{clipPath}'",
-                    "Check the path is correct and ends with .anim");
 
             var relativePath = args["relative_path"]?.Value<string>() ?? "";
 
@@ -245,9 +238,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Remove an animation curve from a clip.</summary>
         internal static string RemoveCurve(JObject args)
         {
-            var clipPath = args["clip_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(clipPath, ".anim");
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<AnimationClip>(
+                args, out var clip, out var clipPath, ".anim", pathParam: "clip_path");
+            if (loadError != null) return loadError;
 
             var propertyName = args["property_name"]?.Value<string>();
             if (string.IsNullOrEmpty(propertyName))
@@ -259,13 +252,6 @@ namespace Theatre.Editor.Tools.Director
             var typeName = args["type"]?.Value<string>();
             var componentType = DirectorHelpers.ResolveComponentType(typeName, out var typeError);
             if (typeError != null) return typeError;
-
-            var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
-            if (clip == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"AnimationClip not found at '{clipPath}'",
-                    "Check the path is correct and ends with .anim");
 
             var relativePath = args["relative_path"]?.Value<string>() ?? "";
 
@@ -293,9 +279,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Add or update a single keyframe on a curve.</summary>
         internal static string SetKeyframe(JObject args)
         {
-            var clipPath = args["clip_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(clipPath, ".anim");
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<AnimationClip>(
+                args, out var clip, out var clipPath, ".anim", pathParam: "clip_path");
+            if (loadError != null) return loadError;
 
             var propertyName = args["property_name"]?.Value<string>();
             if (string.IsNullOrEmpty(propertyName))
@@ -319,13 +305,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing required 'value' parameter",
                     "Provide the keyframe value, e.g. 1.0");
-
-            var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
-            if (clip == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"AnimationClip not found at '{clipPath}'",
-                    "Check the path is correct and ends with .anim");
 
             var relativePath = args["relative_path"]?.Value<string>() ?? "";
             var time = args["time"].Value<float>();
@@ -362,9 +341,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Set the animation events on a clip, replacing all existing events.</summary>
         internal static string SetEvents(JObject args)
         {
-            var clipPath = args["clip_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(clipPath, ".anim");
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<AnimationClip>(
+                args, out var clip, out var clipPath, ".anim", pathParam: "clip_path");
+            if (loadError != null) return loadError;
 
             var eventsToken = args["events"] as JArray;
             if (eventsToken == null)
@@ -372,13 +351,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing required 'events' array",
                     "Provide an array of event objects: [{\"time\": 0.5, \"function\": \"OnFire\"}]");
-
-            var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
-            if (clip == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"AnimationClip not found at '{clipPath}'",
-                    "Check the path is correct and ends with .anim");
 
             var events = new AnimationEvent[eventsToken.Count];
             for (int i = 0; i < eventsToken.Count; i++)
@@ -412,16 +384,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Configure loop settings on an animation clip.</summary>
         internal static string SetLoop(JObject args)
         {
-            var clipPath = args["clip_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(clipPath, ".anim");
-            if (pathError != null) return pathError;
-
-            var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
-            if (clip == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"AnimationClip not found at '{clipPath}'",
-                    "Check the path is correct and ends with .anim");
+            var loadError = DirectorHelpers.LoadAsset<AnimationClip>(
+                args, out var clip, out var clipPath, ".anim", pathParam: "clip_path");
+            if (loadError != null) return loadError;
 
             var settings = AnimationUtility.GetAnimationClipSettings(clip);
 
@@ -452,16 +417,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>List all curve bindings on an animation clip.</summary>
         internal static string ListCurves(JObject args)
         {
-            var clipPath = args["clip_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(clipPath, ".anim");
-            if (pathError != null) return pathError;
-
-            var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
-            if (clip == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"AnimationClip not found at '{clipPath}'",
-                    "Check the path is correct and ends with .anim");
+            var loadError = DirectorHelpers.LoadAsset<AnimationClip>(
+                args, out var clip, out var clipPath, ".anim", pathParam: "clip_path");
+            if (loadError != null) return loadError;
 
             var bindings = AnimationUtility.GetCurveBindings(clip);
             var curvesArray = new JArray();
@@ -519,24 +477,5 @@ namespace Theatre.Editor.Tools.Director
             };
         }
 
-        private static void EnsureParentDirectory(string assetPath)
-        {
-            var lastSlash = assetPath.LastIndexOf('/');
-            if (lastSlash <= 0) return;
-
-            var parentPath = assetPath.Substring(0, lastSlash);
-            if (!AssetDatabase.IsValidFolder(parentPath))
-            {
-                var grandparentSlash = parentPath.LastIndexOf('/');
-                if (grandparentSlash >= 0)
-                {
-                    var grandparent = parentPath.Substring(0, grandparentSlash);
-                    var folderName = parentPath.Substring(grandparentSlash + 1);
-                    EnsureParentDirectory(parentPath);
-                    if (!AssetDatabase.IsValidFolder(parentPath))
-                        AssetDatabase.CreateFolder(grandparent, folderName);
-                }
-            }
-        }
     }
 }

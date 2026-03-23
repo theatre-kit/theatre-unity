@@ -189,7 +189,7 @@ namespace Theatre.Editor.Tools.Director
             terrainData.heightmapResolution = resolution;
             terrainData.size = new Vector3(width, height, length);
 
-            EnsureParentDirectory(assetPath);
+            DirectorHelpers.EnsureParentDirectory(assetPath);
             AssetDatabase.CreateAsset(terrainData, assetPath);
             AssetDatabase.SaveAssets();
 
@@ -773,24 +773,5 @@ namespace Theatre.Editor.Tools.Director
             return terrain;
         }
 
-        private static void EnsureParentDirectory(string assetPath)
-        {
-            var lastSlash = assetPath.LastIndexOf('/');
-            if (lastSlash <= 0) return;
-
-            var parentPath = assetPath.Substring(0, lastSlash);
-            if (!AssetDatabase.IsValidFolder(parentPath))
-            {
-                var grandparentSlash = parentPath.LastIndexOf('/');
-                if (grandparentSlash >= 0)
-                {
-                    var grandparent = parentPath.Substring(0, grandparentSlash);
-                    var folderName = parentPath.Substring(grandparentSlash + 1);
-                    EnsureParentDirectory(parentPath);
-                    if (!AssetDatabase.IsValidFolder(parentPath))
-                        AssetDatabase.CreateFolder(grandparent, folderName);
-                }
-            }
-        }
     }
 }

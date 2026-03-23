@@ -156,7 +156,7 @@ namespace Theatre.Editor.Tools.Director
             var dryRun = DirectorHelpers.CheckDryRun(args, () => (true, new List<string>()));
             if (dryRun != null) return dryRun;
 
-            EnsureParentDirectory(assetPath);
+            DirectorHelpers.EnsureParentDirectory(assetPath);
             var controller = AnimatorController.CreateAnimatorControllerAtPath(assetPath);
 
             var response = new JObject();
@@ -171,9 +171,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Add a parameter to an existing AnimatorController.</summary>
         internal static string AddParameter(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath, ".controller");
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<AnimatorController>(
+                args, out var controller, out var assetPath, ".controller");
+            if (loadError != null) return loadError;
 
             var name = args["name"]?.Value<string>();
             if (string.IsNullOrEmpty(name))
@@ -188,13 +188,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     $"Invalid parameter type '{typeStr}'",
                     "Valid types: float, int, bool, trigger");
-
-            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(assetPath);
-            if (controller == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"AnimatorController not found at '{assetPath}'",
-                    "Check the asset path is correct and ends with .controller");
 
             controller.AddParameter(name, paramType);
 
@@ -241,9 +234,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Add a state to the AnimatorController's state machine.</summary>
         internal static string AddState(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath, ".controller");
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<AnimatorController>(
+                args, out var controller, out var assetPath, ".controller");
+            if (loadError != null) return loadError;
 
             var name = args["name"]?.Value<string>();
             if (string.IsNullOrEmpty(name))
@@ -251,13 +244,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing required 'name' parameter",
                     "Provide the state name");
-
-            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(assetPath);
-            if (controller == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"AnimatorController not found at '{assetPath}'",
-                    "Check the asset path is correct and ends with .controller");
 
             var layerIndex = args["layer"]?.Value<int>() ?? 0;
             var layers = controller.layers;
@@ -290,9 +276,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Assign an AnimationClip to a state's motion.</summary>
         internal static string SetStateClip(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath, ".controller");
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<AnimatorController>(
+                args, out var controller, out var assetPath, ".controller");
+            if (loadError != null) return loadError;
 
             var stateName = args["state_name"]?.Value<string>();
             if (string.IsNullOrEmpty(stateName))
@@ -301,23 +287,9 @@ namespace Theatre.Editor.Tools.Director
                     "Missing required 'state_name' parameter",
                     "Provide the name of the state to assign the clip to");
 
-            var clipPath = args["clip_path"]?.Value<string>();
-            var clipPathError = DirectorHelpers.ValidateAssetPath(clipPath, ".anim");
-            if (clipPathError != null) return clipPathError;
-
-            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(assetPath);
-            if (controller == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"AnimatorController not found at '{assetPath}'",
-                    "Check the asset path is correct");
-
-            var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
-            if (clip == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"AnimationClip not found at '{clipPath}'",
-                    "Check the clip path is correct and ends with .anim");
+            var clipLoadError = DirectorHelpers.LoadAsset<AnimationClip>(
+                args, out var clip, out var clipPath, ".anim", pathParam: "clip_path");
+            if (clipLoadError != null) return clipLoadError;
 
             var layerIndex = args["layer"]?.Value<int>() ?? 0;
             var state = FindState(controller, stateName, layerIndex, out var stateError);
@@ -340,9 +312,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Add a transition between two states.</summary>
         internal static string AddTransition(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath, ".controller");
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<AnimatorController>(
+                args, out var controller, out var assetPath, ".controller");
+            if (loadError != null) return loadError;
 
             var sourceStateName = args["source_state"]?.Value<string>();
             if (string.IsNullOrEmpty(sourceStateName))
@@ -357,13 +329,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing required 'destination_state' parameter",
                     "Provide the name of the destination state");
-
-            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(assetPath);
-            if (controller == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"AnimatorController not found at '{assetPath}'",
-                    "Check the asset path is correct");
 
             var layerIndex = args["layer"]?.Value<int>() ?? 0;
             var sourceState = FindState(controller, sourceStateName, layerIndex, out var srcError);
@@ -412,9 +377,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Replace all conditions on the transition between two states.</summary>
         internal static string SetTransitionConditions(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath, ".controller");
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<AnimatorController>(
+                args, out var controller, out var assetPath, ".controller");
+            if (loadError != null) return loadError;
 
             var sourceStateName = args["source_state"]?.Value<string>();
             if (string.IsNullOrEmpty(sourceStateName))
@@ -436,13 +401,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing required 'conditions' array",
                     "Provide an array of condition objects");
-
-            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(assetPath);
-            if (controller == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"AnimatorController not found at '{assetPath}'",
-                    "Check the asset path is correct");
 
             var layerIndex = args["layer"]?.Value<int>() ?? 0;
             var sourceState = FindState(controller, sourceStateName, layerIndex, out var srcError);
@@ -501,9 +459,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Set the default state in a state machine.</summary>
         internal static string SetDefaultState(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath, ".controller");
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<AnimatorController>(
+                args, out var controller, out var assetPath, ".controller");
+            if (loadError != null) return loadError;
 
             var stateName = args["state_name"]?.Value<string>();
             if (string.IsNullOrEmpty(stateName))
@@ -511,13 +469,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing required 'state_name' parameter",
                     "Provide the name of the state to make default");
-
-            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(assetPath);
-            if (controller == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"AnimatorController not found at '{assetPath}'",
-                    "Check the asset path is correct");
 
             var layerIndex = args["layer"]?.Value<int>() ?? 0;
             var state = FindState(controller, stateName, layerIndex, out var stateError);
@@ -542,9 +493,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Add a new layer to the AnimatorController.</summary>
         internal static string AddLayer(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath, ".controller");
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<AnimatorController>(
+                args, out var controller, out var assetPath, ".controller");
+            if (loadError != null) return loadError;
 
             var name = args["name"]?.Value<string>();
             if (string.IsNullOrEmpty(name))
@@ -552,13 +503,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing required 'name' parameter",
                     "Provide the layer name");
-
-            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(assetPath);
-            if (controller == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"AnimatorController not found at '{assetPath}'",
-                    "Check the asset path is correct");
 
             controller.AddLayer(name);
 
@@ -598,16 +542,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>List all states, transitions, and parameters in the controller.</summary>
         internal static string ListStates(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath, ".controller");
-            if (pathError != null) return pathError;
-
-            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(assetPath);
-            if (controller == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"AnimatorController not found at '{assetPath}'",
-                    "Check the asset path is correct");
+            var loadError = DirectorHelpers.LoadAsset<AnimatorController>(
+                args, out var controller, out var assetPath, ".controller");
+            if (loadError != null) return loadError;
 
             var layerIndex = args["layer"]?.Value<int>() ?? 0;
             var layers = controller.layers;
@@ -739,24 +676,5 @@ namespace Theatre.Editor.Tools.Director
             };
         }
 
-        private static void EnsureParentDirectory(string assetPath)
-        {
-            var lastSlash = assetPath.LastIndexOf('/');
-            if (lastSlash <= 0) return;
-
-            var parentPath = assetPath.Substring(0, lastSlash);
-            if (!AssetDatabase.IsValidFolder(parentPath))
-            {
-                var grandparentSlash = parentPath.LastIndexOf('/');
-                if (grandparentSlash >= 0)
-                {
-                    var grandparent = parentPath.Substring(0, grandparentSlash);
-                    var folderName = parentPath.Substring(grandparentSlash + 1);
-                    EnsureParentDirectory(parentPath);
-                    if (!AssetDatabase.IsValidFolder(parentPath))
-                        AssetDatabase.CreateFolder(grandparent, folderName);
-                }
-            }
-        }
     }
 }

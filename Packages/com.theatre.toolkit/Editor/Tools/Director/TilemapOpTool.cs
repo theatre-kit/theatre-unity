@@ -506,7 +506,7 @@ namespace Theatre.Editor.Tools.Director
                 }
             }
 
-            EnsureParentDirectory(assetPath);
+            DirectorHelpers.EnsureParentDirectory(assetPath);
             AssetDatabase.CreateAsset(tile, assetPath);
             AssetDatabase.SaveAssets();
             Undo.RegisterCreatedObjectUndo(tile, "Theatre tilemap_op:create_rule_tile");
@@ -649,24 +649,5 @@ namespace Theatre.Editor.Tools.Director
             return null;
         }
 
-        private static void EnsureParentDirectory(string assetPath)
-        {
-            var lastSlash = assetPath.LastIndexOf('/');
-            if (lastSlash <= 0) return;
-
-            var parentPath = assetPath.Substring(0, lastSlash);
-            if (!AssetDatabase.IsValidFolder(parentPath))
-            {
-                var grandparentSlash = parentPath.LastIndexOf('/');
-                if (grandparentSlash >= 0)
-                {
-                    var grandparent = parentPath.Substring(0, grandparentSlash);
-                    var folderName = parentPath.Substring(grandparentSlash + 1);
-                    EnsureParentDirectory(parentPath);
-                    if (!AssetDatabase.IsValidFolder(parentPath))
-                        AssetDatabase.CreateFolder(grandparent, folderName);
-                }
-            }
-        }
     }
 }

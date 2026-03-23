@@ -354,7 +354,7 @@ namespace Theatre.Editor.Tools.Director
             var meshCopy = UnityEngine.Object.Instantiate(meshFilter.sharedMesh);
             meshCopy.name = meshFilter.sharedMesh.name + "_exported";
 
-            EnsureParentDirectory(assetPath);
+            DirectorHelpers.EnsureParentDirectory(assetPath);
             AssetDatabase.CreateAsset(meshCopy, assetPath);
             AssetDatabase.SaveAssets();
 
@@ -425,25 +425,6 @@ namespace Theatre.Editor.Tools.Director
             }
         }
 
-        private static void EnsureParentDirectory(string assetPath)
-        {
-            var lastSlash = assetPath.LastIndexOf('/');
-            if (lastSlash <= 0) return;
-
-            var parentPath = assetPath.Substring(0, lastSlash);
-            if (!AssetDatabase.IsValidFolder(parentPath))
-            {
-                var grandparentSlash = parentPath.LastIndexOf('/');
-                if (grandparentSlash >= 0)
-                {
-                    var grandparent = parentPath.Substring(0, grandparentSlash);
-                    var folderName = parentPath.Substring(grandparentSlash + 1);
-                    EnsureParentDirectory(parentPath);
-                    if (!AssetDatabase.IsValidFolder(parentPath))
-                        AssetDatabase.CreateFolder(grandparent, folderName);
-                }
-            }
-        }
     }
 }
 #endif

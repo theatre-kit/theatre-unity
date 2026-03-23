@@ -130,7 +130,7 @@ namespace Theatre.Editor.Tools.Director
             if (pathError != null) return pathError;
 
             // Ensure parent directory exists
-            EnsureParentDirectory(assetPath);
+            DirectorHelpers.EnsureParentDirectory(assetPath);
 
             // Write minimal valid InputActionAsset JSON directly.
             // ScriptableObject.CreateInstance<InputActionAsset>().ToJson() throws
@@ -491,25 +491,6 @@ namespace Theatre.Editor.Tools.Director
             AssetDatabase.ImportAsset(assetPath);
         }
 
-        private static void EnsureParentDirectory(string assetPath)
-        {
-            var lastSlash = assetPath.LastIndexOf('/');
-            if (lastSlash <= 0) return;
-
-            var parentPath = assetPath.Substring(0, lastSlash);
-            if (!AssetDatabase.IsValidFolder(parentPath))
-            {
-                var grandparentSlash = parentPath.LastIndexOf('/');
-                if (grandparentSlash >= 0)
-                {
-                    var grandparent = parentPath.Substring(0, grandparentSlash);
-                    var folderName = parentPath.Substring(grandparentSlash + 1);
-                    EnsureParentDirectory(parentPath);
-                    if (!AssetDatabase.IsValidFolder(parentPath))
-                        AssetDatabase.CreateFolder(grandparent, folderName);
-                }
-            }
-        }
     }
 }
 #endif

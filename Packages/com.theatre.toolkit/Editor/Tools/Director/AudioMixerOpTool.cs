@@ -153,7 +153,7 @@ namespace Theatre.Editor.Tools.Director
                     "Use the Unity Editor Audio Mixer window (Window > Audio > Audio Mixer) to create mixers manually");
             }
 
-            EnsureParentDirectory(assetPath);
+            DirectorHelpers.EnsureParentDirectory(assetPath);
             AssetDatabase.CreateAsset(mixer, assetPath);
             Undo.RegisterCreatedObjectUndo(mixer, "Theatre audio_mixer_op:create");
 
@@ -168,9 +168,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Add a child group to the mixer.</summary>
         internal static string AddGroup(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath);
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<AudioMixer>(
+                args, out var mixer, out var assetPath);
+            if (loadError != null) return loadError;
 
             var groupName = args["name"]?.Value<string>();
             if (string.IsNullOrEmpty(groupName))
@@ -180,13 +180,6 @@ namespace Theatre.Editor.Tools.Director
                     "Provide the name for the new mixer group");
 
             var parentGroupName = args["parent_group"]?.Value<string>() ?? "Master";
-
-            var mixer = AssetDatabase.LoadAssetAtPath<AudioMixer>(assetPath);
-            if (mixer == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"Audio Mixer not found at '{assetPath}'",
-                    "Check the asset path is correct and ends with .mixer");
 
             var parentGroups = mixer.FindMatchingGroups(parentGroupName);
             if (parentGroups == null || parentGroups.Length == 0)
@@ -233,9 +226,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Set volume for a named group (via exposed parameter or SerializedObject).</summary>
         internal static string SetVolume(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath);
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<AudioMixer>(
+                args, out var mixer, out var assetPath);
+            if (loadError != null) return loadError;
 
             var groupName = args["group"]?.Value<string>();
             if (string.IsNullOrEmpty(groupName))
@@ -251,13 +244,6 @@ namespace Theatre.Editor.Tools.Director
                     "Provide a volume level in decibels (e.g. 0 for unity gain, -80 for silence)");
 
             float volume = args["volume"].Value<float>();
-
-            var mixer = AssetDatabase.LoadAssetAtPath<AudioMixer>(assetPath);
-            if (mixer == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"Audio Mixer not found at '{assetPath}'",
-                    "Check the asset path is correct and ends with .mixer");
 
             var groups = mixer.FindMatchingGroups(groupName);
             if (groups == null || groups.Length == 0)
@@ -318,9 +304,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Add an effect to a mixer group (best-effort via reflection).</summary>
         internal static string AddEffect(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath);
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<AudioMixer>(
+                args, out var mixer, out var assetPath);
+            if (loadError != null) return loadError;
 
             var groupName = args["group"]?.Value<string>();
             if (string.IsNullOrEmpty(groupName))
@@ -335,13 +321,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing required 'effect' parameter",
                     "Provide an effect type name such as 'SFX Reverb', 'Echo', 'Low Pass'");
-
-            var mixer = AssetDatabase.LoadAssetAtPath<AudioMixer>(assetPath);
-            if (mixer == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"Audio Mixer not found at '{assetPath}'",
-                    "Check the asset path is correct");
 
             var groups = mixer.FindMatchingGroups(groupName);
             if (groups == null || groups.Length == 0)
@@ -388,9 +367,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Create a new snapshot in the mixer (best-effort via reflection).</summary>
         internal static string CreateSnapshot(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath);
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<AudioMixer>(
+                args, out var mixer, out var assetPath);
+            if (loadError != null) return loadError;
 
             var snapshotName = args["name"]?.Value<string>();
             if (string.IsNullOrEmpty(snapshotName))
@@ -398,13 +377,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing required 'name' parameter",
                     "Provide a name for the new snapshot");
-
-            var mixer = AssetDatabase.LoadAssetAtPath<AudioMixer>(assetPath);
-            if (mixer == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"Audio Mixer not found at '{assetPath}'",
-                    "Check the asset path is correct");
 
             // Try reflection to find snapshot creation method
             var controllerType = mixer.GetType();
@@ -443,9 +415,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Expose a parameter on a mixer group (best-effort via reflection).</summary>
         internal static string ExposeParameter(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath);
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<AudioMixer>(
+                args, out var mixer, out var assetPath);
+            if (loadError != null) return loadError;
 
             var groupName = args["group"]?.Value<string>();
             if (string.IsNullOrEmpty(groupName))
@@ -460,13 +432,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing required 'parameter' parameter",
                     "Provide the parameter name to expose (e.g. 'Volume', 'Pitch')");
-
-            var mixer = AssetDatabase.LoadAssetAtPath<AudioMixer>(assetPath);
-            if (mixer == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"Audio Mixer not found at '{assetPath}'",
-                    "Check the asset path is correct");
 
             // Exposing parameters requires knowing the internal GUID of the effect parameter.
             // This is too fragile to implement reliably — return a clear error.
@@ -500,24 +465,5 @@ namespace Theatre.Editor.Tools.Director
             return s_controllerType;
         }
 
-        private static void EnsureParentDirectory(string assetPath)
-        {
-            var lastSlash = assetPath.LastIndexOf('/');
-            if (lastSlash <= 0) return;
-
-            var parentPath = assetPath.Substring(0, lastSlash);
-            if (!AssetDatabase.IsValidFolder(parentPath))
-            {
-                var grandparentSlash = parentPath.LastIndexOf('/');
-                if (grandparentSlash >= 0)
-                {
-                    var grandparent = parentPath.Substring(0, grandparentSlash);
-                    var folderName = parentPath.Substring(grandparentSlash + 1);
-                    EnsureParentDirectory(parentPath);
-                    if (!AssetDatabase.IsValidFolder(parentPath))
-                        AssetDatabase.CreateFolder(grandparent, folderName);
-                }
-            }
-        }
     }
 }

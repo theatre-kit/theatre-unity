@@ -529,6 +529,57 @@ namespace Theatre.Editor.Tools.Director
         }
 
         /// <summary>
+        /// Ensure that the parent directory of the given asset path exists,
+        /// creating intermediate folders as needed.
+        /// Does nothing if the parent folder already exists.
+        /// </summary>
+        public static void EnsureParentDirectory(string assetPath)
+        {
+            var lastSlash = assetPath.LastIndexOf('/');
+            if (lastSlash <= 0) return;
+
+            var parentPath = assetPath.Substring(0, lastSlash);
+            if (!AssetDatabase.IsValidFolder(parentPath))
+            {
+                var grandparentSlash = parentPath.LastIndexOf('/');
+                if (grandparentSlash >= 0)
+                {
+                    var grandparent = parentPath.Substring(0, grandparentSlash);
+                    var folderName = parentPath.Substring(grandparentSlash + 1);
+                    EnsureParentDirectory(parentPath);
+                    if (!AssetDatabase.IsValidFolder(parentPath))
+                        AssetDatabase.CreateFolder(grandparent, folderName);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Parse asset_path from args, validate it, and load the asset.
+        /// Returns null on success (asset and path written to out params),
+        /// or an error response string on failure.
+        /// </summary>
+        public static string LoadAsset<T>(
+            JObject args, out T asset, out string assetPath,
+            string requiredExtension = null,
+            string pathParam = "asset_path") where T : UnityEngine.Object
+        {
+            asset = null;
+            assetPath = args[pathParam]?.Value<string>();
+            var pathError = ValidateAssetPath(assetPath, requiredExtension);
+            if (pathError != null) return pathError;
+
+            asset = AssetDatabase.LoadAssetAtPath<T>(assetPath);
+            if (asset == null)
+                return ResponseHelpers.ErrorResponse(
+                    "asset_not_found",
+                    $"{typeof(T).Name} not found at '{assetPath}'",
+                    $"Check the asset path is correct"
+                    + (requiredExtension != null ? $" and ends with '{requiredExtension}'" : ""));
+
+            return null;
+        }
+
+        /// <summary>
         /// Begin an undo group for a named operation.
         /// Returns the group index for use with EndUndoGroup.
         /// </summary>

@@ -139,7 +139,7 @@ namespace Theatre.Editor.Tools.Director
             var pathError = DirectorHelpers.ValidateAssetPath(assetPath, ".playable");
             if (pathError != null) return pathError;
 
-            EnsureParentDirectory(assetPath);
+            DirectorHelpers.EnsureParentDirectory(assetPath);
 
             var asset = ScriptableObject.CreateInstance<TimelineAsset>();
 
@@ -160,9 +160,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Add a track to a TimelineAsset.</summary>
         internal static string AddTrack(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath, ".playable");
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<TimelineAsset>(
+                args, out var asset, out var assetPath, ".playable");
+            if (loadError != null) return loadError;
 
             var trackTypeStr = args["track_type"]?.Value<string>();
             if (string.IsNullOrEmpty(trackTypeStr))
@@ -177,13 +177,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     $"Unknown track_type '{trackTypeStr}'",
                     "Valid values: animation, activation, audio, control, signal");
-
-            var asset = AssetDatabase.LoadAssetAtPath<TimelineAsset>(assetPath);
-            if (asset == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"TimelineAsset not found at '{assetPath}'",
-                    "Check the asset path is correct and ends with .playable");
 
             // Accept either "name" or "track_name" for the track name
             var trackName = args["name"]?.Value<string>() ?? args["track_name"]?.Value<string>() ?? trackTypeStr;
@@ -205,9 +198,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Add a clip to a track on a TimelineAsset.</summary>
         internal static string AddClip(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath, ".playable");
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<TimelineAsset>(
+                args, out var asset, out var assetPath, ".playable");
+            if (loadError != null) return loadError;
 
             var trackName = args["track_name"]?.Value<string>();
             if (string.IsNullOrEmpty(trackName))
@@ -227,13 +220,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing required 'duration' parameter",
                     "Provide the clip duration in seconds");
-
-            var asset = AssetDatabase.LoadAssetAtPath<TimelineAsset>(assetPath);
-            if (asset == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"TimelineAsset not found at '{assetPath}'",
-                    "Check the asset path is correct");
 
             var track = FindTrackByName(asset, trackName);
             if (track == null)
@@ -275,9 +261,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Set properties on an existing clip on a track.</summary>
         internal static string SetClipProperties(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath, ".playable");
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<TimelineAsset>(
+                args, out var asset, out var assetPath, ".playable");
+            if (loadError != null) return loadError;
 
             var trackName = args["track_name"]?.Value<string>();
             if (string.IsNullOrEmpty(trackName))
@@ -291,13 +277,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing required 'clip_index' parameter",
                     "Provide the zero-based index of the clip on the track");
-
-            var asset = AssetDatabase.LoadAssetAtPath<TimelineAsset>(assetPath);
-            if (asset == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"TimelineAsset not found at '{assetPath}'",
-                    "Check the asset path is correct");
 
             var track = FindTrackByName(asset, trackName);
             if (track == null)
@@ -340,22 +319,15 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Add a marker to a timeline or specific track.</summary>
         internal static string AddMarker(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath, ".playable");
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<TimelineAsset>(
+                args, out var asset, out var assetPath, ".playable");
+            if (loadError != null) return loadError;
 
             if (args["time"] == null)
                 return ResponseHelpers.ErrorResponse(
                     "invalid_parameter",
                     "Missing required 'time' parameter",
                     "Provide the time in seconds for the marker");
-
-            var asset = AssetDatabase.LoadAssetAtPath<TimelineAsset>(assetPath);
-            if (asset == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"TimelineAsset not found at '{assetPath}'",
-                    "Check the asset path is correct");
 
             var time = args["time"].Value<double>();
             var trackName = args["track_name"]?.Value<string>();
@@ -392,9 +364,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Bind a track to a scene object via the PlayableDirector.</summary>
         internal static string BindTrack(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath, ".playable");
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<TimelineAsset>(
+                args, out var asset, out var assetPath, ".playable");
+            if (loadError != null) return loadError;
 
             var trackName = args["track_name"]?.Value<string>();
             if (string.IsNullOrEmpty(trackName))
@@ -409,13 +381,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing required 'object_path' parameter",
                     "Provide the scene hierarchy path of the object to bind");
-
-            var asset = AssetDatabase.LoadAssetAtPath<TimelineAsset>(assetPath);
-            if (asset == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"TimelineAsset not found at '{assetPath}'",
-                    "Check the asset path is correct");
 
             var track = FindTrackByName(asset, trackName);
             if (track == null)
@@ -468,16 +433,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>List all tracks and their clips in a TimelineAsset.</summary>
         internal static string ListTracks(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath, ".playable");
-            if (pathError != null) return pathError;
-
-            var asset = AssetDatabase.LoadAssetAtPath<TimelineAsset>(assetPath);
-            if (asset == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"TimelineAsset not found at '{assetPath}'",
-                    "Check the asset path is correct and ends with .playable");
+            var loadError = DirectorHelpers.LoadAsset<TimelineAsset>(
+                args, out var asset, out var assetPath, ".playable");
+            if (loadError != null) return loadError;
 
             var tracksArray = new JArray();
             foreach (var track in asset.GetOutputTracks())
@@ -536,25 +494,6 @@ namespace Theatre.Editor.Tools.Director
             };
         }
 
-        private static void EnsureParentDirectory(string assetPath)
-        {
-            var lastSlash = assetPath.LastIndexOf('/');
-            if (lastSlash <= 0) return;
-
-            var parentPath = assetPath.Substring(0, lastSlash);
-            if (!AssetDatabase.IsValidFolder(parentPath))
-            {
-                var grandparentSlash = parentPath.LastIndexOf('/');
-                if (grandparentSlash >= 0)
-                {
-                    var grandparent = parentPath.Substring(0, grandparentSlash);
-                    var folderName = parentPath.Substring(grandparentSlash + 1);
-                    EnsureParentDirectory(parentPath);
-                    if (!AssetDatabase.IsValidFolder(parentPath))
-                        AssetDatabase.CreateFolder(grandparent, folderName);
-                }
-            }
-        }
     }
 }
 #endif

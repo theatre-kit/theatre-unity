@@ -118,7 +118,7 @@ namespace Theatre.Editor.Tools.Director
                 DirectorHelpers.SetFields(instance, fields);
 
             // Ensure parent directory exists
-            EnsureParentDirectory(assetPath);
+            DirectorHelpers.EnsureParentDirectory(assetPath);
 
             AssetDatabase.CreateAsset(instance, assetPath);
             Undo.RegisterCreatedObjectUndo(instance, "Theatre scriptable_object_op:create");
@@ -135,9 +135,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Set fields on an existing ScriptableObject asset.</summary>
         internal static string SetFields(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath);
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<ScriptableObject>(
+                args, out var so, out var assetPath);
+            if (loadError != null) return loadError;
 
             var fields = args["fields"] as JObject;
             if (fields == null || !fields.HasValues)
@@ -145,13 +145,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing required 'fields' parameter",
                     "Provide a 'fields' object with field name/value pairs");
-
-            var so = AssetDatabase.LoadAssetAtPath<ScriptableObject>(assetPath);
-            if (so == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"ScriptableObject not found at '{assetPath}'",
-                    "Check the asset path is correct and ends with .asset");
 
             Undo.RecordObject(so, "Theatre scriptable_object_op:set_fields");
             var (fieldsSet, errors) = DirectorHelpers.SetFields(so, fields);
@@ -175,16 +168,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>List all visible serialized fields on a ScriptableObject asset.</summary>
         internal static string ListFields(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath);
-            if (pathError != null) return pathError;
-
-            var so = AssetDatabase.LoadAssetAtPath<ScriptableObject>(assetPath);
-            if (so == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"ScriptableObject not found at '{assetPath}'",
-                    "Check the asset path is correct");
+            var loadError = DirectorHelpers.LoadAsset<ScriptableObject>(
+                args, out var so, out var assetPath);
+            if (loadError != null) return loadError;
 
             var soSerialized = new SerializedObject(so);
             var fieldsArray = new JArray();
@@ -300,24 +286,5 @@ namespace Theatre.Editor.Tools.Director
             }
         }
 
-        private static void EnsureParentDirectory(string assetPath)
-        {
-            var lastSlash = assetPath.LastIndexOf('/');
-            if (lastSlash <= 0) return;
-
-            var parentPath = assetPath.Substring(0, lastSlash);
-            if (!AssetDatabase.IsValidFolder(parentPath))
-            {
-                var grandparentSlash = parentPath.LastIndexOf('/');
-                if (grandparentSlash >= 0)
-                {
-                    var grandparent = parentPath.Substring(0, grandparentSlash);
-                    var folderName = parentPath.Substring(grandparentSlash + 1);
-                    EnsureParentDirectory(parentPath);
-                    if (!AssetDatabase.IsValidFolder(parentPath))
-                        AssetDatabase.CreateFolder(grandparent, folderName);
-                }
-            }
-        }
     }
 }

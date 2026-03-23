@@ -115,7 +115,7 @@ namespace Theatre.Editor.Tools.Director
             if (settings != null)
                 ApplyUrpSettings(asset, settings);
 
-            EnsureParentDirectory(assetPath);
+            DirectorHelpers.EnsureParentDirectory(assetPath);
             AssetDatabase.CreateAsset(asset, assetPath);
             AssetDatabase.SaveAssets();
 
@@ -148,7 +148,7 @@ namespace Theatre.Editor.Tools.Director
                     "Failed to create HDRenderPipelineAsset instance",
                     "Check that the HDRP package is properly installed");
 
-            EnsureParentDirectory(assetPath);
+            DirectorHelpers.EnsureParentDirectory(assetPath);
             AssetDatabase.CreateAsset(asset, assetPath);
             AssetDatabase.SaveAssets();
 
@@ -170,10 +170,6 @@ namespace Theatre.Editor.Tools.Director
         internal static string SetQualitySettings(JObject args)
         {
 #if THEATRE_HAS_URP
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath, ".asset");
-            if (pathError != null) return pathError;
-
             var settings = args["settings"] as JObject;
             if (settings == null || !settings.HasValues)
                 return ResponseHelpers.ErrorResponse(
@@ -181,12 +177,9 @@ namespace Theatre.Editor.Tools.Director
                     "Missing required 'settings' parameter",
                     "Provide a 'settings' object with keys such as hdr, msaa, render_scale, shadow_distance");
 
-            var asset = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>(assetPath);
-            if (asset == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"URP pipeline asset not found at '{assetPath}'",
-                    "Check the asset path is correct and ends with .asset");
+            var loadError = DirectorHelpers.LoadAsset<UniversalRenderPipelineAsset>(
+                args, out var asset, out var assetPath, ".asset");
+            if (loadError != null) return loadError;
 
             Undo.RecordObject(asset, "Theatre render_pipeline_op:set_quality_settings");
             ApplyUrpSettings(asset, settings);
@@ -223,7 +216,7 @@ namespace Theatre.Editor.Tools.Director
                     "Failed to create UniversalRendererData instance",
                     "Check that the URP package is properly installed");
 
-            EnsureParentDirectory(assetPath);
+            DirectorHelpers.EnsureParentDirectory(assetPath);
             AssetDatabase.CreateAsset(rendererData, assetPath);
             AssetDatabase.SaveAssets();
 
@@ -246,9 +239,9 @@ namespace Theatre.Editor.Tools.Director
         internal static string AddRendererFeature(JObject args)
         {
 #if THEATRE_HAS_URP
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath, ".asset");
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<UniversalRendererData>(
+                args, out var rendererData, out var assetPath, ".asset");
+            if (loadError != null) return loadError;
 
             var featureTypeName = args["feature_type"]?.Value<string>();
             if (string.IsNullOrEmpty(featureTypeName))
@@ -256,13 +249,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing required 'feature_type' parameter",
                     "Provide the fully-qualified type name of a ScriptableRendererFeature");
-
-            var rendererData = AssetDatabase.LoadAssetAtPath<UniversalRendererData>(assetPath);
-            if (rendererData == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"UniversalRendererData not found at '{assetPath}'",
-                    "Check the asset path is correct and refers to a renderer data asset");
 
             // Resolve the feature type from all loaded assemblies
             Type featureType = null;
@@ -370,25 +356,6 @@ namespace Theatre.Editor.Tools.Director
         }
 #endif
 
-        private static void EnsureParentDirectory(string assetPath)
-        {
-            var lastSlash = assetPath.LastIndexOf('/');
-            if (lastSlash <= 0) return;
-
-            var parentPath = assetPath.Substring(0, lastSlash);
-            if (!AssetDatabase.IsValidFolder(parentPath))
-            {
-                var grandparentSlash = parentPath.LastIndexOf('/');
-                if (grandparentSlash >= 0)
-                {
-                    var grandparent = parentPath.Substring(0, grandparentSlash);
-                    var folderName = parentPath.Substring(grandparentSlash + 1);
-                    EnsureParentDirectory(parentPath);
-                    if (!AssetDatabase.IsValidFolder(parentPath))
-                        AssetDatabase.CreateFolder(grandparent, folderName);
-                }
-            }
-        }
     }
 }
 #endif

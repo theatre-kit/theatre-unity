@@ -125,7 +125,7 @@ namespace Theatre.Editor.Tools.Director
                 ApplyMaterialProperties(material, properties);
 
             // Ensure parent directory exists
-            EnsureParentDirectory(assetPath);
+            DirectorHelpers.EnsureParentDirectory(assetPath);
 
             AssetDatabase.CreateAsset(material, assetPath);
             Undo.RegisterCreatedObjectUndo(material, "Theatre material_op:create");
@@ -142,9 +142,8 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Set shader properties on an existing Material.</summary>
         internal static string SetProperties(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath);
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<Material>(args, out var material, out var assetPath);
+            if (loadError != null) return loadError;
 
             var properties = args["properties"] as JObject;
             if (properties == null || !properties.HasValues)
@@ -152,13 +151,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing required 'properties' parameter",
                     "Provide a 'properties' object with shader property name/value pairs");
-
-            var material = AssetDatabase.LoadAssetAtPath<Material>(assetPath);
-            if (material == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"Material not found at '{assetPath}'",
-                    "Check the asset path is correct and ends with .mat");
 
             Undo.RecordObject(material, "Theatre material_op:set_properties");
             int propertiesSet = ApplyMaterialProperties(material, properties);
@@ -176,9 +168,8 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Change the shader on an existing Material.</summary>
         internal static string SetShader(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath);
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<Material>(args, out var material, out var assetPath);
+            if (loadError != null) return loadError;
 
             var shaderName = args["shader"]?.Value<string>();
             if (string.IsNullOrEmpty(shaderName))
@@ -186,13 +177,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing required 'shader' parameter",
                     "Provide a shader name such as 'Standard'");
-
-            var material = AssetDatabase.LoadAssetAtPath<Material>(assetPath);
-            if (material == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"Material not found at '{assetPath}'",
-                    "Check the asset path is correct");
 
             var newShader = Shader.Find(shaderName);
             if (newShader == null)
@@ -220,16 +204,8 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>List all shader properties on a Material.</summary>
         internal static string ListProperties(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath);
-            if (pathError != null) return pathError;
-
-            var material = AssetDatabase.LoadAssetAtPath<Material>(assetPath);
-            if (material == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"Material not found at '{assetPath}'",
-                    "Check the asset path is correct");
+            var loadError = DirectorHelpers.LoadAsset<Material>(args, out var material, out var assetPath);
+            if (loadError != null) return loadError;
 
             var shader = material.shader;
             var propsArray = new JArray();
@@ -368,26 +344,5 @@ namespace Theatre.Editor.Tools.Director
             return count;
         }
 
-        private static void EnsureParentDirectory(string assetPath)
-        {
-            // assetPath is relative (Assets/...), build parent folder path
-            var lastSlash = assetPath.LastIndexOf('/');
-            if (lastSlash <= 0) return;
-
-            var parentPath = assetPath.Substring(0, lastSlash);
-            if (!AssetDatabase.IsValidFolder(parentPath))
-            {
-                // Split into grandparent + folderName and recursively create
-                var grandparentSlash = parentPath.LastIndexOf('/');
-                if (grandparentSlash >= 0)
-                {
-                    var grandparent = parentPath.Substring(0, grandparentSlash);
-                    var folderName = parentPath.Substring(grandparentSlash + 1);
-                    EnsureParentDirectory(parentPath);
-                    if (!AssetDatabase.IsValidFolder(parentPath))
-                        AssetDatabase.CreateFolder(grandparent, folderName);
-                }
-            }
-        }
     }
 }

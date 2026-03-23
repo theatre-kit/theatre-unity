@@ -114,7 +114,7 @@ namespace Theatre.Editor.Tools.Director
                 atlas.SetPackingSettings(packSettings);
             }
 
-            EnsureParentDirectory(assetPath);
+            DirectorHelpers.EnsureParentDirectory(assetPath);
             AssetDatabase.CreateAsset(atlas, assetPath);
             Undo.RegisterCreatedObjectUndo(atlas, "Theatre sprite_atlas_op:create");
 
@@ -130,9 +130,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Add asset entries (sprites or folders) to an existing atlas.</summary>
         internal static string AddEntries(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath);
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<SpriteAtlas>(
+                args, out var atlas, out var assetPath, ".spriteatlas");
+            if (loadError != null) return loadError;
 
             var entriesArr = args["entries"] as JArray;
             if (entriesArr == null || entriesArr.Count == 0)
@@ -140,13 +140,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing required 'entries' parameter",
                     "Provide an array of asset paths to add to the atlas");
-
-            var atlas = AssetDatabase.LoadAssetAtPath<SpriteAtlas>(assetPath);
-            if (atlas == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"Sprite Atlas not found at '{assetPath}'",
-                    "Check the asset path is correct and ends with .spriteatlas");
 
             var objects = new List<UnityEngine.Object>();
             var notFound = new List<string>();
@@ -188,9 +181,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Remove asset entries from an existing atlas.</summary>
         internal static string RemoveEntries(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath);
-            if (pathError != null) return pathError;
+            var loadError = DirectorHelpers.LoadAsset<SpriteAtlas>(
+                args, out var atlas, out var assetPath, ".spriteatlas");
+            if (loadError != null) return loadError;
 
             var entriesArr = args["entries"] as JArray;
             if (entriesArr == null || entriesArr.Count == 0)
@@ -198,13 +191,6 @@ namespace Theatre.Editor.Tools.Director
                     "invalid_parameter",
                     "Missing required 'entries' parameter",
                     "Provide an array of asset paths to remove from the atlas");
-
-            var atlas = AssetDatabase.LoadAssetAtPath<SpriteAtlas>(assetPath);
-            if (atlas == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"Sprite Atlas not found at '{assetPath}'",
-                    "Check the asset path is correct and ends with .spriteatlas");
 
             var objects = new List<UnityEngine.Object>();
 
@@ -237,16 +223,9 @@ namespace Theatre.Editor.Tools.Director
         /// <summary>Pack all sprites in a Sprite Atlas.</summary>
         internal static string Pack(JObject args)
         {
-            var assetPath = args["asset_path"]?.Value<string>();
-            var pathError = DirectorHelpers.ValidateAssetPath(assetPath);
-            if (pathError != null) return pathError;
-
-            var atlas = AssetDatabase.LoadAssetAtPath<SpriteAtlas>(assetPath);
-            if (atlas == null)
-                return ResponseHelpers.ErrorResponse(
-                    "asset_not_found",
-                    $"Sprite Atlas not found at '{assetPath}'",
-                    "Check the asset path is correct and ends with .spriteatlas");
+            var loadError = DirectorHelpers.LoadAsset<SpriteAtlas>(
+                args, out var atlas, out var assetPath, ".spriteatlas");
+            if (loadError != null) return loadError;
 
             SpriteAtlasUtility.PackAtlases(
                 new[] { atlas },
@@ -262,24 +241,5 @@ namespace Theatre.Editor.Tools.Director
 
         // --- Helpers ---
 
-        private static void EnsureParentDirectory(string assetPath)
-        {
-            var lastSlash = assetPath.LastIndexOf('/');
-            if (lastSlash <= 0) return;
-
-            var parentPath = assetPath.Substring(0, lastSlash);
-            if (!AssetDatabase.IsValidFolder(parentPath))
-            {
-                var grandparentSlash = parentPath.LastIndexOf('/');
-                if (grandparentSlash >= 0)
-                {
-                    var grandparent = parentPath.Substring(0, grandparentSlash);
-                    var folderName = parentPath.Substring(grandparentSlash + 1);
-                    EnsureParentDirectory(parentPath);
-                    if (!AssetDatabase.IsValidFolder(parentPath))
-                        AssetDatabase.CreateFolder(grandparent, folderName);
-                }
-            }
-        }
     }
 }
