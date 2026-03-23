@@ -1,0 +1,24 @@
+{
+  "name": "theatre-unity",
+  "description": "Agent skills for Theatre — an MCP server running inside the Unity Editor for spatial awareness and programmatic control.",
+  "skills": [
+    {
+      "name": "theatre-unity",
+      "description": "Theatre for Unity MCP server tools. Gives AI agents spatial awareness (Stage) and programmatic control (Director) over Unity scenes via Streamable HTTP.",
+      "repo": "theatre-kit/theatre-unity",
+      "tags": ["unity", "mcp", "gamedev", "scene", "spatial", "animation", "prefab", "tilemap", "terrain"]
+    },
+    {
+      "name": "unity-api-pitfalls",
+      "description": "Unity 6 API rules, threading idioms, and gotchas for Theatre editor extensions. Covers deprecated APIs, assembly boundaries, threading, serialization, and domain reload.",
+      "repo": "theatre-kit/theatre-unity",
+      "tags": ["unity", "api", "threading", "serialization", "editor"]
+    },
+    {
+      "name": "unity-ui-toolkit",
+      "description": "Unity 6 UI Toolkit reference for building editor and runtime UI with UXML, USS, and C# bindings.",
+      "repo": "theatre-kit/theatre-unity",
+      "tags": ["unity", "ui", "toolkit", "uxml", "uss", "editor"]
+    }
+  ]
+}
