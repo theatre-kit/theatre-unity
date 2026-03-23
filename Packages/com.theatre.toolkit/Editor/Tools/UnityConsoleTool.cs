@@ -103,6 +103,7 @@ namespace Theatre.Editor
             var entries = ConsoleLogBuffer.Query(count, typeFilter, grep, isRegex);
 
             var result = new JObject();
+            ResponseHelpers.AddProjectContext(result);
             result["total_in_buffer"] = ConsoleLogBuffer.Count;
             result["returned"] = entries.Count;
             if (typeFilter != null) result["filter"] = typeFilter;
@@ -132,6 +133,7 @@ namespace Theatre.Editor
                 ConsoleLogBuffer.GetSummary(10);
 
             var result = new JObject();
+            ResponseHelpers.AddProjectContext(result);
             result["total_entries"] = ConsoleLogBuffer.Count;
             result["counts"] = new JObject
             {
@@ -158,6 +160,7 @@ namespace Theatre.Editor
             ConsoleLogBuffer.Clear();
 
             var result = new JObject();
+            ResponseHelpers.AddProjectContext(result);
             result["result"] = "ok";
             result["cleared"] = countBefore;
             return result.ToString(Newtonsoft.Json.Formatting.None);
@@ -168,6 +171,7 @@ namespace Theatre.Editor
             UnityEditor.AssetDatabase.Refresh();
 
             var result = new JObject();
+            ResponseHelpers.AddProjectContext(result);
             result["result"] = "ok";
             result["message"] = "AssetDatabase.Refresh() triggered. "
                 + "Scripts will recompile if changed. "

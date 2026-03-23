@@ -14,12 +14,21 @@ namespace Theatre.Stage
     public static class ResponseHelpers
     {
         /// <summary>
+        /// Add the project name to a JObject.
+        /// Use on infrastructure responses (console, tests) that don't need frame context.
+        /// </summary>
+        public static void AddProjectContext(JObject obj)
+        {
+            obj["project"] = Application.productName;
+        }
+
+        /// <summary>
         /// Add frame context fields to a JObject.
-        /// Adds: frame, time, play_mode.
+        /// Adds: project, frame, time, play_mode.
         /// </summary>
         public static void AddFrameContext(JObject obj)
         {
-            obj["project"] = Application.productName;
+            AddProjectContext(obj);
             obj["frame"] = Time.frameCount;
             obj["time"] = Math.Round(Time.time, 2);
             obj["play_mode"] = Application.isPlaying;

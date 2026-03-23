@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using UnityEditor.TestTools.TestRunner.Api;
+using Theatre.Stage;
 using Theatre.Transport;
 
 namespace Theatre.Editor
@@ -109,6 +110,7 @@ namespace Theatre.Editor
                 return FormatResults(capture, failuresOnly, mode);
 
             var result = new JObject();
+            ResponseHelpers.AddProjectContext(result);
             result["status"] = "running";
             result["mode"] = mode;
             result["message"] = "Tests started. Call unity_tests with "
@@ -138,6 +140,7 @@ namespace Theatre.Editor
                 CollectLeafTests(testRoot, tests, filter);
 
                 resultObj = new JObject();
+                ResponseHelpers.AddProjectContext(resultObj);
                 resultObj["mode"] = mode;
                 resultObj["total"] = tests.Count;
                 if (!string.IsNullOrEmpty(filter))
@@ -182,6 +185,7 @@ namespace Theatre.Editor
             if (s_lastResults == null)
             {
                 var result = new JObject();
+                ResponseHelpers.AddProjectContext(result);
                 result["status"] = "no_results";
                 result["message"] = "No test results available. "
                     + "Call unity_tests with operation='run' first.";
@@ -191,6 +195,7 @@ namespace Theatre.Editor
             if (!s_lastResults.IsComplete)
             {
                 var result = new JObject();
+                ResponseHelpers.AddProjectContext(result);
                 result["status"] = "running";
                 result["completed"] = s_lastResults.CompletedCount;
                 result["message"] = "Tests still running.";
@@ -204,6 +209,7 @@ namespace Theatre.Editor
             TestResultCapture capture, bool failuresOnly, string mode)
         {
             var result = new JObject();
+            ResponseHelpers.AddProjectContext(result);
             result["status"] = "complete";
             if (mode != null) result["mode"] = mode;
             result["passed"] = capture.Passed;
